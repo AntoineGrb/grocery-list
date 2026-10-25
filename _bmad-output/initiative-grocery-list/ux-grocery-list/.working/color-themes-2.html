@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thèmes de couleur, 2e passe</title>
+<style>
+
+:root{--pg:#F4F1EC;--pg2:#FFFFFF;--ink:#24201C;--ink2:#5A534B;--line:#DDD6CC;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--pg:#141210;--pg2:#1E1B18;--ink:#EDE7DF;--ink2:#BDB4A9;--line:#38322C}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:1.75rem;margin:0 0 6px;letter-spacing:-.01em}
+.intro{margin:0 0 4px;color:var(--ink2);max-width:76ch}
+.var,.cmp{background:var(--pg2);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:22px}
+.vh{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.num{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:1.5px solid var(--ink);font-size:.95rem}
+.vh h2,.cmp h2{margin:0;font-size:1.35rem}
+.reg{margin:2px 0 0;color:var(--ink2);font-style:italic;max-width:80ch}
+.phones{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:18px}
+.tokens h3,.strip h3{font-size:.95rem;margin:4px 0 8px}
+.tokens h3 small{font-weight:400;color:var(--ink2)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;margin-bottom:14px}
+.chip{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.chip .sw{grid-row:1/3;display:flex;border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+.chip .sw i{display:block;width:18px;height:30px}
+.chip .cl{font-size:.82rem;font-weight:600;line-height:1.2}
+.chip code{font-size:.72rem;color:var(--ink2);font-family:ui-monospace,Consolas,monospace}
+.audit{font-size:.78rem;color:var(--ink2);margin:0}
+.pf,.sp{margin:0}
+.pf figcaption,.sp figcaption{font-size:.8rem;color:var(--ink2);margin:0 0 6px 4px;font-weight:600;letter-spacing:.03em}
+.cmp p{color:var(--ink2);margin:4px 0 14px;max-width:80ch}
+.strip+.strip{margin-top:18px}
+.sps{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+
+/* ---------- maquette (structure Crème & fusain) ---------- */
+.phone{position:relative;width:360px;max-width:calc(100vw - 72px);height:720px;border-radius:28px;overflow:hidden;background:var(--surface);color:var(--onSurface);
+  border:6px solid #0E0C0B;display:flex;flex-direction:column;font-size:16px}
+.mini{background:var(--surface);color:var(--onSurface);border-radius:14px;padding:2px 0 8px;border:1px solid var(--line);font-size:16px}
+.sb{display:flex;justify-content:space-between;padding:6px 18px 2px;font-size:12px}
+.sbi{width:36px;height:10px;border-radius:3px;border:1.5px solid currentColor}
+.ab{display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 12px 0 18px}
+.abt{font-size:22px;font-weight:500}
+.abi{width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
+.body{flex:1;overflow:hidden;padding:0 0 96px}
+.grp{margin:0}
+.grp+.grp{border-top:1px solid var(--surfaceContainer)}
+.gh{display:flex;align-items:center;gap:8px;margin:0;padding:14px 18px 4px;font-size:14px;font-weight:700}
+.gl{display:inline-flex;align-items:center;gap:8px}
+.gc{margin-left:auto;font-weight:500;font-size:12px;color:var(--onSurfaceVariant)}
+.grp ul,.ck ul{list-style:none;margin:0;padding:0}
+.item{display:flex;align-items:center;gap:14px;min-height:48px;padding:0 18px}
+.cb{flex:none;width:22px;height:22px;border-radius:4px;border:2px solid var(--r);display:grid;place-items:center;color:var(--surface)}
+.done .cb{background:var(--r)}
+.nm{flex:1}
+.qt{color:var(--onSurfaceVariant);font-size:14px}
+.done .nm,.done .qt{color:var(--checked);text-decoration:line-through;text-decoration-thickness:1.5px}
+/* en-tête : pastille (point + nom, fond teinté arrondi) */
+.h-pastille .gl{background:var(--rc);padding:5px 12px 5px 9px;border-radius:999px;color:var(--onSurface)}
+.h-pastille .mk{width:10px;height:10px;border-radius:50%;background:var(--r)}
+/* en-tête : carré + capitales */
+.h-carre .gh{padding-top:16px;text-transform:uppercase;font-size:12.5px;letter-spacing:.08em}
+.h-carre .gl{padding:5px 0}
+.h-carre .mk{width:10px;height:10px;border-radius:2px;background:var(--r)}
+/* section « Cochés » repliable */
+.ck{margin-top:10px;border-top:1px solid var(--outline)}
+.ckh{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 18px 0 14px;color:var(--onSurfaceVariant);font-size:14px;font-weight:600}
+.chev{display:grid;place-items:center}
+.ckhint{margin-left:auto;font-weight:500;font-size:12px}
+/* bouton + et navigation */
+.fab{position:absolute;right:16px;bottom:92px;width:58px;height:58px;border-radius:17px;background:var(--primaryContainer);color:var(--onPrimaryContainer);
+  display:grid;place-items:center;box-shadow:0 3px 8px rgba(0,0,0,.28)}
+.fab-p{background:var(--primary);color:var(--onPrimary)}
+.nb{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--surfaceContainer);display:flex;justify-content:space-around;align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--onSurfaceVariant);width:110px}
+.tab .ind{width:64px;height:32px;border-radius:16px;display:grid;place-items:center}
+.tab.on{color:var(--onSurface);font-weight:700}
+.tab.on .ind{background:var(--primaryContainer);color:var(--onPrimaryContainer)}
+
+
+/* ================================================================
+   VALEURS PAR PALETTE (hex à reprendre telles quelles)
+   ================================================================ */
+/* ===== Crème & fusain (.a) : Papier crème et encre douce : calme, minimal ; la couleur ne vient que des rayons. (Valeurs de la piste 4, inchangées.) */
+.a.light { /* CLAIR */
+  --primary: #2F2A25;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #E8E1D6;
+  --onPrimaryContainer: #2F2A25;
+  --surface: #FBF8F3;
+  --surfaceContainer: #F2EDE5;
+  --onSurface: #24201C;
+  --onSurfaceVariant: #5A534B;
+  --outline: #8C847A;
+  --checked: #6F6860;
+  --error: #B3261E;
+}
+/* Rayons clair : accent (point, carré, case à cocher ; >=3:1 sur surface) | fond de pastille (on-surface dessus >=4.5:1) */
+/*   Fruits & légumes  accent #34A238  pastille #DBEAD5 */
+/*   Boulangerie       accent #B28138  pastille #EFE5D5 */
+/*   Viande/Poisson    accent #B23840  pastille #EFD9D6 */
+/*   Crèmerie          accent #3B76BA  pastille #DCE3EA */
+/*   Épicerie salée    accent #B26138  pastille #EFE0D5 */
+/*   Épicerie sucrée   accent #B23871  pastille #EFD9DE */
+/*   Surgelés          accent #379BAE  pastille #DCE9E8 */
+/*   Plats préparés    accent #9F9032  pastille #ECE7D4 */
+/*   Boissons          accent #813CBE  pastille #E7DAEB */
+/*   Hygiène           accent #339E87  pastille #DBEAE2 */
+/*   Entretien         accent #3D4AC2  pastille #DDDCEB */
+/*   Bébé/Animaux      accent #BA3BBA  pastille #F1DAEA */
+/*   Divers            accent #7E756D  pastille #E7E3DE */
+.a.dark { /* SOMBRE */
+  --primary: #EDE5DA;
+  --onPrimary: #2A2520;
+  --primaryContainer: #3A342E;
+  --onPrimaryContainer: #EDE5DA;
+  --surface: #191715;
+  --surfaceContainer: #24211E;
+  --onSurface: #EDE7DF;
+  --onSurfaceVariant: #CBC3B9;
+  --outline: #948C82;
+  --checked: #A39B91;
+  --error: #FFB4AB;
+}
+/* Rayons sombre : accent (point, carré, case à cocher ; >=3:1 sur surface) | fond de pastille (on-surface dessus >=4.5:1) */
+/*   Fruits & légumes  accent #81DA84  pastille #324630 */
+/*   Boulangerie       accent #DAB681  pastille #473D2F */
+/*   Viande/Poisson    accent #DA8187  pastille #473030 */
+/*   Crèmerie          accent #84ADDB  pastille #333B45 */
+/*   Épicerie salée    accent #DA9E81  pastille #47372F */
+/*   Épicerie sucrée   accent #DA81AA  pastille #473039 */
+/*   Surgelés          accent #81CBDA  pastille #324244 */
+/*   Plats préparés    accent #D8CB79  pastille #47422D */
+/*   Boissons          accent #B486DC  pastille #3E3245 */
+/*   Hygiène           accent #81DAC5  pastille #32463F */
+/*   Entretien         accent #8891DD  pastille #343445 */
+/*   Bébé/Animaux      accent #DB84DB  pastille #483145 */
+/*   Divers            accent #B4ADA7  pastille #3E3B38 */
+/* ===== Argile sur fusain (.b) : Structure neutre de Crème & fusain, chaleur de Terre cuite : surfaces à peine rosées, argile réservée au bouton + (plein) et à l'onglet actif (teinte claire), rayons mats de Terre cuite. */
+.b.light { /* CLAIR */
+  --primary: #9C4A2A;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #F2D6C8;
+  --onPrimaryContainer: #3B1305;
+  --surface: #FBF6F2;
+  --surfaceContainer: #F3ECE6;
+  --onSurface: #2A211C;
+  --onSurfaceVariant: #5C4E46;
+  --outline: #8F7E74;
+  --checked: #6F625A;
+  --error: #B3261E;
+}
+/* Rayons clair : accent (point, carré, case à cocher ; >=3:1 sur surface) | fond de pastille (on-surface dessus >=4.5:1) */
+/*   Fruits & légumes  accent #4B9245  pastille #DFE6D6 */
+/*   Boulangerie       accent #927245  pastille #EAE1D6 */
+/*   Viande/Poisson    accent #924546  pastille #EADAD6 */
+/*   Crèmerie          accent #485A99  pastille #DEDDE4 */
+/*   Épicerie salée    accent #925F45  pastille #EADED6 */
+/*   Épicerie sucrée   accent #924563  pastille #EADADB */
+/*   Surgelés          accent #45928E  pastille #DEE6E2 */
+/*   Plats préparés    accent #84783E  pastille #E8E2D5 */
+/*   Boissons          accent #83499C  pastille #E8DAE4 */
+/*   Hygiène           accent #459272  pastille #DEE6DE */
+/*   Entretien         accent #544BA0  pastille #E0DBE5 */
+/*   Bébé/Animaux      accent #99488F  pastille #EBDAE2 */
+/*   Divers            accent #706B66  pastille #E5E0DC */
+.b.dark { /* SOMBRE */
+  --primary: #F0A585;
+  --onPrimary: #4D1C08;
+  --primaryContainer: #6E3219;
+  --onPrimaryContainer: #FFDBCC;
+  --surface: #1B1715;
+  --surfaceContainer: #26201D;
+  --onSurface: #F0E5DD;
+  --onSurfaceVariant: #D0C2B8;
+  --outline: #9A8B81;
+  --checked: #A6988E;
+  --error: #FFB4AB;
+}
+/* Rayons sombre : accent (point, carré, case à cocher ; >=3:1 sur surface) | fond de pastille (on-surface dessus >=4.5:1) */
+/*   Fruits & légumes  accent #93CE8D  pastille #384332 */
+/*   Boulangerie       accent #CEB38D  pastille #463C32 */
+/*   Viande/Poisson    accent #CE8D8E  pastille #463332 */
+/*   Crèmerie          accent #909FD0  pastille #373842 */
+/*   Épicerie salée    accent #CEA38D  pastille #463932 */
+/*   Épicerie sucrée   accent #CE8DA6  pastille #463338 */
+/*   Surgelés          accent #8DCECB  pastille #364341 */
+/*   Plats préparés    accent #CBC086  pastille #454030 */
+/*   Boissons          accent #BD92D0  pastille #423542 */
+/*   Hygiène           accent #8DCEB3  pastille #36433B */
+/*   Entretien         accent #9B94D1  pastille #3A3542 */
+/*   Bébé/Animaux      accent #D090C8  pastille #463440 */
+/*   Divers            accent #B2ADA9  pastille #3F3B39 */
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Thèmes de couleur, 2e passe</h1>
+<p class="intro">Même organisation d'écran pour les deux palettes : celle de Crème &amp; fusain (interface neutre, couleur portée uniquement par les rayons, cases à cocher à la couleur du rayon). Nouveau comportement : un article coché quitte son rayon et rejoint la section repliable « Cochés » en bas de liste. Les maquettes principales utilisent l'en-tête « Pastille » ; la comparaison des deux en-têtes est en bas de page.</p>
+
+<section class="var" id="a">
+  <header class="vh"><span class="num">A</span>
+    <div><h2>Crème &amp; fusain</h2><p class="reg">Papier crème et encre douce : calme, minimal ; la couleur ne vient que des rayons. (Valeurs de la piste 4, inchangées.)</p></div></header>
+  <div class="phones"><figure class="pf"><figcaption>Clair — « Cochés » déplié</figcaption><div class="phone a light"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp h-pastille" style="--r:#34A238;--rc:#DBEAD5"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#3B76BA;--rc:#DCE3EA"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#B26138;--rc:#EFE0D5"><h4 class="gh"><span class="gl"><span class="mk"></span>Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#339E87;--rc:#DBEAE2"><h4 class="gh"><span class="gl"><span class="mk"></span>Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section><section class="ck"><div class="ckh"><span class="chev"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Cochés (1)</span><span class="ckhint">Replier</span></div><ul><li class="item done" style="--r:#3B76BA;--rc:#DCE3EA"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre — « Cochés » replié</figcaption><div class="phone a dark"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp h-pastille" style="--r:#81DA84;--rc:#324630"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#84ADDB;--rc:#333B45"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#DA9E81;--rc:#47372F"><h4 class="gh"><span class="gl"><span class="mk"></span>Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#81DAC5;--rc:#32463F"><h4 class="gh"><span class="gl"><span class="mk"></span>Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section><section class="ck"><div class="ckh"><span class="chev"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Cochés (1)</span><span class="ckhint">Afficher</span></div></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  <div class="tokens">
+    <h3>Rôles <small>(clair · sombre)</small></h3><div class="chips"><div class="chip"><span class="sw"><i style="background:#2F2A25"></i><i style="background:#EDE5DA"></i></span><span class="cl">primary</span><code>#2F2A25 · #EDE5DA</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#2A2520"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #2A2520</code></div><div class="chip"><span class="sw"><i style="background:#E8E1D6"></i><i style="background:#3A342E"></i></span><span class="cl">primary-container (onglet actif ; bouton + en A)</span><code>#E8E1D6 · #3A342E</code></div><div class="chip"><span class="sw"><i style="background:#2F2A25"></i><i style="background:#EDE5DA"></i></span><span class="cl">on-primary-container</span><code>#2F2A25 · #EDE5DA</code></div><div class="chip"><span class="sw"><i style="background:#FBF8F3"></i><i style="background:#191715"></i></span><span class="cl">surface</span><code>#FBF8F3 · #191715</code></div><div class="chip"><span class="sw"><i style="background:#24201C"></i><i style="background:#EDE7DF"></i></span><span class="cl">on-surface</span><code>#24201C · #EDE7DF</code></div><div class="chip"><span class="sw"><i style="background:#F2EDE5"></i><i style="background:#24211E"></i></span><span class="cl">surface-container (barre de navigation)</span><code>#F2EDE5 · #24211E</code></div><div class="chip"><span class="sw"><i style="background:#5A534B"></i><i style="background:#CBC3B9"></i></span><span class="cl">on-surface-variant</span><code>#5A534B · #CBC3B9</code></div><div class="chip"><span class="sw"><i style="background:#8C847A"></i><i style="background:#948C82"></i></span><span class="cl">outline</span><code>#8C847A · #948C82</code></div><div class="chip"><span class="sw"><i style="background:#6F6860"></i><i style="background:#A39B91"></i></span><span class="cl">checked (coché)</span><code>#6F6860 · #A39B91</code></div><div class="chip"><span class="sw"><i style="background:#B3261E"></i><i style="background:#FFB4AB"></i></span><span class="cl">error</span><code>#B3261E · #FFB4AB</code></div></div>
+    <h3>13 rayons <small>(accent clair · sombre)</small></h3><div class="chips"><div class="chip"><span class="sw"><i style="background:#34A238"></i><i style="background:#81DA84"></i></span><span class="cl">Fruits &amp; légumes</span><code>#34A238 · #81DA84</code></div><div class="chip"><span class="sw"><i style="background:#B28138"></i><i style="background:#DAB681"></i></span><span class="cl">Boulangerie</span><code>#B28138 · #DAB681</code></div><div class="chip"><span class="sw"><i style="background:#B23840"></i><i style="background:#DA8187"></i></span><span class="cl">Viande/Poisson</span><code>#B23840 · #DA8187</code></div><div class="chip"><span class="sw"><i style="background:#3B76BA"></i><i style="background:#84ADDB"></i></span><span class="cl">Crèmerie</span><code>#3B76BA · #84ADDB</code></div><div class="chip"><span class="sw"><i style="background:#B26138"></i><i style="background:#DA9E81"></i></span><span class="cl">Épicerie salée</span><code>#B26138 · #DA9E81</code></div><div class="chip"><span class="sw"><i style="background:#B23871"></i><i style="background:#DA81AA"></i></span><span class="cl">Épicerie sucrée</span><code>#B23871 · #DA81AA</code></div><div class="chip"><span class="sw"><i style="background:#379BAE"></i><i style="background:#81CBDA"></i></span><span class="cl">Surgelés</span><code>#379BAE · #81CBDA</code></div><div class="chip"><span class="sw"><i style="background:#9F9032"></i><i style="background:#D8CB79"></i></span><span class="cl">Plats préparés</span><code>#9F9032 · #D8CB79</code></div><div class="chip"><span class="sw"><i style="background:#813CBE"></i><i style="background:#B486DC"></i></span><span class="cl">Boissons</span><code>#813CBE · #B486DC</code></div><div class="chip"><span class="sw"><i style="background:#339E87"></i><i style="background:#81DAC5"></i></span><span class="cl">Hygiène</span><code>#339E87 · #81DAC5</code></div><div class="chip"><span class="sw"><i style="background:#3D4AC2"></i><i style="background:#8891DD"></i></span><span class="cl">Entretien</span><code>#3D4AC2 · #8891DD</code></div><div class="chip"><span class="sw"><i style="background:#BA3BBA"></i><i style="background:#DB84DB"></i></span><span class="cl">Bébé/Animaux</span><code>#BA3BBA · #DB84DB</code></div><div class="chip"><span class="sw"><i style="background:#7E756D"></i><i style="background:#B4ADA7"></i></span><span class="cl">Divers</span><code>#7E756D · #B4ADA7</code></div></div>
+    <p class="audit"><b>Contrastes mesurés (clair / sombre) :</b> on-surface 15,3 / 14,6 · on-surface-variant 7,1 / 10,3 · coché 5,2 / 6,5 · FAB 10,9 / 9,8 · on-primary 14,2 / 12,2 · nav 6,5 / 9,2 · erreur 6,2 / 10,5 · outline (3:1) 3,5 / 5,4 · FAB/fond (3:1) 1,2 / 1,5 · case rayon min (3:1) 3,0 / 6,1 · texte pastille min 11,9 / 8,2.</p>
+  </div>
+</section>
+<section class="var" id="b">
+  <header class="vh"><span class="num">B</span>
+    <div><h2>Argile sur fusain</h2><p class="reg">Structure neutre de Crème &amp; fusain, chaleur de Terre cuite : surfaces à peine rosées, argile réservée au bouton + (plein) et à l&#x27;onglet actif (teinte claire), rayons mats de Terre cuite.</p></div></header>
+  <div class="phones"><figure class="pf"><figcaption>Clair — « Cochés » déplié</figcaption><div class="phone b light"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp h-pastille" style="--r:#4B9245;--rc:#DFE6D6"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#485A99;--rc:#DEDDE4"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#925F45;--rc:#EADED6"><h4 class="gh"><span class="gl"><span class="mk"></span>Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#459272;--rc:#DEE6DE"><h4 class="gh"><span class="gl"><span class="mk"></span>Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section><section class="ck"><div class="ckh"><span class="chev"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Cochés (1)</span><span class="ckhint">Replier</span></div><ul><li class="item done" style="--r:#485A99;--rc:#DEDDE4"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section></div><div class="fab fab-p" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre — « Cochés » replié</figcaption><div class="phone b dark"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp h-pastille" style="--r:#93CE8D;--rc:#384332"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#909FD0;--rc:#373842"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#CEA38D;--rc:#463932"><h4 class="gh"><span class="gl"><span class="mk"></span>Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp h-pastille" style="--r:#8DCEB3;--rc:#36433B"><h4 class="gh"><span class="gl"><span class="mk"></span>Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section><section class="ck"><div class="ckh"><span class="chev"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M10 7l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Cochés (1)</span><span class="ckhint">Afficher</span></div></section></div><div class="fab fab-p" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  <div class="tokens">
+    <h3>Rôles <small>(clair · sombre)</small></h3><div class="chips"><div class="chip"><span class="sw"><i style="background:#9C4A2A"></i><i style="background:#F0A585"></i></span><span class="cl">primary</span><code>#9C4A2A · #F0A585</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#4D1C08"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #4D1C08</code></div><div class="chip"><span class="sw"><i style="background:#F2D6C8"></i><i style="background:#6E3219"></i></span><span class="cl">primary-container (onglet actif ; bouton + en A)</span><code>#F2D6C8 · #6E3219</code></div><div class="chip"><span class="sw"><i style="background:#3B1305"></i><i style="background:#FFDBCC"></i></span><span class="cl">on-primary-container</span><code>#3B1305 · #FFDBCC</code></div><div class="chip"><span class="sw"><i style="background:#FBF6F2"></i><i style="background:#1B1715"></i></span><span class="cl">surface</span><code>#FBF6F2 · #1B1715</code></div><div class="chip"><span class="sw"><i style="background:#2A211C"></i><i style="background:#F0E5DD"></i></span><span class="cl">on-surface</span><code>#2A211C · #F0E5DD</code></div><div class="chip"><span class="sw"><i style="background:#F3ECE6"></i><i style="background:#26201D"></i></span><span class="cl">surface-container (barre de navigation)</span><code>#F3ECE6 · #26201D</code></div><div class="chip"><span class="sw"><i style="background:#5C4E46"></i><i style="background:#D0C2B8"></i></span><span class="cl">on-surface-variant</span><code>#5C4E46 · #D0C2B8</code></div><div class="chip"><span class="sw"><i style="background:#8F7E74"></i><i style="background:#9A8B81"></i></span><span class="cl">outline</span><code>#8F7E74 · #9A8B81</code></div><div class="chip"><span class="sw"><i style="background:#6F625A"></i><i style="background:#A6988E"></i></span><span class="cl">checked (coché)</span><code>#6F625A · #A6988E</code></div><div class="chip"><span class="sw"><i style="background:#B3261E"></i><i style="background:#FFB4AB"></i></span><span class="cl">error</span><code>#B3261E · #FFB4AB</code></div></div>
+    <h3>13 rayons <small>(accent clair · sombre)</small></h3><div class="chips"><div class="chip"><span class="sw"><i style="background:#4B9245"></i><i style="background:#93CE8D"></i></span><span class="cl">Fruits &amp; légumes</span><code>#4B9245 · #93CE8D</code></div><div class="chip"><span class="sw"><i style="background:#927245"></i><i style="background:#CEB38D"></i></span><span class="cl">Boulangerie</span><code>#927245 · #CEB38D</code></div><div class="chip"><span class="sw"><i style="background:#924546"></i><i style="background:#CE8D8E"></i></span><span class="cl">Viande/Poisson</span><code>#924546 · #CE8D8E</code></div><div class="chip"><span class="sw"><i style="background:#485A99"></i><i style="background:#909FD0"></i></span><span class="cl">Crèmerie</span><code>#485A99 · #909FD0</code></div><div class="chip"><span class="sw"><i style="background:#925F45"></i><i style="background:#CEA38D"></i></span><span class="cl">Épicerie salée</span><code>#925F45 · #CEA38D</code></div><div class="chip"><span class="sw"><i style="background:#924563"></i><i style="background:#CE8DA6"></i></span><span class="cl">Épicerie sucrée</span><code>#924563 · #CE8DA6</code></div><div class="chip"><span class="sw"><i style="background:#45928E"></i><i style="background:#8DCECB"></i></span><span class="cl">Surgelés</span><code>#45928E · #8DCECB</code></div><div class="chip"><span class="sw"><i style="background:#84783E"></i><i style="background:#CBC086"></i></span><span class="cl">Plats préparés</span><code>#84783E · #CBC086</code></div><div class="chip"><span class="sw"><i style="background:#83499C"></i><i style="background:#BD92D0"></i></span><span class="cl">Boissons</span><code>#83499C · #BD92D0</code></div><div class="chip"><span class="sw"><i style="background:#459272"></i><i style="background:#8DCEB3"></i></span><span class="cl">Hygiène</span><code>#459272 · #8DCEB3</code></div><div class="chip"><span class="sw"><i style="background:#544BA0"></i><i style="background:#9B94D1"></i></span><span class="cl">Entretien</span><code>#544BA0 · #9B94D1</code></div><div class="chip"><span class="sw"><i style="background:#99488F"></i><i style="background:#D090C8"></i></span><span class="cl">Bébé/Animaux</span><code>#99488F · #D090C8</code></div><div class="chip"><span class="sw"><i style="background:#706B66"></i><i style="background:#B2ADA9"></i></span><span class="cl">Divers</span><code>#706B66 · #B2ADA9</code></div></div>
+    <p class="audit"><b>Contrastes mesurés (clair / sombre) :</b> on-surface 14,7 / 14,4 · on-surface-variant 7,4 / 10,2 · coché 5,5 / 6,4 · FAB 11,9 / 7,6 · on-primary 6,1 / 7,0 · nav 6,8 / 9,3 · erreur 6,1 / 10,5 · outline (3:1) 3,6 / 5,4 · FAB/fond (3:1) 5,7 / 8,8 · case rayon min (3:1) 3,4 / 6,4 · texte pastille min 11,6 / 8,3.</p>
+  </div>
+</section>
+<section class="cmp" id="entetes">
+  <h2>En-tête de rayon : Pastille ou Carré + capitales</h2>
+  <p>Les deux mêmes rayons, rendus avec chaque traitement, pour chaque palette en clair et en sombre.</p>
+  <div class="strip"><h3>A. Crème &amp; fusain</h3><div class="sps"><figure class="sp"><figcaption>Clair · Pastille (point + nom)</figcaption><div class="mini a light"><section class="grp h-pastille" style="--r:#34A238;--rc:#DBEAD5"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#3B76BA;--rc:#DCE3EA"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure><figure class="sp"><figcaption>Clair · Carré + capitales</figcaption><div class="mini a light"><section class="grp h-carre" style="--r:#34A238;--rc:#DBEAD5"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-carre" style="--r:#3B76BA;--rc:#DCE3EA"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure><figure class="sp"><figcaption>Sombre · Pastille (point + nom)</figcaption><div class="mini a dark"><section class="grp h-pastille" style="--r:#81DA84;--rc:#324630"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#84ADDB;--rc:#333B45"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure><figure class="sp"><figcaption>Sombre · Carré + capitales</figcaption><div class="mini a dark"><section class="grp h-carre" style="--r:#81DA84;--rc:#324630"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-carre" style="--r:#84ADDB;--rc:#333B45"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure></div></div><div class="strip"><h3>B. Argile sur fusain</h3><div class="sps"><figure class="sp"><figcaption>Clair · Pastille (point + nom)</figcaption><div class="mini b light"><section class="grp h-pastille" style="--r:#4B9245;--rc:#DFE6D6"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#485A99;--rc:#DEDDE4"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure><figure class="sp"><figcaption>Clair · Carré + capitales</figcaption><div class="mini b light"><section class="grp h-carre" style="--r:#4B9245;--rc:#DFE6D6"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-carre" style="--r:#485A99;--rc:#DEDDE4"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure><figure class="sp"><figcaption>Sombre · Pastille (point + nom)</figcaption><div class="mini b dark"><section class="grp h-pastille" style="--r:#93CE8D;--rc:#384332"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-pastille" style="--r:#909FD0;--rc:#373842"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure><figure class="sp"><figcaption>Sombre · Carré + capitales</figcaption><div class="mini b dark"><section class="grp h-carre" style="--r:#93CE8D;--rc:#384332"><h4 class="gh"><span class="gl"><span class="mk"></span>Fruits &amp; légumes</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li></ul></section><section class="grp h-carre" style="--r:#909FD0;--rc:#373842"><h4 class="gh"><span class="gl"><span class="mk"></span>Crèmerie</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li></ul></section></div></figure></div></div>
+</section>
+</div>
+</body>
+</html>

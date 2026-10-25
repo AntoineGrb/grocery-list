@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forge : liste de courses</title>
+<style>
+  :root {
+    --bg: #f6f1e7; --paper: #fffdf8; --ink: #2b2620; --muted: #6f665a;
+    --line: #e2d8c6; --seal: #9e2a2b; --seal-dark: #6e1b1c; --ok: #2f6b4f; --kill: #8a5a1f;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1b1916; --paper: #24211d; --ink: #ece5d8; --muted: #a59b8c;
+      --line: #3a352e; --seal: #c0443f; --seal-dark: #8f2b28; --ok: #6fbf95; --kill: #d9a45a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 16px/1.55 Georgia, "Times New Roman", serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+  .sheet { background: var(--paper); border: 1px solid var(--line); border-radius: 6px;
+    padding: 32px 28px; box-shadow: 0 2px 18px rgba(0,0,0,.06); }
+  header { display: flex; gap: 24px; align-items: center; flex-wrap: wrap;
+    border-bottom: 2px solid var(--line); padding-bottom: 20px; margin-bottom: 8px; }
+  header .t { flex: 1 1 320px; }
+  .kicker { font: 600 12px/1 system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: 30px; margin: 8px 0 6px; line-height: 1.2; }
+  .sub { color: var(--muted); margin: 0; }
+  h2 { font-size: 19px; margin: 30px 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  ul { padding-left: 20px; margin: 0; }
+  li { margin: 6px 0; }
+  li b { color: var(--ink); }
+  .kill li::marker { content: "✕  "; color: var(--kill); }
+  .open li::marker { content: "?  "; color: var(--seal); }
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 6px;
+    font: 600 14px/1.2 system-ui, sans-serif; }
+  .flow span.step { border: 1.5px solid var(--ok); color: var(--ok); border-radius: 999px; padding: 6px 12px; }
+  .flow span.arr { color: var(--muted); }
+  .cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .p { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; font-size: 14px; }
+  .p .n { font: 600 14px/1.3 system-ui, sans-serif; }
+  .p .r { color: var(--muted); font-size: 12px; font-family: system-ui, sans-serif; }
+  .p q { display: block; margin-top: 6px; font-style: italic; }
+  .tag { font: 600 10px/1 system-ui, sans-serif; letter-spacing: .08em; text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 4px; padding: 2px 5px; color: var(--muted); margin-left: 4px; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 13px; font-family: system-ui, sans-serif; }
+  code { font-size: 13px; }
+</style>
+</head>
+<body>
+<main>
+<div class="sheet">
+  <header>
+    <svg width="150" height="150" viewBox="0 0 200 200" role="img" aria-label="Sceau : HARDENED">
+      <defs>
+        <radialGradient id="wax" cx="40%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="var(--seal)"/>
+          <stop offset="100%" stop-color="var(--seal-dark)"/>
+        </radialGradient>
+        <path id="ring" d="M100,100 m-68,0 a68,68 0 1,1 136,0 a68,68 0 1,1 -136,0"/>
+      </defs>
+      <path fill="url(#wax)" d="M100 8c12 0 16 9 27 12s20-3 28 5 3 18 7 28 13 15 13 27-9 16-12 27 3 20-5 28-18 3-28 7-15 13-27 13-16-9-27-12-20 3-28-5-3-18-7-28-13-15-13-27 9-16 12-27-3-20 5-28 18-3 28-7S88 8 100 8z"/>
+      <circle cx="100" cy="100" r="78" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="2"/>
+      <circle cx="100" cy="100" r="56" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.5"/>
+      <text font-family="Georgia, serif" font-size="13" letter-spacing="3" fill="#fff" fill-opacity=".85">
+        <textPath href="#ring" startOffset="0">BMAD FORGE · GROCERY-LIST · 2026 ·</textPath>
+      </text>
+      <text x="100" y="96" text-anchor="middle" font-family="Georgia, serif" font-weight="700" font-size="19" fill="#fff" letter-spacing="1">HARDENED</text>
+      <path d="M78 108 l14 13 l30 -30" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" transform="translate(0,4) scale(1)"/>
+    </svg>
+    <div class="t">
+      <div class="kicker">Rapport de forge · 24 octobre 2026</div>
+      <h1>App de liste de courses : l'idée est durcie</h1>
+      <p class="sub">Une app Flutter pour ton usage perso : tu choisis tes recettes, tu retires ce que tu as déjà, et la liste est prête, triée par rayon. Le critère de réussite : est-ce que tu l'utilises encore dans deux mois ?</p>
+    </div>
+  </header>
+
+  <h2>Le flux verrouillé</h2>
+  <div class="flow">
+    <span class="step">Sélection des recettes</span><span class="arr">→</span>
+    <span class="step">Valider</span><span class="arr">→</span>
+    <span class="step">Revue du stock</span><span class="arr">→</span>
+    <span class="step">Liste triée par rayon</span>
+  </div>
+
+  <h2>Décisions verrouillées</h2>
+  <ul>
+    <li><b>Deux onglets.</b> <b>Recettes</b> pour sélectionner, valider et passer en revue. <b>Liste</b> pour consulter et cocher, avec un bouton + qui ouvre la recherche, l'ajout rapide et la grille des fréquents au même endroit.</li>
+    <li><b>Revue.</b> Tout est coché par défaut. On décoche ce qu'on a déjà, et on peut remplacer une quantité.</li>
+    <li><b>Une seule liste en cours.</b> Les ajouts la complètent. Elle se vide quand tout est coché, ou via « Nouvelle liste ».</li>
+    <li><b>Un catalogue unique d'articles</b> (picto, rayon, unité par défaut), avec environ 200 articles fournis.</li>
+    <li><b>Fiche recette minimale :</b> nom, ingrédients, quantité, lien et photo facultatifs. Moins d'une minute par recette.</li>
+    <li><b>Unités :</b> g, ml, pièce, sans conversion. Les quantités de même unité s'additionnent, les autres ne se mélangent jamais.</li>
+    <li><b>Rayons :</b> 12 rayons, un seul magasin. Parcours réglé une fois par glisser-déposer, groupement désactivable.</li>
+    <li><b>Fréquents :</b> environ 30 articles préremplis, grille stable par rayon, gérée depuis les paramètres.</li>
+    <li><b>Pictos :</b> un pack d'icônes cohérent, complété par des SVG générés si c'est faisable.</li>
+    <li><b>V1 en local</b> avec export/import, et préparée pour la synchro (UUID, dates de modification, suppressions logiques).</li>
+    <li><b>V2 :</b> on rejoint le foyer par un code ou un QR code, sans compte. Tout est partagé en temps réel.</li>
+  </ul>
+
+  <h2>Rejeté, et pourquoi</h2>
+  <ul class="kill">
+    <li>Inscription, contenu commercial, suggestions de recettes : la friction de Bring! et de Jow.</li>
+    <li>Étapes, portions, tags : « ce n'est pas une app de cuisine ».</li>
+    <li>Inventaire de stock, drapeau « placard » : on compose ses menus avec ce qu'on a, donc la Revue l'emporte.</li>
+    <li>Onglets Boissons, Divers, « Habituels » ou « Définir » : trop lourds pour un ajout rapide.</li>
+    <li>Fréquents automatiques, tri par fréquence : achats exceptionnels qui polluent la grille, positions instables.</li>
+    <li>Plusieurs magasins, conversion d'unités, emoji, import d'URL.</li>
+  </ul>
+
+  <h2>Points faibles qui ont tenu</h2>
+  <ul>
+    <li><b>Saisir ses recettes au départ</b> (une vingtaine) : le risque d'abandon est contenu par une fiche à quatre champs et le catalogue prérempli.</li>
+    <li><b>Une liste polluée par ce qu'on a déjà</b> : résolu par la Revue, assumée comme une étape à part entière.</li>
+    <li><b>Le partage sans inscription</b> : on garde un code de foyer, en sachant qu'il faudra quand même un backend de synchro.</li>
+    <li><b>Perdre ses données en V1</b> : couvert par l'export/import.</li>
+  </ul>
+
+  <h2>Encore ouvert</h2>
+  <ul class="open">
+    <li>Retirer un fréquent par appui long, en plus des paramètres.</li>
+    <li>Source et licence exactes du pack d'icônes.</li>
+  </ul>
+
+  <h2>Les voix de la forge</h2>
+  <div class="cast">
+    <div class="p"><div class="n">📋 John <span class="tag">PM</span></div><div class="r">Product Manager · BMad</div><q>Chaque champ de la fiche recette est une taxe que tu paies 20 fois.</q></div>
+    <div class="p"><div class="n">🎨 Sally <span class="tag">UX</span></div><div class="r">UX Designer · BMad</div><q>Une liste n'est utile que si chaque ligne veut dire « à acheter ».</q></div>
+    <div class="p"><div class="n">🏗️ Winston <span class="tag">Archi</span></div><div class="r">System Architect · BMad</div><q>UUID, dates de modification, suppressions logiques : presque gratuit maintenant.</q></div>
+    <div class="p"><div class="n">🃏 Wildcard</div><div class="r">Option Generator</div><q>Un coca et une tomate sont tous les deux un article.</q></div>
+    <div class="p"><div class="n">🛑 Killjoy</div><div class="r">Loop Stopper</div><q>L'import Marmiton ? V2 au mieux.</q></div>
+    <div class="p"><div class="n">🌶️ Boundary</div><div class="r">Edge-Case Hunter</div><q>Et le jour où tu changes de téléphone ?</q></div>
+    <div class="p"><div class="n">🎯 Yui</div><div class="r">The Craftsman</div><q>Pas de conversion. Même unité, on additionne.</q></div>
+    <div class="p"><div class="n">🚢 Dana</div><div class="r">The Pragmatist</div><q>Une grille vide le jour 1, ce n'est pas un ajout en un tap.</q></div>
+    <div class="p"><div class="n">🪵 Splinter</div><div class="r">Consensus Challenger</div><q>Personne ne va dans les paramètres.</q></div>
+    <div class="p"><div class="n">🧺 Nadia <span class="tag">invitée</span></div><div class="r">Utilisatrice de Bring! depuis 4 ans</div><q>Mon mari l'avait le soir même.</q></div>
+    <div class="p"><div class="n">🛒 Marc <span class="tag">invité</span></div><div class="r">Fait ses courses chaque samedi</div><q>J'ai déjà du sel et 4 œufs.</q></div>
+    <div class="p"><div class="n">🧑‍💻 Hugo <span class="tag">invité</span></div><div class="r">Développeur Flutter freelance</div><q>Un seul modèle Article, un seul tri.</q></div>
+    <div class="p"><div class="n">👶 Camille <span class="tag">invitée</span></div><div class="r">Fait ses courses avec un enfant dans le caddie</div><q>Je veux voir uniquement ce qui reste à prendre.</q></div>
+    <div class="p"><div class="n">🏪 Sophie <span class="tag">invitée</span></div><div class="r">Cheffe de rayon en hypermarché</div><q>Ce doit être ton classement, pas le mien.</q></div>
+    <div class="p"><div class="n">🍳 Inès <span class="tag">invitée</span></div><div class="r">Cuisine avec des recettes Marmiton</div><q>Et ma cuillère à soupe d'huile ?</q></div>
+    <div class="p"><div class="n">📱 Théo <span class="tag">invité</span></div><div class="r">Ergonome mobile</div><q>La mémoire du geste compte plus que l'intelligence du tri.</q></div>
+    <div class="p"><div class="n">💬 Karim <span class="tag">invité</span></div><div class="r">Partage sa liste sur Bring!</div><q>Quand elle coche les yaourts, ils disparaissent chez moi.</q></div>
+  </div>
+
+  <footer>Idée forgée : <code>forge-grocery-list.md</code> · Journal : <code>.memlog.md</code> · Session BMad Forge Idea</footer>
+</div>
+</main>
+</body>
+</html>

@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thèmes de couleur — Liste de courses</title>
+<style>
+
+:root{--pg:#F4F1EC;--pg2:#FFFFFF;--ink:#24201C;--ink2:#5A534B;--line:#DDD6CC;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--pg:#141210;--pg2:#1E1B18;--ink:#EDE7DF;--ink2:#BDB4A9;--line:#38322C}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;line-height:1.45}
+.wrap{max-width:1240px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:1.75rem;margin:0 0 6px;letter-spacing:-.01em}
+.intro{margin:0 0 6px;color:var(--ink2);max-width:70ch}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0 8px;padding:0;list-style:none}
+.toc a{display:inline-block;padding:6px 12px;border:1px solid var(--line);border-radius:999px;color:var(--ink);text-decoration:none;font-size:.9rem;background:var(--pg2)}
+.var{background:var(--pg2);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:22px}
+.vh{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.num{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;border:1.5px solid var(--ink);font-size:.95rem}
+.vh h2{margin:0;font-size:1.35rem}
+.reg{margin:2px 0 0;color:var(--ink2);font-style:italic}
+.tr{margin:4px 0 0;font-size:.92rem}
+.vgrid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:22px;align-items:start}
+@media (max-width:1100px){.vgrid{grid-template-columns:minmax(0,1fr)}}
+.tokens h3{font-size:.95rem;margin:4px 0 8px}
+.tokens h3 small{font-weight:400;color:var(--ink2)}
+.chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin-bottom:14px}
+.chip{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:8px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.chip .sw{grid-row:1/3;display:flex;border-radius:7px;overflow:hidden;border:1px solid var(--line)}
+.chip .sw i{display:block;width:18px;height:30px}
+.chip .cl{font-size:.82rem;font-weight:600;line-height:1.2}
+.chip code{font-size:.72rem;color:var(--ink2);font-family:ui-monospace,Consolas,monospace}
+.audit{font-size:.78rem;color:var(--ink2);margin:0}
+.phones{display:flex;gap:16px;flex-wrap:wrap}
+.pf{margin:0}
+.pf figcaption{font-size:.8rem;color:var(--ink2);margin:0 0 6px 4px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+
+/* ---------- maquette téléphone (commune) ---------- */
+.phone{position:relative;width:360px;max-width:calc(100vw - 72px);height:700px;border-radius:28px;overflow:hidden;background:var(--surface);color:var(--onSurface);
+  border:6px solid #0E0C0B;display:flex;flex-direction:column;font-size:16px}
+.sb{display:flex;justify-content:space-between;padding:6px 18px 2px;font-size:12px;background:var(--appBar);color:var(--onAppBar)}
+.sbi{width:36px;height:10px;border-radius:3px;border:1.5px solid currentColor}
+.ab{display:flex;align-items:center;justify-content:space-between;height:60px;padding:0 12px 0 18px;background:var(--appBar);color:var(--onAppBar)}
+.abt{font-size:22px;font-weight:500}
+.abi{width:44px;height:44px;display:grid;place-items:center;border-radius:50%}
+.body{flex:1;overflow:hidden;padding:4px 0 96px}
+.grp{margin:0}
+.gh{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:700;letter-spacing:.01em}
+.gc{margin-left:auto;font-weight:500;font-size:12px;color:var(--onSurfaceVariant)}
+.mk{display:none}
+.grp ul{list-style:none;margin:0;padding:0}
+.item{display:flex;align-items:center;gap:14px;min-height:48px;padding:0 18px}
+.cb{flex:none;width:22px;height:22px;border-radius:4px;border:2px solid var(--onSurfaceVariant);display:grid;place-items:center;color:var(--onPrimary)}
+.done .cb{background:var(--primary);border-color:var(--primary)}
+.nm{flex:1}
+.qt{color:var(--onSurfaceVariant);font-size:14px}
+.done .nm,.done .qt{color:var(--checked);text-decoration:line-through;text-decoration-thickness:1.5px}
+.fab{position:absolute;right:16px;bottom:92px;width:58px;height:58px;border-radius:17px;background:var(--primaryContainer);color:var(--onPrimaryContainer);
+  display:grid;place-items:center;box-shadow:0 3px 8px rgba(0,0,0,.28)}
+.nb{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--surfaceContainer);display:flex;justify-content:space-around;align-items:center}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;font-weight:500;color:var(--onSurfaceVariant);width:110px}
+.tab .ind{width:64px;height:32px;border-radius:16px;display:grid;place-items:center}
+.tab.on{color:var(--onSurface);font-weight:700}
+.tab.on .ind{background:var(--primaryContainer);color:var(--onPrimaryContainer)}
+
+/* ---------- traitements de la couleur de rayon ---------- */
+/* 1. Bande latérale */
+.t-stripe .grp{border-left:5px solid var(--r);margin:10px 0 2px}
+.t-stripe .gh{padding:8px 18px 2px 13px;color:var(--rt)}
+.t-stripe .item{padding-left:13px}
+/* 2. Bandeau teinté */
+.t-band .grp{margin-bottom:4px}
+.t-band .gh{background:var(--rc);padding:9px 18px;margin-top:6px;color:var(--onSurface);border-top:3px solid var(--r)}
+/* 3. Pastille */
+.t-chip .gh{padding:14px 18px 4px}
+.t-chip .gl{display:inline-flex;align-items:center;gap:8px;background:var(--rc);padding:5px 12px 5px 9px;border-radius:999px;color:var(--onSurface)}
+.t-chip .gl::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--r)}
+/* 4. Carré + cases colorées */
+.t-box .gh{padding:16px 18px 4px;color:var(--onSurface);text-transform:uppercase;font-size:12.5px;letter-spacing:.08em}
+.t-box .mk{display:block;width:10px;height:10px;border-radius:2px;background:var(--r)}
+.t-box .cb{border-color:var(--r)}
+.t-box .done .cb{background:var(--r);border-color:var(--r);color:var(--surface)}
+.t-box .grp+.grp{border-top:1px solid var(--surfaceContainer)}
+/* 5. Carte teintée + étiquette pleine */
+.t-card .body{padding:8px 10px 96px}
+.t-card .grp{background:var(--rc);border-radius:16px;margin-bottom:8px;padding:2px 0 4px}
+.t-card .gh{padding:10px 10px 2px}
+.t-card .gl{background:var(--rp);color:var(--rpf);padding:3px 10px;border-radius:6px;font-size:13px;text-transform:uppercase;letter-spacing:.05em}
+.t-card .item{padding:0 12px;min-height:44px}
+.t-card .cb{border-color:var(--onSurface)}
+.t-card .done .cb{background:var(--onSurface);border-color:var(--onSurface);color:var(--surface)}
+.t-card .gc{padding-right:4px}
+
+
+/* ================================================================
+   VALEURS PAR VARIATION (hex à reprendre telles quelles)
+   ================================================================ */
+/* ===== Terre cuite (v1) : Argile, four à pain et tomette : chaleureux, mat, rassurant. */
+/* Traitement rayon : Bande latérale colorée à gauche du groupe, nom du rayon dans sa couleur */
+.v1.light { /* CLAIR */
+  --primary: #9C4A2A;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #F6D9CB;
+  --onPrimaryContainer: #3B1305;
+  --surface: #FBF5F0;
+  --surfaceContainer: #F2E7DE;
+  --onSurface: #2A1F1A;
+  --onSurfaceVariant: #5C4B42;
+  --outline: #8F7B70;
+  --checked: #6E6058;
+  --error: #B3261E;
+  --appBar: #FBF5F0;
+  --onAppBar: #2A1F1A;
+}
+/* Rayons clair : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #4B9245  texte #3D7A37  conteneur #E2E7D8 */
+/*   Boulangerie       accent #927245  texte #89693F  conteneur #ECE3D8 */
+/*   Viande/Poisson    accent #924546  texte #924546  conteneur #ECDCD8 */
+/*   Crèmerie          accent #485A99  texte #485A99  conteneur #E2DFE4 */
+/*   Épicerie salée    accent #925F45  texte #925F45  conteneur #ECE0D8 */
+/*   Épicerie sucrée   accent #924563  texte #924563  conteneur #ECDCDC */
+/*   Surgelés          accent #45928E  texte #357676  conteneur #E2E7E2 */
+/*   Plats préparés    accent #84783E  texte #7B6F38  conteneur #EAE4D7 */
+/*   Boissons          accent #83499C  texte #83499C  conteneur #EADDE4 */
+/*   Hygiène           accent #459272  texte #377A5D  conteneur #E2E7DE */
+/*   Entretien         accent #544BA0  texte #544BA0  conteneur #E4DDE5 */
+/*   Bébé/Animaux      accent #99488F  texte #99488F  conteneur #EDDDE2 */
+/*   Divers            accent #706B66  texte #706B66  conteneur #E8E2DD */
+.v1.dark { /* SOMBRE */
+  --primary: #F0A585;
+  --onPrimary: #4D1C08;
+  --primaryContainer: #6E3219;
+  --onPrimaryContainer: #FFDBCC;
+  --surface: #1E1814;
+  --surfaceContainer: #2A221D;
+  --onSurface: #F0E3DA;
+  --onSurfaceVariant: #D2C1B6;
+  --outline: #9C8B80;
+  --checked: #A89A90;
+  --error: #FFB4AB;
+  --appBar: #1E1814;
+  --onAppBar: #F0E3DA;
+}
+/* Rayons sombre : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #93CE8D  texte #93CE8D  conteneur #38402F */
+/*   Boulangerie       accent #CEB38D  texte #CEB38D  conteneur #453A2F */
+/*   Viande/Poisson    accent #CE8D8E  texte #CE8D8E  conteneur #45322F */
+/*   Crèmerie          accent #909FD0  texte #909FD0  conteneur #37363D */
+/*   Épicerie salée    accent #CEA38D  texte #CEA38D  conteneur #45372F */
+/*   Épicerie sucrée   accent #CE8DA6  texte #CE8DA6  conteneur #453234 */
+/*   Surgelés          accent #8DCECB  texte #8DCECB  conteneur #36403C */
+/*   Plats préparés    accent #CBC086  texte #CBC086  conteneur #443D2D */
+/*   Boissons          accent #BD92D0  texte #BD92D0  conteneur #41333D */
+/*   Hygiène           accent #8DCEB3  texte #8DCEB3  conteneur #364037 */
+/*   Entretien         accent #9B94D1  texte #9B94D1  conteneur #3A333E */
+/*   Bébé/Animaux      accent #D090C8  texte #D090C8  conteneur #45323C */
+/*   Divers            accent #B2ADA9  texte #B2ADA9  conteneur #3F3935 */
+/* ===== Tomate & safran (v2) : Marché d'été : vif, gourmand, ensoleillé, qui donne faim. */
+/* Traitement rayon : En-tête de groupe en bandeau teinté pleine largeur */
+.v2.light { /* CLAIR */
+  --primary: #BF2F18;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #FFD596;
+  --onPrimaryContainer: #3D2200;
+  --surface: #FFFAF2;
+  --surfaceContainer: #FFEFD6;
+  --onSurface: #2B1A10;
+  --onSurfaceVariant: #5E4632;
+  --outline: #957560;
+  --checked: #735E4D;
+  --error: #A3124A;
+  --appBar: #FFEFD6;
+  --onAppBar: #2B1A10;
+}
+/* Rayons clair : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #21A726  texte #18831D  conteneur #D3E9C9 */
+/*   Boulangerie       accent #C38528  texte #9B671E  conteneur #F3E3CA */
+/*   Viande/Poisson    accent #C32832  texte #C32832  conteneur #F3D0CC */
+/*   Crèmerie          accent #2A75CB  texte #2973C7  conteneur #D4DFEA */
+/*   Épicerie salée    accent #C35B28  texte #B75525  conteneur #F3DACA */
+/*   Épicerie sucrée   accent #C32870  texte #C32870  conteneur #F3D0D8 */
+/*   Surgelés          accent #259DB7  texte #1C7993  conteneur #D3E7E6 */
+/*   Plats préparés    accent #A28F20  texte #826F18  conteneur #ECE5C8 */
+/*   Boissons          accent #822ACF  texte #822ACF  conteneur #E6D0EB */
+/*   Hygiène           accent #20A386  texte #177F67  conteneur #D2E9DC */
+/*   Entretien         accent #2B3CD4  texte #2B3CD4  conteneur #D5D4EC */
+/*   Bébé/Animaux      accent #CB2ACB  texte #BF27BF  conteneur #F5D0EA */
+/*   Divers            accent #80756A  texte #7A6F66  conteneur #E6DFD7 */
+.v2.dark { /* SOMBRE */
+  --primary: #FF8E74;
+  --onPrimary: #4A0E00;
+  --primaryContainer: #6A4500;
+  --onPrimaryContainer: #FFDDB0;
+  --surface: #1F1610;
+  --surfaceContainer: #2D2118;
+  --onSurface: #FBE9DB;
+  --onSurfaceVariant: #DCC3AE;
+  --outline: #A58C78;
+  --checked: #AE9784;
+  --error: #FF8FB4;
+  --appBar: #2D2118;
+  --onAppBar: #FBE9DB;
+}
+/* Rayons sombre : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #6DE371  texte #6DE371  conteneur #36532D */
+/*   Boulangerie       accent #E3B46D  texte #E3B46D  conteneur #5A452C */
+/*   Viande/Poisson    accent #E36D75  texte #E36D75  conteneur #5A302E */
+/*   Crèmerie          accent #72A7E4  texte #72A7E4  conteneur #384250 */
+/*   Épicerie salée    accent #E3956D  texte #E3956D  conteneur #5A3C2C */
+/*   Épicerie sucrée   accent #E36DA4  texte #E36DA4  conteneur #5A303C */
+/*   Surgelés          accent #6DD0E3  texte #6DD0E3  conteneur #364E4F */
+/*   Plats préparés    accent #E2D165  texte #E2D165  conteneur #5A4E29 */
+/*   Boissons          accent #B074E4  texte #B074E4  conteneur #4A3250 */
+/*   Hygiène           accent #6DE3C8  texte #6DE3C8  conteneur #365347 */
+/*   Entretien         accent #7681E5  texte #7681E5  conteneur #393650 */
+/*   Bébé/Animaux      accent #E472E4  texte #E472E4  conteneur #5A3250 */
+/*   Divers            accent #B1A8A0  texte #B1A8A0  conteneur #4B423B */
+/* ===== Potager (v3) : Herbes fraîches et huile d'olive : naturel, posé, végétal. */
+/* Traitement rayon : Pastille arrondie teintée (point + nom du rayon) en tête de groupe */
+.v3.light { /* CLAIR */
+  --primary: #556B2F;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #DCE8B8;
+  --onPrimaryContainer: #1A2600;
+  --surface: #F8F7EE;
+  --surfaceContainer: #ECEDDD;
+  --onSurface: #1F2117;
+  --onSurfaceVariant: #4A4D3C;
+  --outline: #7A7D68;
+  --checked: #65685A;
+  --error: #B3261E;
+  --appBar: #F8F7EE;
+  --onAppBar: #1F2117;
+}
+/* Rayons clair : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #398A38  texte #357E35  conteneur #D6E3CD */
+/*   Boulangerie       accent #8A7138  texte #826B36  conteneur #E4DFCD */
+/*   Viande/Poisson    accent #8A4038  texte #8A4038  conteneur #E4D6CD */
+/*   Crèmerie          accent #3B7491  texte #3B7491  conteneur #D6DFDD */
+/*   Épicerie salée    accent #8A5E38  texte #8A5E38  conteneur #E4DBCD */
+/*   Épicerie sucrée   accent #8A384E  texte #8A384E  conteneur #E4D5D1 */
+/*   Surgelés          accent #38898A  texte #33797A  conteneur #D5E3DC */
+/*   Plats préparés    accent #7B7732  texte #737030  conteneur #E2E0CC */
+/*   Boissons          accent #523D94  texte #523D94  conteneur #DAD6DE */
+/*   Hygiène           accent #388A6D  texte #337A61  conteneur #D5E3D7 */
+/*   Entretien         accent #3E5C98  texte #3E5C98  conteneur #D7DBDF */
+/*   Bébé/Animaux      accent #913B7B  texte #913B7B  conteneur #E5D5D9 */
+/*   Divers            accent #67625B  texte #67625B  conteneur #DEDCD4 */
+.v3.dark { /* SOMBRE */
+  --primary: #B9CF85;
+  --onPrimary: #273500;
+  --primaryContainer: #3E4F1C;
+  --onPrimaryContainer: #D9EBA6;
+  --surface: #181A13;
+  --surfaceContainer: #23261C;
+  --onSurface: #E5E5D6;
+  --onSurfaceVariant: #C6C8B2;
+  --outline: #8F927D;
+  --checked: #9C9E8A;
+  --error: #FFB4AB;
+  --appBar: #181A13;
+  --onAppBar: #E5E5D6;
+}
+/* Rayons sombre : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #8ECE8D  texte #8ECE8D  conteneur #374933 */
+/*   Boulangerie       accent #CEBA8D  texte #CEBA8D  conteneur #474433 */
+/*   Viande/Poisson    accent #CE938D  texte #CE938D  conteneur #473933 */
+/*   Crèmerie          accent #90BAD0  texte #90BAD0  conteneur #374444 */
+/*   Épicerie salée    accent #CEAB8D  texte #CEAB8D  conteneur #474033 */
+/*   Épicerie sucrée   accent #CE8D9E  texte #CE8D9E  conteneur #473837 */
+/*   Surgelés          accent #8DCDCE  texte #8DCDCE  conteneur #364944 */
+/*   Plats préparés    accent #CBC786  texte #CBC786  conteneur #474731 */
+/*   Boissons          accent #A192D0  texte #A192D0  conteneur #3C3944 */
+/*   Hygiène           accent #8DCEB7  texte #8DCEB7  conteneur #36493E */
+/*   Entretien         accent #94A8D1  texte #94A8D1  conteneur #383F44 */
+/*   Bébé/Animaux      accent #D090BF  texte #D090BF  conteneur #483940 */
+/*   Divers            accent #B2AEA9  texte #B2AEA9  conteneur #40403A */
+/* ===== Crème & fusain (v4) : Papier crème et encre douce : calme, minimal ; la couleur ne vient que des rayons. */
+/* Traitement rayon : Carré de couleur devant le nom du rayon + cases à cocher bordées de la couleur du rayon */
+.v4.light { /* CLAIR */
+  --primary: #2F2A25;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #E8E1D6;
+  --onPrimaryContainer: #2F2A25;
+  --surface: #FBF8F3;
+  --surfaceContainer: #F2EDE5;
+  --onSurface: #24201C;
+  --onSurfaceVariant: #5A534B;
+  --outline: #8C847A;
+  --checked: #6F6860;
+  --error: #B3261E;
+  --appBar: #FBF8F3;
+  --onAppBar: #24201C;
+}
+/* Rayons clair : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #34A238  texte #2B7E2F  conteneur #FBF8F3 */
+/*   Boulangerie       accent #B28138  texte #926930  conteneur #FBF8F3 */
+/*   Viande/Poisson    accent #B23840  texte #B23840  conteneur #FBF8F3 */
+/*   Crèmerie          accent #3B76BA  texte #3972B2  conteneur #FBF8F3 */
+/*   Épicerie salée    accent #B26138  texte #A65B35  conteneur #FBF8F3 */
+/*   Épicerie sucrée   accent #B23871  texte #B23871  conteneur #FBF8F3 */
+/*   Surgelés          accent #379BAE  texte #2D7B86  conteneur #FBF8F3 */
+/*   Plats préparés    accent #9F9032  texte #7B7029  conteneur #FBF8F3 */
+/*   Boissons          accent #813CBE  texte #813CBE  conteneur #FBF8F3 */
+/*   Hygiène           accent #339E87  texte #2A7A6C  conteneur #FBF8F3 */
+/*   Entretien         accent #3D4AC2  texte #3D4AC2  conteneur #FBF8F3 */
+/*   Bébé/Animaux      accent #BA3BBA  texte #B63AB6  conteneur #FBF8F3 */
+/*   Divers            accent #7E756D  texte #786F69  conteneur #FBF8F3 */
+.v4.dark { /* SOMBRE */
+  --primary: #EDE5DA;
+  --onPrimary: #2A2520;
+  --primaryContainer: #3A342E;
+  --onPrimaryContainer: #EDE5DA;
+  --surface: #191715;
+  --surfaceContainer: #24211E;
+  --onSurface: #EDE7DF;
+  --onSurfaceVariant: #CBC3B9;
+  --outline: #948C82;
+  --checked: #A39B91;
+  --error: #FFB4AB;
+  --appBar: #191715;
+  --onAppBar: #EDE7DF;
+}
+/* Rayons sombre : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #81DA84  texte #81DA84  conteneur #191715 */
+/*   Boulangerie       accent #DAB681  texte #DAB681  conteneur #191715 */
+/*   Viande/Poisson    accent #DA8187  texte #DA8187  conteneur #191715 */
+/*   Crèmerie          accent #84ADDB  texte #84ADDB  conteneur #191715 */
+/*   Épicerie salée    accent #DA9E81  texte #DA9E81  conteneur #191715 */
+/*   Épicerie sucrée   accent #DA81AA  texte #DA81AA  conteneur #191715 */
+/*   Surgelés          accent #81CBDA  texte #81CBDA  conteneur #191715 */
+/*   Plats préparés    accent #D8CB79  texte #D8CB79  conteneur #191715 */
+/*   Boissons          accent #B486DC  texte #B486DC  conteneur #191715 */
+/*   Hygiène           accent #81DAC5  texte #81DAC5  conteneur #191715 */
+/*   Entretien         accent #8891DD  texte #8891DD  conteneur #191715 */
+/*   Bébé/Animaux      accent #DB84DB  texte #DB84DB  conteneur #191715 */
+/*   Divers            accent #B4ADA7  texte #B4ADA7  conteneur #191715 */
+/* ===== Paprika & encre (v5) : Bistrot affirmé : contrasté, franc, énergique, lisible en plein rayon. */
+/* Traitement rayon : Groupe en carte entièrement teintée + étiquette pleine couleur du rayon */
+.v5.light { /* CLAIR */
+  --primary: #A3160C;
+  --onPrimary: #FFFFFF;
+  --primaryContainer: #FFC447;
+  --onPrimaryContainer: #2A1A00;
+  --surface: #FFFBF5;
+  --surfaceContainer: #F6EADC;
+  --onSurface: #1A110D;
+  --onSurfaceVariant: #46362F;
+  --outline: #6E5A50;
+  --checked: #5E4F48;
+  --error: #A3124A;
+  --appBar: #1C1210;
+  --onAppBar: #FFF3E6;
+}
+/* Rayons clair : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #0FA912  texte #0E810E  conteneur #D9EED1  étiquette #0F860F / #FFFFFF */
+/*   Boulangerie       accent #BD770F  texte #9F650F  conteneur #F4E6D0  étiquette #9F650F / #FFFFFF */
+/*   Viande/Poisson    accent #BD0F1B  texte #BD0F1B  conteneur #F4D5D2  étiquette #BD0F1B / #FFFFFF */
+/*   Crèmerie          accent #1065C6  texte #1065C6  conteneur #D9E3ED  étiquette #1065C6 / #FFFFFF */
+/*   Épicerie salée    accent #BD490F  texte #BD490F  conteneur #F4DFD0  étiquette #BD490F / #FFFFFF */
+/*   Épicerie sucrée   accent #BD0F60  texte #BD0F60  conteneur #F4D5DD  étiquette #BD0F60 / #FFFFFF */
+/*   Surgelés          accent #0FA0BD  texte #0F7C90  conteneur #D9ECEC  étiquette #0F8095 / #FFFFFF */
+/*   Plats préparés    accent #A5910E  texte #7D710E  conteneur #F1EAD0  étiquette #82750E / #FFFFFF */
+/*   Boissons          accent #7410CB  texte #7410CB  conteneur #E9D5EE  étiquette #7410CB / #FFFFFF */
+/*   Hygiène           accent #0FA480  texte #0E8164  conteneur #D9EDE2  étiquette #0E8164 / #FFFFFF */
+/*   Entretien         accent #1124D0  texte #1124D0  conteneur #D9D9EF  étiquette #1124D0 / #FFFFFF */
+/*   Bébé/Animaux      accent #C610C6  texte #C610C6  conteneur #F6D5ED  étiquette #C610C6 / #FFFFFF */
+/*   Divers            accent #72665A  texte #72665A  conteneur #E8E3DC  étiquette #72665A / #FFFFFF */
+.v5.dark { /* SOMBRE */
+  --primary: #FF7A5C;
+  --onPrimary: #2B0500;
+  --primaryContainer: #FFC447;
+  --onPrimaryContainer: #2A1A00;
+  --surface: #120D0B;
+  --surfaceContainer: #1F1714;
+  --onSurface: #FFF3EA;
+  --onSurfaceVariant: #E0CBBE;
+  --outline: #A8907F;
+  --checked: #BEAB9D;
+  --error: #FF8FB4;
+  --appBar: #2E0C06;
+  --onAppBar: #FFE9DF;
+}
+/* Rayons sombre : accent (bande/point/bordure, >=3:1) | texte (>=4.5:1) | conteneur teinté */
+/*   Fruits & légumes  accent #49F34F  texte #49F34F  conteneur #1F441B  étiquette #5CF462 / #1A110D */
+/*   Boulangerie       accent #F3AF49  texte #F3AF49  conteneur #48341A  étiquette #F4B75C / #1A110D */
+/*   Viande/Poisson    accent #F34954  texte #F34954  conteneur #481B1D  étiquette #F45C66 / #1A110D */
+/*   Crèmerie          accent #4E9BF4  texte #4E9BF4  conteneur #202F43  étiquette #61A6F5 / #1A110D */
+/*   Épicerie salée    accent #F38249  texte #F38249  conteneur #48291A  étiquette #F48F5C / #1A110D */
+/*   Épicerie sucrée   accent #F34998  texte #F34998  conteneur #481B2D  étiquette #F45CA3 / #1A110D */
+/*   Surgelés          accent #49D7F3  texte #49D7F3  conteneur #1F3D43  étiquette #5CDBF4 / #1A110D */
+/*   Plats préparés    accent #F3DB3F  texte #F3DB3F  conteneur #483E17  étiquette #F4DF52 / #1A110D */
+/*   Boissons          accent #A750F4  texte #A750F4  conteneur #361D43  étiquette #B163F5 / #1A110D */
+/*   Hygiène           accent #49F3CC  texte #49F3CC  conteneur #1F4439  étiquette #5CF4D1 / #1A110D */
+/*   Entretien         accent #5263F4  texte #616FF4  conteneur #212243  étiquette #6574F5 / #1A110D */
+/*   Bébé/Animaux      accent #F44EF4  texte #F44EF4  conteneur #481D43  étiquette #F561F5 / #1A110D */
+/*   Divers            accent #AA9E92  texte #AA9E92  conteneur #36302B  étiquette #B3A89D / #1A110D */
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Thèmes de couleur — Liste de courses</h1>
+<p class="intro">Cinq pistes chaleureuses, chacune dans un registre différent, montrées sur l'écran Liste en clair et en sombre. Chaque piste a sa propre palette de 13 rayons et sa propre façon d'appliquer la couleur de rayon. Choisissez une piste (ou mélangez : palette de l'une, traitement de rayon de l'autre).</p>
+<ul class="toc"><li><a href="#v1">1. Terre cuite</a></li><li><a href="#v2">2. Tomate &amp; safran</a></li><li><a href="#v3">3. Potager</a></li><li><a href="#v4">4. Crème &amp; fusain</a></li><li><a href="#v5">5. Paprika &amp; encre</a></li></ul>
+
+<section class="var" id="v1">
+  <header class="vh">
+    <span class="num">1</span>
+    <div><h2>Terre cuite</h2><p class="reg">Argile, four à pain et tomette : chaleureux, mat, rassurant.</p>
+    <p class="tr"><b>Couleur de rayon :</b> Bande latérale colorée à gauche du groupe, nom du rayon dans sa couleur.</p></div>
+  </header>
+  <div class="vgrid">
+    <div class="tokens">
+      <h3>Rôles <small>(clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#9C4A2A"></i><i style="background:#F0A585"></i></span><span class="cl">primary</span><code>#9C4A2A · #F0A585</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#4D1C08"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #4D1C08</code></div><div class="chip"><span class="sw"><i style="background:#F6D9CB"></i><i style="background:#6E3219"></i></span><span class="cl">primary-container</span><code>#F6D9CB · #6E3219</code></div><div class="chip"><span class="sw"><i style="background:#FBF5F0"></i><i style="background:#1E1814"></i></span><span class="cl">surface</span><code>#FBF5F0 · #1E1814</code></div><div class="chip"><span class="sw"><i style="background:#2A1F1A"></i><i style="background:#F0E3DA"></i></span><span class="cl">on-surface</span><code>#2A1F1A · #F0E3DA</code></div><div class="chip"><span class="sw"><i style="background:#F2E7DE"></i><i style="background:#2A221D"></i></span><span class="cl">surface-container</span><code>#F2E7DE · #2A221D</code></div><div class="chip"><span class="sw"><i style="background:#5C4B42"></i><i style="background:#D2C1B6"></i></span><span class="cl">on-surface-variant</span><code>#5C4B42 · #D2C1B6</code></div><div class="chip"><span class="sw"><i style="background:#8F7B70"></i><i style="background:#9C8B80"></i></span><span class="cl">outline</span><code>#8F7B70 · #9C8B80</code></div><div class="chip"><span class="sw"><i style="background:#6E6058"></i><i style="background:#A89A90"></i></span><span class="cl">checked</span><code>#6E6058 · #A89A90</code></div><div class="chip"><span class="sw"><i style="background:#B3261E"></i><i style="background:#FFB4AB"></i></span><span class="cl">error</span><code>#B3261E · #FFB4AB</code></div></div>
+      <h3>13 rayons <small>(accent clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#4B9245"></i><i style="background:#93CE8D"></i></span><span class="cl">Fruits &amp; légumes</span><code>#4B9245 · #93CE8D</code></div><div class="chip"><span class="sw"><i style="background:#927245"></i><i style="background:#CEB38D"></i></span><span class="cl">Boulangerie</span><code>#927245 · #CEB38D</code></div><div class="chip"><span class="sw"><i style="background:#924546"></i><i style="background:#CE8D8E"></i></span><span class="cl">Viande/Poisson</span><code>#924546 · #CE8D8E</code></div><div class="chip"><span class="sw"><i style="background:#485A99"></i><i style="background:#909FD0"></i></span><span class="cl">Crèmerie</span><code>#485A99 · #909FD0</code></div><div class="chip"><span class="sw"><i style="background:#925F45"></i><i style="background:#CEA38D"></i></span><span class="cl">Épicerie salée</span><code>#925F45 · #CEA38D</code></div><div class="chip"><span class="sw"><i style="background:#924563"></i><i style="background:#CE8DA6"></i></span><span class="cl">Épicerie sucrée</span><code>#924563 · #CE8DA6</code></div><div class="chip"><span class="sw"><i style="background:#45928E"></i><i style="background:#8DCECB"></i></span><span class="cl">Surgelés</span><code>#45928E · #8DCECB</code></div><div class="chip"><span class="sw"><i style="background:#84783E"></i><i style="background:#CBC086"></i></span><span class="cl">Plats préparés</span><code>#84783E · #CBC086</code></div><div class="chip"><span class="sw"><i style="background:#83499C"></i><i style="background:#BD92D0"></i></span><span class="cl">Boissons</span><code>#83499C · #BD92D0</code></div><div class="chip"><span class="sw"><i style="background:#459272"></i><i style="background:#8DCEB3"></i></span><span class="cl">Hygiène</span><code>#459272 · #8DCEB3</code></div><div class="chip"><span class="sw"><i style="background:#544BA0"></i><i style="background:#9B94D1"></i></span><span class="cl">Entretien</span><code>#544BA0 · #9B94D1</code></div><div class="chip"><span class="sw"><i style="background:#99488F"></i><i style="background:#D090C8"></i></span><span class="cl">Bébé/Animaux</span><code>#99488F · #D090C8</code></div><div class="chip"><span class="sw"><i style="background:#706B66"></i><i style="background:#B2ADA9"></i></span><span class="cl">Divers</span><code>#706B66 · #B2ADA9</code></div></div>
+      <p class="audit"><b>Contrastes mesurés (clair/sombre) :</b> on-surface 14.8/14.0 · on-surface-variant 7.6/10.1 · checked 5.6/6.4 · on-primary 6.1/7.0 · FAB 12.3/7.6 · app bar 14.8/14.0 · nav 6.8/9.0 · error 6.0/10.3 · outline (3:1) 3.7/5.4. Tous les textes des maquettes &ge; 4,5:1 ; accents de rayon &ge; 3:1.</p>
+    </div>
+    <div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone v1 light t-stripe"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#4B9245;--rt:#3D7A37;--rc:#E2E7D8;--rp:#41823B;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#485A99;--rt:#485A99;--rc:#E2DFE4;--rp:#485A99;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#925F45;--rt:#925F45;--rc:#ECE0D8;--rp:#925F45;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#459272;--rt:#377A5D;--rc:#E2E7DE;--rp:#3B8263;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone v1 dark t-stripe"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#93CE8D;--rt:#93CE8D;--rc:#38402F;--rp:#A1D49B;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#909FD0;--rt:#909FD0;--rc:#37363D;--rp:#9EABD6;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#CEA38D;--rt:#CEA38D;--rc:#45372F;--rp:#D4AF9B;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#8DCEB3;--rt:#8DCEB3;--rc:#364037;--rp:#9BD4BD;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  </div>
+</section>
+<section class="var" id="v2">
+  <header class="vh">
+    <span class="num">2</span>
+    <div><h2>Tomate &amp; safran</h2><p class="reg">Marché d&#x27;été : vif, gourmand, ensoleillé, qui donne faim.</p>
+    <p class="tr"><b>Couleur de rayon :</b> En-tête de groupe en bandeau teinté pleine largeur.</p></div>
+  </header>
+  <div class="vgrid">
+    <div class="tokens">
+      <h3>Rôles <small>(clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#BF2F18"></i><i style="background:#FF8E74"></i></span><span class="cl">primary</span><code>#BF2F18 · #FF8E74</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#4A0E00"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #4A0E00</code></div><div class="chip"><span class="sw"><i style="background:#FFD596"></i><i style="background:#6A4500"></i></span><span class="cl">primary-container</span><code>#FFD596 · #6A4500</code></div><div class="chip"><span class="sw"><i style="background:#FFFAF2"></i><i style="background:#1F1610"></i></span><span class="cl">surface</span><code>#FFFAF2 · #1F1610</code></div><div class="chip"><span class="sw"><i style="background:#2B1A10"></i><i style="background:#FBE9DB"></i></span><span class="cl">on-surface</span><code>#2B1A10 · #FBE9DB</code></div><div class="chip"><span class="sw"><i style="background:#FFEFD6"></i><i style="background:#2D2118"></i></span><span class="cl">surface-container</span><code>#FFEFD6 · #2D2118</code></div><div class="chip"><span class="sw"><i style="background:#5E4632"></i><i style="background:#DCC3AE"></i></span><span class="cl">on-surface-variant</span><code>#5E4632 · #DCC3AE</code></div><div class="chip"><span class="sw"><i style="background:#957560"></i><i style="background:#A58C78"></i></span><span class="cl">outline</span><code>#957560 · #A58C78</code></div><div class="chip"><span class="sw"><i style="background:#735E4D"></i><i style="background:#AE9784"></i></span><span class="cl">checked</span><code>#735E4D · #AE9784</code></div><div class="chip"><span class="sw"><i style="background:#A3124A"></i><i style="background:#FF8FB4"></i></span><span class="cl">error</span><code>#A3124A · #FF8FB4</code></div></div>
+      <h3>13 rayons <small>(accent clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#21A726"></i><i style="background:#6DE371"></i></span><span class="cl">Fruits &amp; légumes</span><code>#21A726 · #6DE371</code></div><div class="chip"><span class="sw"><i style="background:#C38528"></i><i style="background:#E3B46D"></i></span><span class="cl">Boulangerie</span><code>#C38528 · #E3B46D</code></div><div class="chip"><span class="sw"><i style="background:#C32832"></i><i style="background:#E36D75"></i></span><span class="cl">Viande/Poisson</span><code>#C32832 · #E36D75</code></div><div class="chip"><span class="sw"><i style="background:#2A75CB"></i><i style="background:#72A7E4"></i></span><span class="cl">Crèmerie</span><code>#2A75CB · #72A7E4</code></div><div class="chip"><span class="sw"><i style="background:#C35B28"></i><i style="background:#E3956D"></i></span><span class="cl">Épicerie salée</span><code>#C35B28 · #E3956D</code></div><div class="chip"><span class="sw"><i style="background:#C32870"></i><i style="background:#E36DA4"></i></span><span class="cl">Épicerie sucrée</span><code>#C32870 · #E36DA4</code></div><div class="chip"><span class="sw"><i style="background:#259DB7"></i><i style="background:#6DD0E3"></i></span><span class="cl">Surgelés</span><code>#259DB7 · #6DD0E3</code></div><div class="chip"><span class="sw"><i style="background:#A28F20"></i><i style="background:#E2D165"></i></span><span class="cl">Plats préparés</span><code>#A28F20 · #E2D165</code></div><div class="chip"><span class="sw"><i style="background:#822ACF"></i><i style="background:#B074E4"></i></span><span class="cl">Boissons</span><code>#822ACF · #B074E4</code></div><div class="chip"><span class="sw"><i style="background:#20A386"></i><i style="background:#6DE3C8"></i></span><span class="cl">Hygiène</span><code>#20A386 · #6DE3C8</code></div><div class="chip"><span class="sw"><i style="background:#2B3CD4"></i><i style="background:#7681E5"></i></span><span class="cl">Entretien</span><code>#2B3CD4 · #7681E5</code></div><div class="chip"><span class="sw"><i style="background:#CB2ACB"></i><i style="background:#E472E4"></i></span><span class="cl">Bébé/Animaux</span><code>#CB2ACB · #E472E4</code></div><div class="chip"><span class="sw"><i style="background:#80756A"></i><i style="background:#B1A8A0"></i></span><span class="cl">Divers</span><code>#80756A · #B1A8A0</code></div></div>
+      <p class="audit"><b>Contrastes mesurés (clair/sombre) :</b> on-surface 16.1/15.1 · on-surface-variant 8.4/10.6 · checked 5.9/6.4 · on-primary 5.8/6.9 · FAB 10.7/6.6 · app bar 14.8/13.2 · nav 7.7/9.3 · error 7.4/8.3 · outline (3:1) 4.0/5.6. Tous les textes des maquettes &ge; 4,5:1 ; accents de rayon &ge; 3:1.</p>
+    </div>
+    <div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone v2 light t-band"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#21A726;--rt:#18831D;--rc:#D3E9C9;--rp:#19871E;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#2A75CB;--rt:#2973C7;--rc:#D4DFEA;--rp:#2A75CB;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#C35B28;--rt:#B75525;--rc:#F3DACA;--rp:#BB5726;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#20A386;--rt:#177F67;--rc:#D2E9DC;--rp:#18836A;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone v2 dark t-band"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#6DE371;--rt:#6DE371;--rc:#36532D;--rp:#7EE682;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#72A7E4;--rt:#72A7E4;--rc:#384250;--rp:#83B2E7;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#E3956D;--rt:#E3956D;--rc:#5A3C2C;--rp:#E6A17E;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#6DE3C8;--rt:#6DE3C8;--rc:#365347;--rp:#7EE6CE;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  </div>
+</section>
+<section class="var" id="v3">
+  <header class="vh">
+    <span class="num">3</span>
+    <div><h2>Potager</h2><p class="reg">Herbes fraîches et huile d&#x27;olive : naturel, posé, végétal.</p>
+    <p class="tr"><b>Couleur de rayon :</b> Pastille arrondie teintée (point + nom du rayon) en tête de groupe.</p></div>
+  </header>
+  <div class="vgrid">
+    <div class="tokens">
+      <h3>Rôles <small>(clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#556B2F"></i><i style="background:#B9CF85"></i></span><span class="cl">primary</span><code>#556B2F · #B9CF85</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#273500"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #273500</code></div><div class="chip"><span class="sw"><i style="background:#DCE8B8"></i><i style="background:#3E4F1C"></i></span><span class="cl">primary-container</span><code>#DCE8B8 · #3E4F1C</code></div><div class="chip"><span class="sw"><i style="background:#F8F7EE"></i><i style="background:#181A13"></i></span><span class="cl">surface</span><code>#F8F7EE · #181A13</code></div><div class="chip"><span class="sw"><i style="background:#1F2117"></i><i style="background:#E5E5D6"></i></span><span class="cl">on-surface</span><code>#1F2117 · #E5E5D6</code></div><div class="chip"><span class="sw"><i style="background:#ECEDDD"></i><i style="background:#23261C"></i></span><span class="cl">surface-container</span><code>#ECEDDD · #23261C</code></div><div class="chip"><span class="sw"><i style="background:#4A4D3C"></i><i style="background:#C6C8B2"></i></span><span class="cl">on-surface-variant</span><code>#4A4D3C · #C6C8B2</code></div><div class="chip"><span class="sw"><i style="background:#7A7D68"></i><i style="background:#8F927D"></i></span><span class="cl">outline</span><code>#7A7D68 · #8F927D</code></div><div class="chip"><span class="sw"><i style="background:#65685A"></i><i style="background:#9C9E8A"></i></span><span class="cl">checked</span><code>#65685A · #9C9E8A</code></div><div class="chip"><span class="sw"><i style="background:#B3261E"></i><i style="background:#FFB4AB"></i></span><span class="cl">error</span><code>#B3261E · #FFB4AB</code></div></div>
+      <h3>13 rayons <small>(accent clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#398A38"></i><i style="background:#8ECE8D"></i></span><span class="cl">Fruits &amp; légumes</span><code>#398A38 · #8ECE8D</code></div><div class="chip"><span class="sw"><i style="background:#8A7138"></i><i style="background:#CEBA8D"></i></span><span class="cl">Boulangerie</span><code>#8A7138 · #CEBA8D</code></div><div class="chip"><span class="sw"><i style="background:#8A4038"></i><i style="background:#CE938D"></i></span><span class="cl">Viande/Poisson</span><code>#8A4038 · #CE938D</code></div><div class="chip"><span class="sw"><i style="background:#3B7491"></i><i style="background:#90BAD0"></i></span><span class="cl">Crèmerie</span><code>#3B7491 · #90BAD0</code></div><div class="chip"><span class="sw"><i style="background:#8A5E38"></i><i style="background:#CEAB8D"></i></span><span class="cl">Épicerie salée</span><code>#8A5E38 · #CEAB8D</code></div><div class="chip"><span class="sw"><i style="background:#8A384E"></i><i style="background:#CE8D9E"></i></span><span class="cl">Épicerie sucrée</span><code>#8A384E · #CE8D9E</code></div><div class="chip"><span class="sw"><i style="background:#38898A"></i><i style="background:#8DCDCE"></i></span><span class="cl">Surgelés</span><code>#38898A · #8DCDCE</code></div><div class="chip"><span class="sw"><i style="background:#7B7732"></i><i style="background:#CBC786"></i></span><span class="cl">Plats préparés</span><code>#7B7732 · #CBC786</code></div><div class="chip"><span class="sw"><i style="background:#523D94"></i><i style="background:#A192D0"></i></span><span class="cl">Boissons</span><code>#523D94 · #A192D0</code></div><div class="chip"><span class="sw"><i style="background:#388A6D"></i><i style="background:#8DCEB7"></i></span><span class="cl">Hygiène</span><code>#388A6D · #8DCEB7</code></div><div class="chip"><span class="sw"><i style="background:#3E5C98"></i><i style="background:#94A8D1"></i></span><span class="cl">Entretien</span><code>#3E5C98 · #94A8D1</code></div><div class="chip"><span class="sw"><i style="background:#913B7B"></i><i style="background:#D090BF"></i></span><span class="cl">Bébé/Animaux</span><code>#913B7B · #D090BF</code></div><div class="chip"><span class="sw"><i style="background:#67625B"></i><i style="background:#B2AEA9"></i></span><span class="cl">Divers</span><code>#67625B · #B2AEA9</code></div></div>
+      <p class="audit"><b>Contrastes mesurés (clair/sombre) :</b> on-surface 15.2/13.8 · on-surface-variant 8.1/10.3 · checked 5.3/6.4 · on-primary 5.9/7.7 · FAB 12.3/7.0 · app bar 15.2/13.8 · nav 7.3/9.0 · error 6.1/10.3 · outline (3:1) 3.9/5.5. Tous les textes des maquettes &ge; 4,5:1 ; accents de rayon &ge; 3:1.</p>
+    </div>
+    <div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone v3 light t-chip"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#398A38;--rt:#357E35;--rc:#D6E3CD;--rp:#368236;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#3B7491;--rt:#3B7491;--rc:#D6DFDD;--rp:#3B7491;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#8A5E38;--rt:#8A5E38;--rc:#E4DBCD;--rp:#8A5E38;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#388A6D;--rt:#337A61;--rc:#D5E3D7;--rp:#368267;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone v3 dark t-chip"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#8ECE8D;--rt:#8ECE8D;--rc:#374933;--rp:#9CD49B;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#90BAD0;--rt:#90BAD0;--rc:#374444;--rp:#9EC3D6;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#CEAB8D;--rt:#CEAB8D;--rc:#474033;--rp:#D4B69B;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#8DCEB7;--rt:#8DCEB7;--rc:#36493E;--rp:#9BD4C0;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  </div>
+</section>
+<section class="var" id="v4">
+  <header class="vh">
+    <span class="num">4</span>
+    <div><h2>Crème &amp; fusain</h2><p class="reg">Papier crème et encre douce : calme, minimal ; la couleur ne vient que des rayons.</p>
+    <p class="tr"><b>Couleur de rayon :</b> Carré de couleur devant le nom du rayon + cases à cocher bordées de la couleur du rayon.</p></div>
+  </header>
+  <div class="vgrid">
+    <div class="tokens">
+      <h3>Rôles <small>(clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#2F2A25"></i><i style="background:#EDE5DA"></i></span><span class="cl">primary</span><code>#2F2A25 · #EDE5DA</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#2A2520"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #2A2520</code></div><div class="chip"><span class="sw"><i style="background:#E8E1D6"></i><i style="background:#3A342E"></i></span><span class="cl">primary-container</span><code>#E8E1D6 · #3A342E</code></div><div class="chip"><span class="sw"><i style="background:#FBF8F3"></i><i style="background:#191715"></i></span><span class="cl">surface</span><code>#FBF8F3 · #191715</code></div><div class="chip"><span class="sw"><i style="background:#24201C"></i><i style="background:#EDE7DF"></i></span><span class="cl">on-surface</span><code>#24201C · #EDE7DF</code></div><div class="chip"><span class="sw"><i style="background:#F2EDE5"></i><i style="background:#24211E"></i></span><span class="cl">surface-container</span><code>#F2EDE5 · #24211E</code></div><div class="chip"><span class="sw"><i style="background:#5A534B"></i><i style="background:#CBC3B9"></i></span><span class="cl">on-surface-variant</span><code>#5A534B · #CBC3B9</code></div><div class="chip"><span class="sw"><i style="background:#8C847A"></i><i style="background:#948C82"></i></span><span class="cl">outline</span><code>#8C847A · #948C82</code></div><div class="chip"><span class="sw"><i style="background:#6F6860"></i><i style="background:#A39B91"></i></span><span class="cl">checked</span><code>#6F6860 · #A39B91</code></div><div class="chip"><span class="sw"><i style="background:#B3261E"></i><i style="background:#FFB4AB"></i></span><span class="cl">error</span><code>#B3261E · #FFB4AB</code></div></div>
+      <h3>13 rayons <small>(accent clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#34A238"></i><i style="background:#81DA84"></i></span><span class="cl">Fruits &amp; légumes</span><code>#34A238 · #81DA84</code></div><div class="chip"><span class="sw"><i style="background:#B28138"></i><i style="background:#DAB681"></i></span><span class="cl">Boulangerie</span><code>#B28138 · #DAB681</code></div><div class="chip"><span class="sw"><i style="background:#B23840"></i><i style="background:#DA8187"></i></span><span class="cl">Viande/Poisson</span><code>#B23840 · #DA8187</code></div><div class="chip"><span class="sw"><i style="background:#3B76BA"></i><i style="background:#84ADDB"></i></span><span class="cl">Crèmerie</span><code>#3B76BA · #84ADDB</code></div><div class="chip"><span class="sw"><i style="background:#B26138"></i><i style="background:#DA9E81"></i></span><span class="cl">Épicerie salée</span><code>#B26138 · #DA9E81</code></div><div class="chip"><span class="sw"><i style="background:#B23871"></i><i style="background:#DA81AA"></i></span><span class="cl">Épicerie sucrée</span><code>#B23871 · #DA81AA</code></div><div class="chip"><span class="sw"><i style="background:#379BAE"></i><i style="background:#81CBDA"></i></span><span class="cl">Surgelés</span><code>#379BAE · #81CBDA</code></div><div class="chip"><span class="sw"><i style="background:#9F9032"></i><i style="background:#D8CB79"></i></span><span class="cl">Plats préparés</span><code>#9F9032 · #D8CB79</code></div><div class="chip"><span class="sw"><i style="background:#813CBE"></i><i style="background:#B486DC"></i></span><span class="cl">Boissons</span><code>#813CBE · #B486DC</code></div><div class="chip"><span class="sw"><i style="background:#339E87"></i><i style="background:#81DAC5"></i></span><span class="cl">Hygiène</span><code>#339E87 · #81DAC5</code></div><div class="chip"><span class="sw"><i style="background:#3D4AC2"></i><i style="background:#8891DD"></i></span><span class="cl">Entretien</span><code>#3D4AC2 · #8891DD</code></div><div class="chip"><span class="sw"><i style="background:#BA3BBA"></i><i style="background:#DB84DB"></i></span><span class="cl">Bébé/Animaux</span><code>#BA3BBA · #DB84DB</code></div><div class="chip"><span class="sw"><i style="background:#7E756D"></i><i style="background:#B4ADA7"></i></span><span class="cl">Divers</span><code>#7E756D · #B4ADA7</code></div></div>
+      <p class="audit"><b>Contrastes mesurés (clair/sombre) :</b> on-surface 15.3/14.6 · on-surface-variant 7.1/10.3 · checked 5.2/6.5 · on-primary 14.2/12.2 · FAB 10.9/9.8 · app bar 15.3/14.6 · nav 6.5/9.2 · error 6.2/10.5 · outline (3:1) 3.5/5.4. Tous les textes des maquettes &ge; 4,5:1 ; accents de rayon &ge; 3:1.</p>
+    </div>
+    <div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone v4 light t-box"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#34A238;--rt:#2B7E2F;--rc:#FBF8F3;--rp:#2C8230;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#3B76BA;--rt:#3972B2;--rc:#FBF8F3;--rp:#3B76BA;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#B26138;--rt:#A65B35;--rc:#FBF8F3;--rp:#AE5F37;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#339E87;--rt:#2A7A6C;--rc:#FBF8F3;--rp:#2C8272;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone v4 dark t-box"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#81DA84;--rt:#81DA84;--rc:#191715;--rp:#91DF93;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#84ADDB;--rt:#84ADDB;--rc:#191715;--rp:#94B8E0;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#DA9E81;--rt:#DA9E81;--rc:#191715;--rp:#DFAA91;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#81DAC5;--rt:#81DAC5;--rc:#191715;--rp:#91DFCC;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  </div>
+</section>
+<section class="var" id="v5">
+  <header class="vh">
+    <span class="num">5</span>
+    <div><h2>Paprika &amp; encre</h2><p class="reg">Bistrot affirmé : contrasté, franc, énergique, lisible en plein rayon.</p>
+    <p class="tr"><b>Couleur de rayon :</b> Groupe en carte entièrement teintée + étiquette pleine couleur du rayon.</p></div>
+  </header>
+  <div class="vgrid">
+    <div class="tokens">
+      <h3>Rôles <small>(clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#A3160C"></i><i style="background:#FF7A5C"></i></span><span class="cl">primary</span><code>#A3160C · #FF7A5C</code></div><div class="chip"><span class="sw"><i style="background:#FFFFFF"></i><i style="background:#2B0500"></i></span><span class="cl">on-primary</span><code>#FFFFFF · #2B0500</code></div><div class="chip"><span class="sw"><i style="background:#FFC447"></i><i style="background:#FFC447"></i></span><span class="cl">primary-container</span><code>#FFC447 · #FFC447</code></div><div class="chip"><span class="sw"><i style="background:#FFFBF5"></i><i style="background:#120D0B"></i></span><span class="cl">surface</span><code>#FFFBF5 · #120D0B</code></div><div class="chip"><span class="sw"><i style="background:#1A110D"></i><i style="background:#FFF3EA"></i></span><span class="cl">on-surface</span><code>#1A110D · #FFF3EA</code></div><div class="chip"><span class="sw"><i style="background:#F6EADC"></i><i style="background:#1F1714"></i></span><span class="cl">surface-container</span><code>#F6EADC · #1F1714</code></div><div class="chip"><span class="sw"><i style="background:#46362F"></i><i style="background:#E0CBBE"></i></span><span class="cl">on-surface-variant</span><code>#46362F · #E0CBBE</code></div><div class="chip"><span class="sw"><i style="background:#6E5A50"></i><i style="background:#A8907F"></i></span><span class="cl">outline</span><code>#6E5A50 · #A8907F</code></div><div class="chip"><span class="sw"><i style="background:#5E4F48"></i><i style="background:#BEAB9D"></i></span><span class="cl">checked</span><code>#5E4F48 · #BEAB9D</code></div><div class="chip"><span class="sw"><i style="background:#A3124A"></i><i style="background:#FF8FB4"></i></span><span class="cl">error</span><code>#A3124A · #FF8FB4</code></div></div>
+      <h3>13 rayons <small>(accent clair · sombre)</small></h3>
+      <div class="chips"><div class="chip"><span class="sw"><i style="background:#0FA912"></i><i style="background:#49F34F"></i></span><span class="cl">Fruits &amp; légumes</span><code>#0FA912 · #49F34F</code></div><div class="chip"><span class="sw"><i style="background:#BD770F"></i><i style="background:#F3AF49"></i></span><span class="cl">Boulangerie</span><code>#BD770F · #F3AF49</code></div><div class="chip"><span class="sw"><i style="background:#BD0F1B"></i><i style="background:#F34954"></i></span><span class="cl">Viande/Poisson</span><code>#BD0F1B · #F34954</code></div><div class="chip"><span class="sw"><i style="background:#1065C6"></i><i style="background:#4E9BF4"></i></span><span class="cl">Crèmerie</span><code>#1065C6 · #4E9BF4</code></div><div class="chip"><span class="sw"><i style="background:#BD490F"></i><i style="background:#F38249"></i></span><span class="cl">Épicerie salée</span><code>#BD490F · #F38249</code></div><div class="chip"><span class="sw"><i style="background:#BD0F60"></i><i style="background:#F34998"></i></span><span class="cl">Épicerie sucrée</span><code>#BD0F60 · #F34998</code></div><div class="chip"><span class="sw"><i style="background:#0FA0BD"></i><i style="background:#49D7F3"></i></span><span class="cl">Surgelés</span><code>#0FA0BD · #49D7F3</code></div><div class="chip"><span class="sw"><i style="background:#A5910E"></i><i style="background:#F3DB3F"></i></span><span class="cl">Plats préparés</span><code>#A5910E · #F3DB3F</code></div><div class="chip"><span class="sw"><i style="background:#7410CB"></i><i style="background:#A750F4"></i></span><span class="cl">Boissons</span><code>#7410CB · #A750F4</code></div><div class="chip"><span class="sw"><i style="background:#0FA480"></i><i style="background:#49F3CC"></i></span><span class="cl">Hygiène</span><code>#0FA480 · #49F3CC</code></div><div class="chip"><span class="sw"><i style="background:#1124D0"></i><i style="background:#5263F4"></i></span><span class="cl">Entretien</span><code>#1124D0 · #5263F4</code></div><div class="chip"><span class="sw"><i style="background:#C610C6"></i><i style="background:#F44EF4"></i></span><span class="cl">Bébé/Animaux</span><code>#C610C6 · #F44EF4</code></div><div class="chip"><span class="sw"><i style="background:#72665A"></i><i style="background:#AA9E92"></i></span><span class="cl">Divers</span><code>#72665A · #AA9E92</code></div></div>
+      <p class="audit"><b>Contrastes mesurés (clair/sombre) :</b> on-surface 18.0/17.7 · on-surface-variant 11.1/12.4 · checked 7.6/8.7 · on-primary 7.8/7.3 · FAB 10.6/10.6 · app bar 16.8/15.3 · nav 9.7/11.3 · error 7.4/9.0 · outline (3:1) 6.3/6.4. Tous les textes des maquettes &ge; 4,5:1 ; accents de rayon &ge; 3:1.</p>
+    </div>
+    <div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone v5 light t-card"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#0FA912;--rt:#0E810E;--rc:#D9EED1;--rp:#0F860F;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#1065C6;--rt:#1065C6;--rc:#D9E3ED;--rp:#1065C6;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#BD490F;--rt:#BD490F;--rc:#F4DFD0;--rp:#BD490F;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#0FA480;--rt:#0E8164;--rc:#D9EDE2;--rp:#0E8164;--rpf:#FFFFFF"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone v5 dark t-card"><div class="sb"><span>9:41</span><span class="sbi"></span></div><header class="ab"><span class="abt">Liste</span><span class="abi" title="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><section class="grp" style="--r:#49F34F;--rt:#49F34F;--rc:#1F441B;--rp:#5CF462;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Fruits &amp; légumes</span><span class="gc">3</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Tomates</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Courgettes</span><span class="qt">2 pièces</span></li><li class="item"><span class="cb"></span><span class="nm">Citron</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#4E9BF4;--rt:#4E9BF4;--rc:#202F43;--rp:#61A6F5;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Crèmerie</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Œufs</span><span class="qt">6 pièces</span></li><li class="item done"><span class="cb"><svg viewBox="0 0 18 18" width="18" height="18" aria-hidden="true"><path d="M4 9.3l3.2 3.2L14 5.7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="nm">Crème fraîche</span><span class="qt">20 cl</span></li></ul></section><section class="grp" style="--r:#F38249;--rt:#F38249;--rc:#48291A;--rp:#F48F5C;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Épicerie salée</span><span class="gc">2</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Pâtes</span><span class="qt">500 g</span></li><li class="item"><span class="cb"></span><span class="nm">Riz</span><span class="qt"></span></li></ul></section><section class="grp" style="--r:#49F3CC;--rt:#49F3CC;--rc:#1F4439;--rp:#5CF4D1;--rpf:#1A110D"><h4 class="gh"><span class="mk"></span><span class="gl">Hygiène</span><span class="gc">1</span></h4><ul><li class="item"><span class="cb"></span><span class="nm">Papier toilette</span><span class="qt"></span></li></ul></section></div><div class="fab" aria-label="Ajouter"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div>
+  </div>
+</section>
+</div>
+</body>
+</html>

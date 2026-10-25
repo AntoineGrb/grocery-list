@@ -1,0 +1,28 @@
+# Epics de l'initiative grocery-list, dans l'ordre de construction.
+# Exigences partagées : la description de chaque epic dit la part qu'il livre.
+
+[[epic]]
+id = 1
+slug = "epic-liste-de-courses"
+title = "La liste de courses au magasin"
+description = "L'app, installée sur le téléphone d'Antoine, tient une liste en cours groupée par rayon dans l'ordre par défaut des 13 rayons, alimentée à la main par le Panneau + (recherche, création à la volée avec quantité et rayon facultatifs, fréquents fournis) et cochée d'une main jusqu'à Terminer les courses, qui vide la liste avec Annuler. Livre aussi le socle réutilisé par les epics 2 et 3 : projet Flutter et build release installable, thèmes clair et sombre aux tokens de DESIGN.md, stockage local prêt pour la synchro (UUID, date de modification, suppression logique), modèle d'unités et fusion dans la liste avec la provenance de chaque quantité (pour que l'epic 2 retire celles d'une recette), recherche et création d'article réutilisables, catalogue d'environ 200 articles et 30 fréquents générés par IA. Parts : R9 groupement, R11 unités, arrondi et fusion de liste, R18 catalogue fourni et création à la volée, R19 ordre par défaut, R20 fréquents fournis, R23 états vides de la Liste et du Panneau +, R24 sur ses surfaces."
+covers = ["R9", "R10", "R11", "R12", "R13", "R15", "R16", "R17", "R18", "R19", "R20", "R23", "R24"]
+
+[[epic]]
+id = 2
+slug = "epic-recettes-et-revue"
+title = "De la recette à la liste"
+description = "Antoine saisit ses recettes (photo galerie ou appareil photo), sélectionne celles de la semaine, valide, décoche en Revue ce qu'il a déjà et retrouve les ingrédients fusionnés dans la liste de l'epic 1 ; désélectionner une recette validée retire ses quantités grâce à la provenance posée par l'epic 1. Premier lancement avec 3 à 5 recettes exemples générées par IA, Nouvelle liste, et remise à zéro de la sélection par Terminer les courses. Réutilise la recherche et la création d'article de l'epic 1. Parts : R11 fusion en Revue, R12 remise à zéro de la sélection et sa restauration, R23 états vides de Recettes, R24 sur ses surfaces."
+covers = ["R1", "R2", "R3", "R4", "R5", "R6", "R7", "R8", "R11", "R12", "R22", "R23", "R24"]
+after = [{ epic = 1, needs = "la liste en cours avec provenance des quantités, la recherche et création d'article, le catalogue et le socle" }]
+
+[[epic]]
+id = 3
+slug = "epic-reglages-et-sauvegarde"
+title = "Réglages et sauvegarde"
+description = "Antoine garde, s'il le veut, l'écran allumé pendant les courses, gère son catalogue d'articles, ses fréquents et le parcours de son magasin, désactive le groupement s'il le veut, et sauvegarde puis restaure toutes ses données par fichier (fusion par UUID). Pose l'écran Paramètres avec le réglage Écran allumé et clôt l'initiative par la vérification de bout en bout des six parcours en clair et en sombre et du plancher d'accessibilité. Parts : R9 désactivation du groupement, R18 Paramètres › Articles, R19 parcours par glisser-déposer, R20 gestion des fréquents, R24 actions Monter et Descendre et vérification finale."
+covers = ["R9", "R14", "R18", "R19", "R20", "R21", "R24"]
+after = [
+  { epic = 1, needs = "le catalogue, les fréquents, l'ordre par défaut du parcours et le stockage" },
+  { epic = 2, needs = "le modèle de recette, pour l'export et l'import" },
+]

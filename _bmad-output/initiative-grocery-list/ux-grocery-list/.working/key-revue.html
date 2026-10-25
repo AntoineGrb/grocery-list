@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Revue, écran clé</title>
+<style>
+/* KEY SCREEN : Revue
+   Spine qui gouverne cet écran :
+   - DESIGN.md : Components : Barre d'application, En-tête de rayon, Ligne de Revue, Champ quantité, Picto, Bouton d'action ;
+     Colors (rayons, checked, argile sur le bouton d'action).
+   - EXPERIENCE.md : Component Patterns (Ligne de Revue, Champ quantité, Bouton d'action), State Patterns (Revue : Par défaut,
+     Ingrédient sans quantité), Voice and Tone (« Décoche ce que tu as déjà. », « Ajouter à la liste »),
+     Key Flows : Flux 1 (le dimanche soir), étapes 3 à 5.
+   - .memlog.md : entrées 18, 35, 36, 44, 54, 56.
+   Rendu 1:1 : 360 x 800 dp, 1 px = 1 dp. */
+
+:root{--pg:#EFEBE6;--pg2:#FFFFFF;--ink:#24201C;--ink2:#564E47;--line:#DAD2C8;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--pg:#121010;--pg2:#1C1917;--ink:#EDE7DF;--ink2:#BFB6AC;--line:#3A342E}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;line-height:1.45}
+.wrap{max-width:900px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:1.6rem;margin:0 0 6px;letter-spacing:-.01em}
+.intro{margin:0;color:var(--ink2);max-width:78ch}
+.sec{background:var(--pg2);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:22px}
+.sec h2{margin:0 0 4px;font-size:1.2rem}
+.sec>p{margin:0 0 16px;color:var(--ink2);max-width:78ch}
+.phones{display:flex;gap:24px;flex-wrap:wrap}
+.pf{margin:0}
+.pf figcaption{font-size:.8rem;color:var(--ink2);margin:0 0 6px 4px;font-weight:600;letter-spacing:.03em}
+.notes{margin:16px 0 0;padding:10px 14px;border-left:3px solid var(--line);font-size:.82rem;color:var(--ink2);max-width:78ch}
+.notes p{margin:2px 0}
+.notes b{color:var(--ink)}
+
+/* ---------------- téléphone (360 x 800 dp logiques) ---------------- */
+.phone{position:relative;width:372px;max-width:calc(100vw - 72px);height:812px;border-radius:32px;overflow:hidden;
+  background:var(--surface);color:var(--onSurface);border:6px solid #0E0C0B;font-size:16px;line-height:24px;letter-spacing:.5px}
+.sb{display:flex;justify-content:space-between;align-items:center;height:24px;padding:0 16px;font-size:12px;letter-spacing:.2px}
+.sbi{display:flex;gap:6px;align-items:center}
+.sbi i{display:block;width:16px;height:9px;border-radius:2px;border:1.5px solid currentColor}
+.sbi b{display:block;width:12px;height:9px;border-radius:2px;background:currentColor;opacity:.85}
+/* barre d'application M3 small, à plat sur surface */
+.ab{display:flex;align-items:center;height:64px;padding:0 4px 0 16px;background:var(--surface)}
+.ab.back{padding-left:4px}
+.abt{flex:1;font-size:22px;line-height:28px;font-weight:400;letter-spacing:0}
+.ib{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;color:var(--onSurfaceVariant)}
+.ab .ib{color:var(--onSurface)}
+.tb{flex:none;height:40px;padding:0 12px;display:grid;place-items:center;border-radius:20px;font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;color:var(--onSurface)}
+.body{position:absolute;left:0;right:0;top:88px;bottom:80px;overflow:hidden}
+.body.full{bottom:0}
+/* en-tête de rayon : pastille */
+.gh{display:flex;align-items:center;padding:8px 16px 4px;margin:0}
+.grp+.grp{border-top:1px solid var(--surfaceContainer)}
+.pst{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 10px;border-radius:9999px;background:var(--rc);color:var(--onSurface);
+  font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px}
+.pst i{display:block;width:10px;height:10px;border-radius:50%;background:var(--r)}
+.gc{margin-left:auto;font-size:12px;line-height:16px;font-weight:500;color:var(--onSurfaceVariant)}
+ul{list-style:none;margin:0;padding:0}
+/* ligne d'article : case M3 (18 dp) dans une cible de 48 dp */
+.row{display:flex;align-items:center;min-height:48px;padding:0 16px 0 4px;gap:4px}
+.cbt{flex:none;width:48px;height:48px;display:grid;place-items:center}
+.cb{width:18px;height:18px;border-radius:2px;border:2px solid var(--r);display:grid;place-items:center;color:var(--surface)}
+.on .cb{background:var(--r)}
+.nm{flex:1;min-width:0}
+.qt{color:var(--onSurfaceVariant);font-size:14px;line-height:20px;letter-spacing:.25px}
+.ckrow .nm,.ckrow .qt{color:var(--checked);text-decoration:line-through}
+/* section Cochés */
+.ck{margin-top:8px;border-top:1px solid var(--outline)}
+.ckh{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 16px 0 12px;color:var(--onSurfaceVariant);font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px}
+.ckh .hint{margin-left:auto;font-size:12px;line-height:16px}
+/* picto au trait, teinté du rayon */
+.pi{flex:none;width:24px;height:24px;color:var(--r);fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* champ quantité */
+.qf{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;width:104px;height:48px;padding:0 12px;border:1px solid var(--outline);border-radius:4px;color:var(--onSurface)}
+.qf .u{color:var(--onSurfaceVariant);font-size:14px;line-height:20px;letter-spacing:.25px}
+/* FAB + (argile) */
+.fab{position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:16px;background:var(--primary);color:var(--onPrimary);display:grid;place-items:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)}
+.fab.up{bottom:160px}
+/* bouton d'action principal (argile) */
+.act{position:absolute;left:16px;right:16px;bottom:96px;height:48px;border-radius:9999px;background:var(--primary);color:var(--onPrimary);
+  display:grid;place-items:center;font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.bottom{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--surface)}
+.bottom .act{bottom:16px}
+/* barre de navigation M3 */
+.nb{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--surfaceContainer);display:flex;justify-content:space-around;align-items:flex-start;padding-top:12px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.5px;color:var(--onSurfaceVariant);width:120px}
+.tab .ind{width:64px;height:32px;border-radius:16px;display:grid;place-items:center}
+.tab.on{color:var(--onSurface)}
+.tab.on .ind{background:var(--primaryContainer);color:var(--onPrimaryContainer)}
+.sub{margin:0;padding:0 16px 8px;font-size:14px;line-height:20px;letter-spacing:.25px;color:var(--onSurfaceVariant)}
+
+.light{--primary:#9C4A2A;--onPrimary:#FFFFFF;--primaryContainer:#F2D6C8;--onPrimaryContainer:#3B1305;--surface:#FBF6F2;--surfaceContainer:#F3ECE6;--onSurface:#2A211C;--onSurfaceVariant:#5C4E46;--outline:#8F7E74;--checked:#6F625A;--error:#B3261E;--kbBg:#E6E1DC;--kbKey:#FFFFFF;--kbSpecial:#CFC8C2;--kbText:#1F1B18}
+.dark{--primary:#F0A585;--onPrimary:#4D1C08;--primaryContainer:#6E3219;--onPrimaryContainer:#FFDBCC;--surface:#1B1715;--surfaceContainer:#26201D;--onSurface:#F0E5DD;--onSurfaceVariant:#D0C2B8;--outline:#9A8B81;--checked:#A6988E;--error:#FFB4AB;--kbBg:#201C1A;--kbKey:#3A3431;--kbSpecial:#2D2825;--kbText:#EDE6E0}
+.light .r-fl{--r:#4B9245;--rc:#DFE6D6}.dark .r-fl{--r:#93CE8D;--rc:#384332}
+.light .r-boul{--r:#927245;--rc:#EAE1D6}.dark .r-boul{--r:#CEB38D;--rc:#463C32}
+.light .r-vp{--r:#924546;--rc:#EADAD6}.dark .r-vp{--r:#CE8D8E;--rc:#463332}
+.light .r-cr{--r:#485A99;--rc:#DEDDE4}.dark .r-cr{--r:#909FD0;--rc:#373842}
+.light .r-es{--r:#925F45;--rc:#EADED6}.dark .r-es{--r:#CEA38D;--rc:#463932}
+.light .r-esu{--r:#924563;--rc:#EADADB}.dark .r-esu{--r:#CE8DA6;--rc:#463338}
+.light .r-sg{--r:#45928E;--rc:#DEE6E2}.dark .r-sg{--r:#8DCECB;--rc:#364341}
+.light .r-pp{--r:#84783E;--rc:#E8E2D5}.dark .r-pp{--r:#CBC086;--rc:#454030}
+.light .r-bo{--r:#83499C;--rc:#E8DAE4}.dark .r-bo{--r:#BD92D0;--rc:#423542}
+.light .r-hy{--r:#459272;--rc:#DEE6DE}.dark .r-hy{--r:#8DCEB3;--rc:#36433B}
+.light .r-en{--r:#544BA0;--rc:#E0DBE5}.dark .r-en{--r:#9B94D1;--rc:#3A3542}
+.light .r-ba{--r:#99488F;--rc:#EBDAE2}.dark .r-ba{--r:#D090C8;--rc:#463440}
+.light .r-dv{--r:#706B66;--rc:#E5E0DC}.dark .r-dv{--r:#B2ADA9;--rc:#3F3B39}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-courgette" viewBox="0 0 24 24"><path d="M4.6 19.4c-1.4-1.4-.4-4 2.1-6.5l6.2-6.2c2.5-2.5 5.1-3.5 6.3-2.3s.2 3.8-2.3 6.3l-6.2 6.2c-2.5 2.5-4.7 3.9-6.1 2.5z"/><path d="M17.8 4.6l1.8-1.8M9 15l1.5 1.5"/></symbol>
+<symbol id="i-oignon" viewBox="0 0 24 24"><path d="M12 3.5c1 3 6.5 5 6.5 10.5a6.5 6.5 0 0 1-13 0C5.5 8.5 11 6.5 12 3.5z"/><path d="M12 9.5c-2 2-2.4 6.8 0 10.8M12 9.5c2 2 2.4 6.8 0 10.8"/></symbol>
+<symbol id="i-steak" viewBox="0 0 24 24"><path d="M3.8 12.5c0-4.3 4.2-7.5 9.3-7.5 4.2 0 7.1 2.6 7.1 6.1 0 4.3-3.2 8-9.1 8-4.2 0-7.3-2.8-7.3-6.6z"/><circle cx="14" cy="10.8" r="2.1"/></symbol>
+<symbol id="i-lardons" viewBox="0 0 24 24"><rect x="3.5" y="11.5" width="7" height="7" rx="1.2"/><rect x="11.5" y="4.5" width="7" height="7" rx="1.2"/><rect x="13" y="14" width="6" height="6" rx="1.2"/></symbol>
+<symbol id="i-oeuf" viewBox="0 0 24 24"><path d="M12 3.2c3.4 0 6.2 5.1 6.2 9.8a6.2 6.2 0 0 1-12.4 0c0-4.7 2.8-9.8 6.2-9.8z"/></symbol>
+<symbol id="i-pot" viewBox="0 0 24 24"><path d="M4.5 8h15M6 8l1.3 11.2c.1.8.8 1.3 1.5 1.3h6.4c.8 0 1.4-.5 1.5-1.3L18 8M7.5 8V5h9v3"/></symbol>
+<symbol id="i-fromage" viewBox="0 0 24 24"><path d="M3.5 18V12.3L14 5.5l6.5 5V18z"/><path d="M3.5 12.3h17"/><circle cx="9" cy="15.3" r="1"/><circle cx="15.5" cy="14.8" r="1.2"/></symbol>
+<symbol id="i-pates" viewBox="0 0 24 24"><path d="M3.5 12h17a8.5 8 0 0 1-17 0z"/><path d="M8 12c0-3 2-3.5 2-7M12 12c0-3 2-3.5 2-7M16 12c0-2.5 1.5-3.5 1.5-6"/></symbol>
+<symbol id="i-boite" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="6" ry="2.2"/><path d="M6 6v12c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V6M6 10.5c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2"/></symbol>
+<symbol id="i-banane" viewBox="0 0 24 24"><path d="M4.2 6.5c.8 7.4 6.2 11.6 14.4 11 1.5-.1 2-1.3 1-1.9-6-1-9.6-4.6-11.1-9.9C7.8 4 4 4.3 4.2 6.5z"/></symbol>
+<symbol id="i-tomate" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7"/><path d="M8.8 7.2l3.2 1.6 3.2-1.6M12 8.8V5"/></symbol>
+<symbol id="i-lait" viewBox="0 0 24 24"><path d="M8 9.5l1.6-4.5h4.8L16 9.5V20.5H8z"/><path d="M8 9.5h8M9.6 5V3.2h4.8V5"/></symbol>
+<symbol id="i-beurre" viewBox="0 0 24 24"><path d="M3.5 14.5l3-5h11l3 5v4h-17z"/><path d="M3.5 14.5h17"/></symbol>
+<symbol id="i-pi-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+<div class="wrap">
+<h1>Revue</h1>
+<p class="intro">La Revue juste après « Valider (4) » : Chili con carne, Quiche lorraine, Pâtes carbonara, Gratin de courgettes. À gauche le thème clair, à droite le sombre.</p>
+<section class="sec"><h2>Après Valider, avant Ajouter à la liste</h2><p>Ingrédients groupés par rayon comme la future Liste, tous cochés par défaut. Pâtes et Œufs décochés (il en reste à la maison) : nom en gris « coché », sans barré, la ligne reste en place. Pictos au trait teintés du rayon. Champ quantité éditable à droite : Courgettes à 500 g au lieu de 1 000 g. Les lardons des deux recettes sont déjà fusionnés (400 g).</p><div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone light"><div class="sb"><span>9:41</span><span class="sbi"><b></b><i></i></span></div><header class="ab back"><span class="ib" aria-label="Retour"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="abt">Revue</span></header><div class="body full" style="top:88px"><p class="sub">Décoche ce que tu as déjà.</p><section class="grp r-fl"><h3 class="gh"><span class="pst"><i></i>Fruits &amp; légumes</span><span class="gc">2</span></h3><ul><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-courgette"/></svg><span class="nm" style="margin-left:12px">Courgettes</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-oignon"/></svg><span class="nm" style="margin-left:12px">Oignons</span><span class="qf"><span>3</span><span class="u">pièce</span></span></li></ul></section><section class="grp r-vp"><h3 class="gh"><span class="pst"><i></i>Viande/Poisson</span><span class="gc">2</span></h3><ul><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-steak"/></svg><span class="nm" style="margin-left:12px">Bœuf haché</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-lardons"/></svg><span class="nm" style="margin-left:12px">Lardons</span><span class="qf"><span>400</span><span class="u">g</span></span></li></ul></section><section class="grp r-cr"><h3 class="gh"><span class="pst"><i></i>Crèmerie</span><span class="gc">3</span></h3><ul><li class="row" style="min-height:52px"><span class="cbt"><span class="cb"></span></span><svg class="pi" aria-hidden="true"><use href="#i-oeuf"/></svg><span class="nm" style="margin-left:12px" style="color:var(--checked)">Œufs</span><span class="qf"><span>7</span><span class="u">pièce</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-pot"/></svg><span class="nm" style="margin-left:12px">Crème fraîche</span><span class="qf"><span>400</span><span class="u">ml</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-fromage"/></svg><span class="nm" style="margin-left:12px">Gruyère râpé</span><span class="qf"><span>150</span><span class="u">g</span></span></li></ul></section><section class="grp r-es"><h3 class="gh"><span class="pst"><i></i>Épicerie salée</span><span class="gc">3</span></h3><ul><li class="row" style="min-height:52px"><span class="cbt"><span class="cb"></span></span><svg class="pi" aria-hidden="true"><use href="#i-pates"/></svg><span class="nm" style="margin-left:12px" style="color:var(--checked)">Pâtes</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-boite"/></svg><span class="nm" style="margin-left:12px">Haricots rouges</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-boite"/></svg><span class="nm" style="margin-left:12px">Tomates concassées</span><span class="qf"><span>800</span><span class="u">g</span></span></li></ul></section></div><div class="bottom"><div class="act">Ajouter à la liste</div></div></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone dark"><div class="sb"><span>9:41</span><span class="sbi"><b></b><i></i></span></div><header class="ab back"><span class="ib" aria-label="Retour"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="abt">Revue</span></header><div class="body full" style="top:88px"><p class="sub">Décoche ce que tu as déjà.</p><section class="grp r-fl"><h3 class="gh"><span class="pst"><i></i>Fruits &amp; légumes</span><span class="gc">2</span></h3><ul><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-courgette"/></svg><span class="nm" style="margin-left:12px">Courgettes</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-oignon"/></svg><span class="nm" style="margin-left:12px">Oignons</span><span class="qf"><span>3</span><span class="u">pièce</span></span></li></ul></section><section class="grp r-vp"><h3 class="gh"><span class="pst"><i></i>Viande/Poisson</span><span class="gc">2</span></h3><ul><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-steak"/></svg><span class="nm" style="margin-left:12px">Bœuf haché</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-lardons"/></svg><span class="nm" style="margin-left:12px">Lardons</span><span class="qf"><span>400</span><span class="u">g</span></span></li></ul></section><section class="grp r-cr"><h3 class="gh"><span class="pst"><i></i>Crèmerie</span><span class="gc">3</span></h3><ul><li class="row" style="min-height:52px"><span class="cbt"><span class="cb"></span></span><svg class="pi" aria-hidden="true"><use href="#i-oeuf"/></svg><span class="nm" style="margin-left:12px" style="color:var(--checked)">Œufs</span><span class="qf"><span>7</span><span class="u">pièce</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-pot"/></svg><span class="nm" style="margin-left:12px">Crème fraîche</span><span class="qf"><span>400</span><span class="u">ml</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-fromage"/></svg><span class="nm" style="margin-left:12px">Gruyère râpé</span><span class="qf"><span>150</span><span class="u">g</span></span></li></ul></section><section class="grp r-es"><h3 class="gh"><span class="pst"><i></i>Épicerie salée</span><span class="gc">3</span></h3><ul><li class="row" style="min-height:52px"><span class="cbt"><span class="cb"></span></span><svg class="pi" aria-hidden="true"><use href="#i-pates"/></svg><span class="nm" style="margin-left:12px" style="color:var(--checked)">Pâtes</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-boite"/></svg><span class="nm" style="margin-left:12px">Haricots rouges</span><span class="qf"><span>500</span><span class="u">g</span></span></li><li class="row on" style="min-height:52px"><span class="cbt"><span class="cb"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></span><svg class="pi" aria-hidden="true"><use href="#i-boite"/></svg><span class="nm" style="margin-left:12px">Tomates concassées</span><span class="qf"><span>800</span><span class="u">g</span></span></li></ul></section></div><div class="bottom"><div class="act">Ajouter à la liste</div></div></div></figure></div><div class="notes"><p><b>Provisoire :</b> la Revue est rendue comme un écran poussé plein écran (flèche retour, sans barre de navigation), défaut M3 ; non tranché dans le spine.</p><p><b>Provisoire :</b> le compteur de la pastille compte ici les ingrédients du groupe ; le spine ne définit le compteur que pour la Liste (articles non cochés).</p><p><b>Note :</b> le champ montre la valeur dans l’unité de l’article (500 g) ; l’arrondi de lecture (« 1 kg », « 40 cl ») ne s’applique qu’à la Liste. La liste continue sous le bouton (défilement).</p></div></section>
+</div>
+</body>
+</html>

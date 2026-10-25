@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recettes, écran clé</title>
+<style>
+/* KEY SCREEN : Recettes
+   Spine qui gouverne cet écran :
+   - DESIGN.md : Components : Barre d'application, Carte recette, Action Nouvelle liste, Bouton d'action, FAB +,
+     Barre de navigation ; Layout & Spacing (grille 2 colonnes, gouttière 12) ; Shapes (photo au rayon de la carte).
+   - EXPERIENCE.md : Component Patterns (Carte recette, Action Nouvelle liste, Bouton d'action Valider, FAB +),
+     State Patterns (Recettes : Premier lancement, Sélection en cours), Voice and Tone (ligne d'accueil, « Valider (n) »),
+     Key Flows : Flux 6 (premier lancement), étape 2 ; Flux 1, étape 2.
+   - .memlog.md : entrées 25, 26, 28, 47, 48, 52, 54, 55.
+   Rendu 1:1 : 360 x 800 dp, 1 px = 1 dp. Les dégradés tiennent lieu de photos (aucune image réelle). */
+
+:root{--pg:#EFEBE6;--pg2:#FFFFFF;--ink:#24201C;--ink2:#564E47;--line:#DAD2C8;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--pg:#121010;--pg2:#1C1917;--ink:#EDE7DF;--ink2:#BFB6AC;--line:#3A342E}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--pg);color:var(--ink);font-family:Roboto,system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif;line-height:1.45}
+.wrap{max-width:900px;margin:0 auto;padding:28px 16px 64px}
+h1{font-size:1.6rem;margin:0 0 6px;letter-spacing:-.01em}
+.intro{margin:0;color:var(--ink2);max-width:78ch}
+.sec{background:var(--pg2);border:1px solid var(--line);border-radius:18px;padding:20px;margin-top:22px}
+.sec h2{margin:0 0 4px;font-size:1.2rem}
+.sec>p{margin:0 0 16px;color:var(--ink2);max-width:78ch}
+.phones{display:flex;gap:24px;flex-wrap:wrap}
+.pf{margin:0}
+.pf figcaption{font-size:.8rem;color:var(--ink2);margin:0 0 6px 4px;font-weight:600;letter-spacing:.03em}
+.notes{margin:16px 0 0;padding:10px 14px;border-left:3px solid var(--line);font-size:.82rem;color:var(--ink2);max-width:78ch}
+.notes p{margin:2px 0}
+.notes b{color:var(--ink)}
+
+/* ---------------- téléphone (360 x 800 dp logiques) ---------------- */
+.phone{position:relative;width:372px;max-width:calc(100vw - 72px);height:812px;border-radius:32px;overflow:hidden;
+  background:var(--surface);color:var(--onSurface);border:6px solid #0E0C0B;font-size:16px;line-height:24px;letter-spacing:.5px}
+.sb{display:flex;justify-content:space-between;align-items:center;height:24px;padding:0 16px;font-size:12px;letter-spacing:.2px}
+.sbi{display:flex;gap:6px;align-items:center}
+.sbi i{display:block;width:16px;height:9px;border-radius:2px;border:1.5px solid currentColor}
+.sbi b{display:block;width:12px;height:9px;border-radius:2px;background:currentColor;opacity:.85}
+/* barre d'application M3 small, à plat sur surface */
+.ab{display:flex;align-items:center;height:64px;padding:0 4px 0 16px;background:var(--surface)}
+.ab.back{padding-left:4px}
+.abt{flex:1;font-size:22px;line-height:28px;font-weight:400;letter-spacing:0}
+.ib{flex:none;width:48px;height:48px;display:grid;place-items:center;border-radius:50%;color:var(--onSurfaceVariant)}
+.ab .ib{color:var(--onSurface)}
+.tb{flex:none;height:40px;padding:0 12px;display:grid;place-items:center;border-radius:20px;font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;color:var(--onSurface)}
+.body{position:absolute;left:0;right:0;top:88px;bottom:80px;overflow:hidden}
+.body.full{bottom:0}
+/* en-tête de rayon : pastille */
+.gh{display:flex;align-items:center;padding:8px 16px 4px;margin:0}
+.grp+.grp{border-top:1px solid var(--surfaceContainer)}
+.pst{display:inline-flex;align-items:center;gap:8px;height:28px;padding:0 12px 0 10px;border-radius:9999px;background:var(--rc);color:var(--onSurface);
+  font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px}
+.pst i{display:block;width:10px;height:10px;border-radius:50%;background:var(--r)}
+.gc{margin-left:auto;font-size:12px;line-height:16px;font-weight:500;color:var(--onSurfaceVariant)}
+ul{list-style:none;margin:0;padding:0}
+/* ligne d'article : case M3 (18 dp) dans une cible de 48 dp */
+.row{display:flex;align-items:center;min-height:48px;padding:0 16px 0 4px;gap:4px}
+.cbt{flex:none;width:48px;height:48px;display:grid;place-items:center}
+.cb{width:18px;height:18px;border-radius:2px;border:2px solid var(--r);display:grid;place-items:center;color:var(--surface)}
+.on .cb{background:var(--r)}
+.nm{flex:1;min-width:0}
+.qt{color:var(--onSurfaceVariant);font-size:14px;line-height:20px;letter-spacing:.25px}
+.ckrow .nm,.ckrow .qt{color:var(--checked);text-decoration:line-through}
+/* section Cochés */
+.ck{margin-top:8px;border-top:1px solid var(--outline)}
+.ckh{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 16px 0 12px;color:var(--onSurfaceVariant);font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px}
+.ckh .hint{margin-left:auto;font-size:12px;line-height:16px}
+/* picto au trait, teinté du rayon */
+.pi{flex:none;width:24px;height:24px;color:var(--r);fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+/* champ quantité */
+.qf{flex:none;display:flex;align-items:center;justify-content:flex-end;gap:4px;width:104px;height:48px;padding:0 12px;border:1px solid var(--outline);border-radius:4px;color:var(--onSurface)}
+.qf .u{color:var(--onSurfaceVariant);font-size:14px;line-height:20px;letter-spacing:.25px}
+/* FAB + (argile) */
+.fab{position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:16px;background:var(--primary);color:var(--onPrimary);display:grid;place-items:center;
+  box-shadow:0 1px 3px rgba(0,0,0,.3),0 4px 8px 3px rgba(0,0,0,.15)}
+.fab.up{bottom:160px}
+/* bouton d'action principal (argile) */
+.act{position:absolute;left:16px;right:16px;bottom:96px;height:48px;border-radius:9999px;background:var(--primary);color:var(--onPrimary);
+  display:grid;place-items:center;font-size:14px;line-height:20px;font-weight:500;letter-spacing:.1px;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.bottom{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--surface)}
+.bottom .act{bottom:16px}
+/* barre de navigation M3 */
+.nb{position:absolute;left:0;right:0;bottom:0;height:80px;background:var(--surfaceContainer);display:flex;justify-content:space-around;align-items:flex-start;padding-top:12px}
+.tab{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:500;letter-spacing:.5px;color:var(--onSurfaceVariant);width:120px}
+.tab .ind{width:64px;height:32px;border-radius:16px;display:grid;place-items:center}
+.tab.on{color:var(--onSurface)}
+.tab.on .ind{background:var(--primaryContainer);color:var(--onPrimaryContainer)}
+.sub{margin:0;padding:0 16px 8px;font-size:14px;line-height:20px;letter-spacing:.25px;color:var(--onSurfaceVariant)}
+
+.light{--primary:#9C4A2A;--onPrimary:#FFFFFF;--primaryContainer:#F2D6C8;--onPrimaryContainer:#3B1305;--surface:#FBF6F2;--surfaceContainer:#F3ECE6;--onSurface:#2A211C;--onSurfaceVariant:#5C4E46;--outline:#8F7E74;--checked:#6F625A;--error:#B3261E;--kbBg:#E6E1DC;--kbKey:#FFFFFF;--kbSpecial:#CFC8C2;--kbText:#1F1B18}
+.dark{--primary:#F0A585;--onPrimary:#4D1C08;--primaryContainer:#6E3219;--onPrimaryContainer:#FFDBCC;--surface:#1B1715;--surfaceContainer:#26201D;--onSurface:#F0E5DD;--onSurfaceVariant:#D0C2B8;--outline:#9A8B81;--checked:#A6988E;--error:#FFB4AB;--kbBg:#201C1A;--kbKey:#3A3431;--kbSpecial:#2D2825;--kbText:#EDE6E0}
+.light .r-fl{--r:#4B9245;--rc:#DFE6D6}.dark .r-fl{--r:#93CE8D;--rc:#384332}
+.light .r-boul{--r:#927245;--rc:#EAE1D6}.dark .r-boul{--r:#CEB38D;--rc:#463C32}
+.light .r-vp{--r:#924546;--rc:#EADAD6}.dark .r-vp{--r:#CE8D8E;--rc:#463332}
+.light .r-cr{--r:#485A99;--rc:#DEDDE4}.dark .r-cr{--r:#909FD0;--rc:#373842}
+.light .r-es{--r:#925F45;--rc:#EADED6}.dark .r-es{--r:#CEA38D;--rc:#463932}
+.light .r-esu{--r:#924563;--rc:#EADADB}.dark .r-esu{--r:#CE8DA6;--rc:#463338}
+.light .r-sg{--r:#45928E;--rc:#DEE6E2}.dark .r-sg{--r:#8DCECB;--rc:#364341}
+.light .r-pp{--r:#84783E;--rc:#E8E2D5}.dark .r-pp{--r:#CBC086;--rc:#454030}
+.light .r-bo{--r:#83499C;--rc:#E8DAE4}.dark .r-bo{--r:#BD92D0;--rc:#423542}
+.light .r-hy{--r:#459272;--rc:#DEE6DE}.dark .r-hy{--r:#8DCEB3;--rc:#36433B}
+.light .r-en{--r:#544BA0;--rc:#E0DBE5}.dark .r-en{--r:#9B94D1;--rc:#3A3542}
+.light .r-ba{--r:#99488F;--rc:#EBDAE2}.dark .r-ba{--r:#D090C8;--rc:#463440}
+.light .r-dv{--r:#706B66;--rc:#E5E0DC}.dark .r-dv{--r:#B2ADA9;--rc:#3F3B39}
+
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 16px 200px}
+.card{position:relative;border-radius:12px;background:var(--surfaceContainer);overflow:hidden}
+.card .ph{height:118px;display:grid;place-items:center}
+.card .cap{display:flex;align-items:center;min-height:64px;padding:4px 0 4px 12px}
+.card .ttl{flex:1;font-size:16px;line-height:24px;font-weight:500;letter-spacing:.15px}
+.card.sel::after{content:"";position:absolute;inset:0;border:2px solid var(--onSurface);border-radius:12px;pointer-events:none}
+.selmk{position:absolute;top:8px;left:8px;width:26px;height:26px;border-radius:50%;background:var(--onSurface);color:var(--surface);
+  display:grid;place-items:center;box-shadow:0 0 0 2px var(--surface)}
+.fb{background:var(--surface)}
+.fb .pi{width:44px;height:44px;stroke-width:1.5}
+.fb .ini{font-size:36px;line-height:44px;font-weight:400;color:var(--onSurfaceVariant);letter-spacing:0}
+.photo-chili{background:radial-gradient(circle at 30% 35%,#C4623A 0 14%,transparent 15%),radial-gradient(circle at 68% 62%,#8E3A22 0 18%,transparent 19%),linear-gradient(135deg,#5E2516,#A8472A 55%,#3F1C11)}
+.photo-quiche{background:radial-gradient(circle at 40% 45%,#F0D38F 0 22%,transparent 23%),linear-gradient(135deg,#B9873E,#E2BE76 50%,#9C6F31)}
+.photo-nicoise{background:radial-gradient(circle at 35% 40%,#E9D58A 0 10%,transparent 11%),radial-gradient(circle at 62% 55%,#B8452F 0 9%,transparent 10%),linear-gradient(135deg,#46703A,#94B566 50%,#5B7E3E)}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<symbol id="i-courgette" viewBox="0 0 24 24"><path d="M4.6 19.4c-1.4-1.4-.4-4 2.1-6.5l6.2-6.2c2.5-2.5 5.1-3.5 6.3-2.3s.2 3.8-2.3 6.3l-6.2 6.2c-2.5 2.5-4.7 3.9-6.1 2.5z"/><path d="M17.8 4.6l1.8-1.8M9 15l1.5 1.5"/></symbol>
+<symbol id="i-oignon" viewBox="0 0 24 24"><path d="M12 3.5c1 3 6.5 5 6.5 10.5a6.5 6.5 0 0 1-13 0C5.5 8.5 11 6.5 12 3.5z"/><path d="M12 9.5c-2 2-2.4 6.8 0 10.8M12 9.5c2 2 2.4 6.8 0 10.8"/></symbol>
+<symbol id="i-steak" viewBox="0 0 24 24"><path d="M3.8 12.5c0-4.3 4.2-7.5 9.3-7.5 4.2 0 7.1 2.6 7.1 6.1 0 4.3-3.2 8-9.1 8-4.2 0-7.3-2.8-7.3-6.6z"/><circle cx="14" cy="10.8" r="2.1"/></symbol>
+<symbol id="i-lardons" viewBox="0 0 24 24"><rect x="3.5" y="11.5" width="7" height="7" rx="1.2"/><rect x="11.5" y="4.5" width="7" height="7" rx="1.2"/><rect x="13" y="14" width="6" height="6" rx="1.2"/></symbol>
+<symbol id="i-oeuf" viewBox="0 0 24 24"><path d="M12 3.2c3.4 0 6.2 5.1 6.2 9.8a6.2 6.2 0 0 1-12.4 0c0-4.7 2.8-9.8 6.2-9.8z"/></symbol>
+<symbol id="i-pot" viewBox="0 0 24 24"><path d="M4.5 8h15M6 8l1.3 11.2c.1.8.8 1.3 1.5 1.3h6.4c.8 0 1.4-.5 1.5-1.3L18 8M7.5 8V5h9v3"/></symbol>
+<symbol id="i-fromage" viewBox="0 0 24 24"><path d="M3.5 18V12.3L14 5.5l6.5 5V18z"/><path d="M3.5 12.3h17"/><circle cx="9" cy="15.3" r="1"/><circle cx="15.5" cy="14.8" r="1.2"/></symbol>
+<symbol id="i-pates" viewBox="0 0 24 24"><path d="M3.5 12h17a8.5 8 0 0 1-17 0z"/><path d="M8 12c0-3 2-3.5 2-7M12 12c0-3 2-3.5 2-7M16 12c0-2.5 1.5-3.5 1.5-6"/></symbol>
+<symbol id="i-boite" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="6" ry="2.2"/><path d="M6 6v12c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2V6M6 10.5c0 1.2 2.7 2.2 6 2.2s6-1 6-2.2"/></symbol>
+<symbol id="i-banane" viewBox="0 0 24 24"><path d="M4.2 6.5c.8 7.4 6.2 11.6 14.4 11 1.5-.1 2-1.3 1-1.9-6-1-9.6-4.6-11.1-9.9C7.8 4 4 4.3 4.2 6.5z"/></symbol>
+<symbol id="i-tomate" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7"/><path d="M8.8 7.2l3.2 1.6 3.2-1.6M12 8.8V5"/></symbol>
+<symbol id="i-lait" viewBox="0 0 24 24"><path d="M8 9.5l1.6-4.5h4.8L16 9.5V20.5H8z"/><path d="M8 9.5h8M9.6 5V3.2h4.8V5"/></symbol>
+<symbol id="i-beurre" viewBox="0 0 24 24"><path d="M3.5 14.5l3-5h11l3 5v4h-17z"/><path d="M3.5 14.5h17"/></symbol>
+<symbol id="i-pi-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+<div class="wrap">
+<h1>Recettes</h1>
+<p class="intro">Onglet Recettes au premier lancement : 5 recettes exemples, deux touchées pour la semaine. À gauche le thème clair, à droite le sombre.</p>
+<section class="sec"><h2>Sélection en cours</h2><p>Cartes en 2 colonnes. Tap sur la carte = sélectionner ; sélectionnée = coche dans le coin + bordure (un seul état, validée ou non). Petite icône « modifier » sur chaque carte pour ouvrir la fiche. « Valider (2) » en argile n’apparaît que s’il y a des recettes sélectionnées pas encore validées. FAB + = nouvelle recette ; ⚙ et « Nouvelle liste » en haut.</p><div class="phones"><figure class="pf"><figcaption>Clair</figcaption><div class="phone light"><div class="sb"><span>9:41</span><span class="sbi"><b></b><i></i></span></div><header class="ab"><span class="abt">Recettes</span><span class="tb">Nouvelle liste</span><span class="ib" aria-label="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><p class="sub" style="padding-bottom:12px">Voici quelques recettes pour essayer. Supprime-les quand tu veux.</p><div class="grid"><div class="card sel"><div class="ph photo-chili"></div><span class="selmk"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="cap"><span class="ttl">Chili con carne</span><span class="ib" aria-label="Modifier Chili con carne"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card"><div class="ph photo-quiche"></div><div class="cap"><span class="ttl">Quiche lorraine</span><span class="ib" aria-label="Modifier Quiche lorraine"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card"><div class="ph fb r-es"><svg class="pi" aria-hidden="true"><use href="#i-pates"/></svg></div><div class="cap"><span class="ttl">Pâtes carbonara</span><span class="ib" aria-label="Modifier Pâtes carbonara"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card sel"><div class="ph fb"><span class="ini">G</span></div><span class="selmk"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="cap"><span class="ttl">Gratin de courgettes</span><span class="ib" aria-label="Modifier Gratin de courgettes"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card"><div class="ph photo-nicoise"></div><div class="cap"><span class="ttl">Salade niçoise</span><span class="ib" aria-label="Modifier Salade niçoise"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div></div></div><div class="act">Valider (2)</div><div class="fab up" aria-label="Nouvelle recette"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure><figure class="pf"><figcaption>Sombre</figcaption><div class="phone dark"><div class="sb"><span>9:41</span><span class="sbi"><b></b><i></i></span></div><header class="ab"><span class="abt">Recettes</span><span class="tb">Nouvelle liste</span><span class="ib" aria-label="Paramètres"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.85 2.8"/><circle cx="12" cy="12" r="5.2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span></header><div class="body"><p class="sub" style="padding-bottom:12px">Voici quelques recettes pour essayer. Supprime-les quand tu veux.</p><div class="grid"><div class="card sel"><div class="ph photo-chili"></div><span class="selmk"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="cap"><span class="ttl">Chili con carne</span><span class="ib" aria-label="Modifier Chili con carne"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card"><div class="ph photo-quiche"></div><div class="cap"><span class="ttl">Quiche lorraine</span><span class="ib" aria-label="Modifier Quiche lorraine"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card"><div class="ph fb r-es"><svg class="pi" aria-hidden="true"><use href="#i-pates"/></svg></div><div class="cap"><span class="ttl">Pâtes carbonara</span><span class="ib" aria-label="Modifier Pâtes carbonara"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card sel"><div class="ph fb"><span class="ini">G</span></div><span class="selmk"><svg viewBox="0 0 18 18" width="14" height="14" aria-hidden="true"><path d="M3.5 9.3l3.4 3.4L14.5 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span><div class="cap"><span class="ttl">Gratin de courgettes</span><span class="ib" aria-label="Modifier Gratin de courgettes"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div><div class="card"><div class="ph photo-nicoise"></div><div class="cap"><span class="ttl">Salade niçoise</span><span class="ib" aria-label="Modifier Salade niçoise"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4.5 19.5l1-4.2L15.8 5a1.8 1.8 0 0 1 2.5 0l.7.7a1.8 1.8 0 0 1 0 2.5L8.7 18.5z M13.8 7l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></div></div></div></div><div class="act">Valider (2)</div><div class="fab up" aria-label="Nouvelle recette"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></div><nav class="nb"><div class="tab on"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M5 4.5h9.5a2.5 2.5 0 0 1 2.5 2.5v12.5H7.5A2.5 2.5 0 0 1 5 17z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M5 17a2.5 2.5 0 0 1 2.5-2.5H17M8.5 8.5h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></span><span>Recettes</span></div><div class="tab"><span class="ind"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="10.5" width="3" height="3" rx=".6" fill="currentColor"/><rect x="4" y="16" width="3" height="3" rx=".6" fill="currentColor"/><path d="M10 6.5h10M10 12h10M10 17.5h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>Liste</span></div></nav></div></figure></div><div class="notes"><p><b>Question ouverte, visuel de repli :</b> deux pistes montrées côte à côte. « Pâtes carbonara » = picto de l’ingrédient principal teinté de son rayon ; « Gratin de courgettes » = initiale neutre. Chili, Quiche, Salade niçoise = emplacement photo (dégradé).</p><p><b>Provisoire :</b> « Nouvelle liste » en action texte dans la barre d’application, à gauche de ⚙ (emplacement non tranché ; alternative : menu de débordement).</p><p><b>Provisoire :</b> coche de sélection en haut à gauche, en fusain (pas d’argile sur la sélection) ; le coin n’est pas précisé.</p><p><b>Provisoire :</b> FAB + empilé au-dessus du bouton « Valider (2) », comme sur la Liste ; empilement non tranché.</p><p><b>Note :</b> ligne d’accueil du premier lancement en texte simple (pas de carte ni de bannière).</p></div></section>
+</div>
+</body>
+</html>
