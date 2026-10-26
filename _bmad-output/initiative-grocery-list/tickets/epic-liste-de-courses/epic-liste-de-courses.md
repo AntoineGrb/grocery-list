@@ -64,7 +64,7 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 
 ## Notes
 
-- Assumption: identifiant Android `fr.antoine.kadi`, définitif dès la première installation ; à confirmer par Antoine dans la story 1.
+- Decision: 2026-10-26 — identifiant Android `fr.antoinegrb.kadi`, définitif dès la première installation.
 
 - Decision: 2026-10-25 — les décisions partagées sont tranchées dans l'architecture (AD-1 à AD-18) ; cet epic pose le noyau : base, tables, réglages et parcours par défaut, contenu fourni, horloge, Annuler, thème, routeur.
 - Decision: 2026-10-25 — story traceur : « Kadi installée : un article cherché apparaît dans la Liste » (socle, base v1, chargeur de contenu, Panneau + réduit à la recherche, Liste, release installée) ; la suivante est la moins sûre, les quantités et contributions.

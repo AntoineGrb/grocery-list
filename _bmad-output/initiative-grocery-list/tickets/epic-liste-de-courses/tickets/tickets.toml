@@ -12,7 +12,7 @@ hitl = true
 risk = "high"
 plan_checkpoint = true
 done_checkpoint = true
-notes = ["Antoine répare le certificat SSL de git, passe Flutter en 3.47.8, crée la clé de signature et confirme l'identifiant fr.antoine.kadi."]
+notes = ["Fait le 2026-10-26 : Flutter 3.47.8, clé de release C:/Users/admin/kadi-release.jks (alias kadi), identifiant fr.antoinegrb.kadi. Reste : Antoine inscrit le mot de passe dans android/key.properties."]
 
 [[entry]]
 id = 2

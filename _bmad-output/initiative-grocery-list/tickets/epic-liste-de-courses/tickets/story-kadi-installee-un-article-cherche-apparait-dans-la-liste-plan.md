@@ -3,8 +3,8 @@ title: 'Kadi installée : un article cherché apparaît dans la Liste'
 type: 'feature'
 ticket: '1'
 created: '2026-10-26'
-status: 'ready-for-dev'
-baseline_revision: ''
+status: 'in-progress'
+baseline_revision: 'NO_VCS'
 route: 'full'
 route_source: 'auto'
 risk: 'high'
@@ -56,10 +56,11 @@ Projet neuf : aucun code existant. Racine du projet Flutter = racine du dépôt 
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] HITL Antoine -- réparer le certificat SSL de git, `flutter upgrade` vers 3.47.8 (Dart 3.13.7), créer la clé de release hors dépôt avec `android/key.properties` ignoré par git, confirmer `fr.antoine.kadi` -- prérequis du build et de material_ui.
-- [ ] racine -- `flutter create --org fr.antoine --project-name kadi --platforms android .`, puis `dart fix --apply --code=migrate_design_widgets` -- starter retenu.
+- [x] HITL Antoine -- Flutter 3.47.8 / Dart 3.13.7 en place, clé de release créée hors dépôt (`C:/Users/admin/kadi-release.jks`, alias `kadi`), identifiant `fr.antoinegrb.kadi` confirmé (2026-10-26) -- prérequis du build et de material_ui.
+- [ ] `android/key.properties` -- créer le fichier, ignoré par git, avec `storeFile=C:/Users/admin/kadi-release.jks` et `keyAlias=kadi` ; les deux mots de passe restent vides et Antoine les inscrit lui-même (HITL) -- la clé ne quitte pas son poste.
+- [ ] racine -- `flutter create --org fr.antoinegrb --project-name kadi --platforms android .`, puis `dart fix --apply --code=migrate_design_widgets` -- starter retenu.
 - [ ] `pubspec.yaml` -- dépendances épinglées du spine, `assets/seed/` -- Stack.
-- [ ] `android/app/build.gradle.kts`, `AndroidManifest.xml` -- applicationId `fr.antoine.kadi`, libellé « Kadi », debug `applicationIdSuffix ".debug"`, release signée par `key.properties` -- convention Livraison.
+- [ ] `android/app/build.gradle.kts`, `AndroidManifest.xml` -- applicationId `fr.antoinegrb.kadi`, libellé « Kadi », debug `applicationIdSuffix ".debug"`, release signée par `key.properties` -- convention Livraison.
 - [ ] `lib/core/db/tables/` -- `articles`, `frequents`, `list_lines`, `list_contributions`, `settings` avec les colonnes d'AD-4 à AD-8 et AD-17 -- base v1 de l'epic.
 - [ ] `lib/core/db/app_database.dart` + `drift_schemas/` -- `schemaVersion = 1`, `driftDatabase`, dump du schéma -- AD-14.
 - [ ] `lib/core/clock/`, `lib/core/rayons/`, `lib/core/settings/`, `lib/core/units/` (affichage sans quantité seulement) -- AD-7, AD-11, AD-2.
