@@ -39,6 +39,7 @@ Le dimanche soir, Antoine et sa femme obtiennent la liste de la semaine fusionn�
 - experience — _bmad-output/initiative-grocery-list/ux-grocery-list/EXPERIENCE.md, sections Recettes, Fiche recette, Revue, Flux 1, 4, 5 et 6
 - design — _bmad-output/initiative-grocery-list/ux-grocery-list/DESIGN.md
 - mockups — _bmad-output/initiative-grocery-list/ux-grocery-list/.working/key-recettes.html, key-revue.html
+- architecture — _bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md, surtout AD-3, AD-4, AD-5, AD-16, AD-18
 
 ## Notes
 

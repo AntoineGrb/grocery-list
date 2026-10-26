@@ -61,6 +61,7 @@ Microcopie proposée, à valider sur maquette :
 | Dialogue Nouvelle liste | Titre « Nouvelle liste ? » · « La liste en cours et la sélection de la semaine seront effacées. » · « Garder » / « Effacer et recommencer » |
 | Liste vide | « Ta liste est vide. Choisis tes recettes de la semaine ou ajoute un article avec +. » |
 | Recettes vide | « Pas encore de recette. Ajoute ta première avec +. » |
+| Champ de recherche (Panneau +) | Texte indicatif « Rechercher un article » |
 | Panneau +, aucun résultat | « Créer « piles » » |
 | Panneau +, aucun fréquent | « Pas encore de fréquents. Ajoute-les dans les paramètres. » |
 | Premier lancement (Recettes) | « Voici quelques recettes pour essayer. Supprime-les quand tu veux. » |
@@ -87,16 +88,16 @@ Comportemental. Les spécifications visuelles sont dans `DESIGN.md` (section Com
 | Bouton d'action | Recettes (Valider), Revue (Ajouter à la liste), Liste (Terminer les courses) | Valider : visible dès qu'une recette non encore validée est sélectionnée, affiche le nombre ; ouvre la Revue. Ajouter à la liste : fusionne et ouvre la Liste. Terminer les courses : n'apparaît que quand tout est coché ; vide la liste et remet la sélection de la semaine à zéro (Snackbar Annuler). Pleine largeur en bas, au-dessus de la Barre de navigation. |
 | Carte recette | Recettes | Tap sur la carte = sélectionner / désélectionner pour la semaine. Sélectionnée = coche dans le coin + bordure, un seul état (validée ou non). Tap sur l'icône « modifier » = ouvrir la Fiche recette. Appui long : aucun effet. Désélectionner une recette déjà validée retire ses ingrédients non cochés de la liste (quantités fusionnées réduites d'autant) + Snackbar Annuler. |
 | Action Nouvelle liste | Recettes | Action texte de la Barre d'application, à gauche de ⚙. Ouvre le Dialogue de confirmation. Confirmé : efface tous les articles de la liste, cochés ou non, et remet la sélection à zéro. |
-| En-tête de rayon | Liste, Revue, Panneau + | Non interactif. Ordre des groupes = ordre du parcours. Compteur = articles non cochés du rayon. |
+| En-tête de rayon | Liste, Revue, Panneau + | Non interactif. Ordre des groupes = ordre du parcours. Compteur : articles non cochés du rayon dans la Liste, ingrédients du groupe dans la Revue ; pas de compteur dans le Panneau +. |
 | Ligne d'article | Liste | Case + nom + quantité, sans Picto. Tap sur la case = cocher (l'article rejoint la Section Cochés) ; tap sur le nom : aucun effet. Glisser vers la gauche = supprimer + Snackbar Annuler. Appui long = Feuille d'édition d'article. |
 | Section Cochés | Liste | Repliée par défaut, en bas de la liste. Tap sur l'en-tête = déplier / replier. Décocher une ligne la renvoie dans son rayon. |
 | Panneau + | Liste | S'ouvre avec le Champ de recherche focalisé, clavier ouvert ; les fréquents continuent sous le clavier. Reste ouvert après un ajout pour enchaîner ; se ferme par glissement vers le bas, tap hors feuille ou retour. |
-| Champ de recherche | Panneau +, Fiche recette, Paramètres › Articles | Filtre tout le catalogue à chaque frappe. Sans correspondance exacte, propose « Créer « … » » : l'article inconnu rejoint le catalogue. |
+| Champ de recherche | Panneau +, Fiche recette, Paramètres › Articles | Icône × pour effacer dès qu'il y a du texte. Filtre tout le catalogue à chaque frappe. Sans correspondance exacte, propose « Créer « … » » : l'article inconnu rejoint le catalogue. |
 | Ligne de fréquent | Panneau + | Un tap = ajouter à la liste, ou retirer s'il y est déjà. État synchronisé dans les deux sens avec la Liste (cocher dans la Liste repasse le fréquent à « hors liste »). Ordre stable, groupé par rayon. Pas d'appui long : la gestion se fait dans les Paramètres. |
 | Ligne de résultat | Panneau +, Fiche recette | Panneau + : tap = ajouter (ou retirer s'il est déjà dans la liste, même règle que les fréquents). Fiche recette : tap = ajouter comme ingrédient. |
 | Champ quantité | Panneau +, Revue, Feuille d'édition d'article, Ligne d'ingrédient | Tap = clavier numérique. Unité par défaut de l'article préremplie (g, ml, pièce ; vide = sans quantité). Aucune conversion. Panneau + : s'affiche sur la ligne après le tap, avec le Choix de rayon, tous deux facultatifs ; l'article est déjà ajouté. |
 | Choix de rayon | Panneau + (après un ajout), Feuille d'édition d'article | Les 13 rayons (point + nom). Tap = placer la ligne dans ce rayon. Pour un article créé à la volée, le rayon choisi devient son rayon par défaut ; pour un article existant, seule la ligne change [ASSUMPTION]. Sans choix, un article créé à la volée va dans Divers, sans unité. |
-| Ligne de Revue | Revue | Cochée par défaut. Tap sur la case = décocher ce qu'on a déjà. Champ quantité éditable à droite (« 6 » au lieu de « 8 »). |
+| Ligne de Revue | Revue | Cochée par défaut. Tap sur la case = décocher ce qu'on a déjà. Champ quantité éditable à droite (« 6 » au lieu de « 8 »), valeur exacte dans l'unité de l'article : l'arrondi de lecture (1 kg, 40 cl) ne vaut que dans la Liste. |
 | Feuille d'édition d'article | Liste (appui long) | Champ quantité, Choix de rayon, Supprimer. Changer le rayon déplace l'article dans la liste en cours. Supprimer ferme la feuille + Snackbar Annuler. |
 | Snackbar Annuler | Liste, Recettes | Après suppression d'article, désélection d'une recette validée et Terminer les courses. Durée M3 par défaut ; un nouveau snackbar remplace le précédent (l'action précédente est alors définitive). |
 | Dialogue de confirmation | Recettes (Nouvelle liste) | Seule action confirmée par dialogue. Repli par défaut = « Garder ». |

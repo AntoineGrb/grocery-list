@@ -12,6 +12,7 @@ companions:
   - _bmad-output/initiative-grocery-list/glossary.md
   - _bmad-output/initiative-grocery-list/ux-grocery-list/EXPERIENCE.md
   - _bmad-output/initiative-grocery-list/ux-grocery-list/DESIGN.md
+  - _bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md
 after: []
 risk: medium
 ---
@@ -98,6 +99,7 @@ Pour Antoine et son foyer, préparer la liste de la semaine à partir des recett
 - ux-memlog — _bmad-output/initiative-grocery-list/ux-grocery-list/.memlog.md (ses décisions les plus récentes priment sur DESIGN.md et EXPERIENCE.md)
 - mockups — _bmad-output/initiative-grocery-list/ux-grocery-list/.working/key-liste.html, key-revue.html, key-recettes.html, key-panneau-plus.html (choix provisoires indiqués en légende ; le spine prime)
 - glossary — _bmad-output/initiative-grocery-list/glossary.md
+- architecture — _bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md, AD-1 à AD-18
 
 ## Notes
 
@@ -113,6 +115,8 @@ Pour Antoine et son foyer, préparer la liste de la semaine à partir des recett
 - Decision: 2026-10-25 — le pack de pictos ne bloque pas l'epic 1 ; choix reporté.
 - Decision: 2026-10-25 — Écran allumé (R14), réglage facultatif, va dans l'epic 3 avec l'écran Paramètres.
 - Decision: 2026-10-25 — le socle (projet Flutter, build release installable) ouvre l'epic 1 ; la vérification finale des six parcours et de l'accessibilité clôt l'epic 3.
+- Decision: 2026-10-25 — architecture finalisée (bmad-architecture). Comportements tranchés avec elle : un article déjà coché qu'une recette ajoute de nouveau crée une nouvelle ligne non cochée ; un tap sur un fréquent ou un résultat déjà dans la liste retire toutes les lignes non cochées de l'article, quantités de recettes comprises, avec Annuler ; une correction en Revue d'un ingrédient partagé se répartit entre les recettes au prorata ; corriger une quantité dans la Liste passe la ligne en mode manuel, que les désélections ne touchent plus.
+- Decision: 2026-10-25 — l'app s'appelle « Kadi ».
 - Assumption: le rayon choisi à l'ajout rapide devient le rayon par défaut d'un article créé à la volée ; pour un article existant, il ne change que la ligne de liste.
 - Assumption: l'ingrédient principal est le premier ingrédient de la recette.
 - Assumption: une nouvelle recette sans nom ou sans ingrédient n'est pas créée ; une recette existante garde sa dernière version valide.

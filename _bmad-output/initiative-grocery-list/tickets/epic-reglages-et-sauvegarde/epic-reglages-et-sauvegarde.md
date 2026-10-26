@@ -39,6 +39,7 @@ Antoine adapte l'app à son magasin et ne perd plus ses recettes en changeant de
 - parent — _bmad-output/initiative-grocery-list/initiative-grocery-list.md, section Requirements
 - experience — _bmad-output/initiative-grocery-list/ux-grocery-list/EXPERIENCE.md, sections Paramètres, Accessibility Floor, Key Flows
 - design — _bmad-output/initiative-grocery-list/ux-grocery-list/DESIGN.md
+- architecture — _bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md, surtout AD-2, AD-9, AD-14, AD-17
 
 ## Notes
 

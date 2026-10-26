@@ -1,0 +1,106 @@
+# Stories de l'epic 1, dans l'ordre de construction.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Kadi installée : un article cherché apparaît dans la Liste"
+description = "Parcours traceur : projet Flutter Kadi (material_ui, thème clair et sombre, routeur à deux onglets, résolveur de pictos avec repli neutre), base Drift v1 avec toutes les tables de l'epic, horloge, réglages par défaut et chargeur de contenu fourni (AD-8) sur un premier fichier d'articles (Lait, Œufs, Tomates, Courgettes, Oignons, Riz, Lardons) ; Panneau + réduit au champ de recherche ; un tap crée la ligne et sa contribution « ajout » sans quantité ; Liste groupée par rayon et message « Ta liste est vide » ; test d'interdiction d'imports et test de migration ; build release signé installé. Annonces TalkBack et taille de police système sur ces écrans."
+verify = "Sur le téléphone d'Antoine, la release Kadi s'ouvre sur la Liste vide ; taper « lait » dans le Panneau + puis toucher Lait l'affiche sous Crèmerie, en thème clair comme en sombre."
+covers = ["R1", "R8", "R9", "R11", "R12"]
+after = []
+hitl = true
+risk = "high"
+plan_checkpoint = true
+done_checkpoint = true
+notes = ["Antoine répare le certificat SSL de git, passe Flutter en 3.47.8, crée la clé de signature et confirme l'identifiant fr.antoine.kadi."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Quantités : contributions, unités et fusion dans la liste"
+description = "Complète les contributions posées par la story 1 avec les quantités et les unités (AD-4, AD-6) : quantité entière facultative dans l'unité de la ligne, somme pour un même article dans la même unité, deux lignes pour deux unités, arrondi de lecture dans la Liste. L'epic 2 s'appuie sur ce modèle pour la provenance."
+verify = "Les tests du repository et des widgets montrent : Tomates 300 g puis 200 g donnent une ligne « Tomates 500 g », Tomates 2 pièces une seconde ligne, et 1500 g s'affiche « 1,5 kg »."
+covers = ["R3"]
+after = [1]
+hitl = false
+risk = "high"
+plan_checkpoint = true
+
+[[entry]]
+id = 3
+type = "story"
+title = "Le catalogue et les fréquents fournis"
+description = "Une IA génère le contenu complet pour le chargeur de la story 1 : articles.json (~200 articles : nom, picto_key, rayon, unité, UUID définitif, en gardant ceux de la story 1) et frequents.json (~30, ordre par rayon), avec un seed_version incrémenté."
+verify = "Sur la release installée, la recherche trouve les ~200 articles avec leur rayon ; un test du chargeur montre qu'une nouvelle version insère les articles absents sans toucher un article modifié ou supprimé ; Antoine a relu et validé les deux fichiers."
+covers = ["R9", "R10"]
+after = [1]
+hitl = true
+risk = "medium"
+done_checkpoint = true
+notes = ["Antoine relit la liste générée avant intégration."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Cocher au magasin"
+description = "Un tap sur la case coche avec une animation courte (instantanée si les animations sont coupées) ; l'article rejoint « Cochés (n) », repliée en bas ; le décocher le renvoie dans son rayon et le fusionne avec un jumeau non coché ; un rayon tout coché disparaît."
+verify = "Avec Tomates et Courgettes dans la liste, les cocher fait disparaître Fruits & légumes et affiche « Cochés (2) » replié ; en décocher un le remet dans Fruits & légumes ; TalkBack annonce l'état."
+covers = ["R2", "R12"]
+after = [2]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Terminer les courses, avec Annuler"
+description = "Pose le service Annuler (AD-10), que les stories 6 et 7 réutilisent, et l'action transverse Terminer les courses (AD-3) : quand tout est coché, le bouton apparaît, vide la liste et propose Annuler dans le snackbar ; le bouton est annoncé par TalkBack."
+verify = "Tout cocher fait apparaître « Terminer les courses » ; le toucher vide la liste et affiche « Courses terminées. Bon appétit ! » ; Annuler restaure la liste telle quelle."
+covers = ["R4", "R12"]
+after = [4]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 6
+type = "story"
+title = "Supprimer et corriger un article de la liste"
+description = "Glisser vers la gauche supprime avec Annuler ; l'appui long ouvre la Feuille d'édition : quantité (la ligne passe en mode manuel, AD-5), Choix de rayon (réutilisé par la story 8), Supprimer ; actions TalkBack « Supprimer » et « Modifier »."
+verify = "Glisser Riz le retire et Annuler le remet ; changer la quantité de Lardons à 300 g et le rayon à Plats préparés déplace la ligne ; les deux actions passent aussi par TalkBack."
+covers = ["R5", "R12"]
+after = [2, 5]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Les fréquents dans le Panneau +"
+description = "Le Panneau + s'ouvre clavier ouvert sur les fréquents groupés par rayon dans l'ordre du parcours ; l'état « dans la liste » se calcule ; un tap sur un fréquent ou sur un résultat déjà dans la liste retire tout l'article avec Annuler, sinon l'ajoute ; le panneau reste ouvert ; état vide « Pas encore de fréquents » ; état annoncé par TalkBack (« Lait, dans la liste »). Les pictos passent par le résolveur à repli neutre, le pack restant à choisir."
+verify = "Toucher Lait dans les fréquents l'ajoute sous Crèmerie et sa ligne montre la coche ; le toucher de nouveau le retire, Annuler le remet ; cocher Lait dans la Liste repasse le fréquent à « + »."
+covers = ["R6", "R7", "R11", "R12"]
+after = [3, 5]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Créer un article et préciser quantité et rayon à l'ajout"
+description = "Recherche sur tout le catalogue avec normalisation des noms (AD-17), « Créer « … » » sans correspondance exacte (Divers, sans unité par défaut), état vide sans résultat ; après un ajout, depuis un résultat ou un fréquent, champ quantité (unité par défaut préremplie) et Choix de rayon de la story 6, facultatifs, le rayon devenant celui de l'article créé ; libellés TalkBack et taille de police système."
+verify = "Taper « piles », toucher « Créer « piles » » puis Entretien met Piles sous Entretien dans la Liste et au catalogue ; « Lait » et « lait » ne créent pas deux articles ; ajouter Œufs puis saisir 6 l'affiche « Œufs 6 pièces »."
+covers = ["R3", "R8", "R9", "R11", "R12"]
+after = [6, 7]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 9
+type = "story"
+title = "Refactor sweep"
+description = "Nettoyage seul, à partir des plans et des retours de revue que l'epic a reportés ; tout ajout de périmètre devient une nouvelle story."
+verify = "Les tests de toutes les stories passent, l'analyse statique est propre, et le Flux 2 et le Flux 3 d'EXPERIENCE.md passent sur la release installée."
+covers = []
+after = [1, 2, 3, 4, 5, 6, 7, 8]
+hitl = false
+risk = "low"

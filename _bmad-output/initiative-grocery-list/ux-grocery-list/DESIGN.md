@@ -222,6 +222,7 @@ components:
   search-field:
     background: '{colors.surface}'
     foreground: '{colors.on-surface}'
+    cursor: '{colors.on-surface}'
     placeholder: '{colors.on-surface-variant}'
     radius: '{rounded.full}'
     height: '{spacing.touch-target}'
@@ -407,7 +408,7 @@ Composants M3 standard hérités sans changement hors des lignes ci-dessous (Tex
 | **Ligne d'article** (`item-row`) | Hauteur ≥ `{spacing.row-min-height}`, marge `{spacing.margin}`. Sans Picto. Case à cocher M3 dont la bordure et le remplissage cochés prennent l'accent du rayon, coche en `{colors.surface}`. Nom en `{typography.body-large}`, quantité arrondie pour la lecture (« 1,5 kg », « 20 cl ») en `{typography.body-medium}` `{colors.on-surface-variant}`. Pas de fond, pas de carte. |
 | **Section Cochés** (`checked-section`) | Filet `{colors.outline}` au-dessus. En-tête 48 dp : chevron, « Cochés (n) » en `{typography.label-large}` `{colors.on-surface-variant}`, indice « Afficher / Replier » à droite. Lignes cochées : case pleine en accent du rayon, nom et quantité barrés en `{colors.checked}`. |
 | **Panneau +** (`add-sheet`) | Feuille modale M3, fond `{colors.surface-container}` [ASSUMPTION], haut `{rounded.xl}`. Champ de recherche en tête, puis fréquents groupés par En-tête de rayon dans l'ordre du parcours. |
-| **Champ de recherche** (`search-field`) | Barre de recherche M3, `{rounded.full}`, hauteur `{spacing.touch-target}`, fond `{colors.surface}`, texte indicatif `{colors.on-surface-variant}`. |
+| **Champ de recherche** (`search-field`) | Barre de recherche M3, `{rounded.full}`, hauteur `{spacing.touch-target}`, fond `{colors.surface}`, icône loupe et texte indicatif `{colors.on-surface-variant}`, icône × d'effacement à droite. Curseur en `{colors.on-surface}`, jamais en argile (le défaut M3 serait `primary`). |
 | **Ligne de fréquent** (`frequent-row`) | Liste compacte : Picto + nom en `{typography.body-large}` + indicateur d'état à droite. Dans la liste : coche en accent du rayon ; hors liste : signe + en `{colors.on-surface-variant}`. Après un ajout, Champ quantité et Choix de rayon s'insèrent sur la ligne. |
 | **Ligne de résultat** (`search-result-row`) | Picto + nom + rayon en `{typography.body-medium}` `{colors.on-surface-variant}`. La dernière ligne « Créer « … » » porte un signe + neutre. |
 | **Champ quantité** (`quantity-field`) | Petit champ M3 à droite de la ligne, `{rounded.xs}`, bordure `{colors.outline}`, hauteur `{spacing.touch-target}`. Unité (g, ml, pièce) en suffixe `{colors.on-surface-variant}` ; vide = sans quantité. |
