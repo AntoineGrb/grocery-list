@@ -3,14 +3,14 @@ title: 'Kadi installée : un article cherché apparaît dans la Liste'
 type: 'feature'
 ticket: '1'
 created: '2026-10-26'
-status: 'in-progress'
-baseline_revision: 'NO_VCS'
+status: 'built'
+baseline_revision: 'd79abc80acb8833e4dc2d099fd5efe1bec7aa18d'
 route: 'full'
 route_source: 'auto'
 risk: 'high'
-review: ''
-review_source: ''
-lenses_ran: []
+review: 'quick'
+review_source: 'pinned'
+lenses_ran: ['quick']
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
@@ -57,19 +57,19 @@ Projet neuf : aucun code existant. Racine du projet Flutter = racine du dépôt 
 
 **Execution:**
 - [x] HITL Antoine -- Flutter 3.47.8 / Dart 3.13.7 en place, clé de release créée hors dépôt (`C:/Users/admin/kadi-release.jks`, alias `kadi`), identifiant `fr.antoinegrb.kadi` confirmé (2026-10-26) -- prérequis du build et de material_ui.
-- [ ] `android/key.properties` -- créer le fichier, ignoré par git, avec `storeFile=C:/Users/admin/kadi-release.jks` et `keyAlias=kadi` ; les deux mots de passe restent vides et Antoine les inscrit lui-même (HITL) -- la clé ne quitte pas son poste.
-- [ ] racine -- `flutter create --org fr.antoinegrb --project-name kadi --platforms android .`, puis `dart fix --apply --code=migrate_design_widgets` -- starter retenu.
-- [ ] `pubspec.yaml` -- dépendances épinglées du spine, `assets/seed/` -- Stack.
-- [ ] `android/app/build.gradle.kts`, `AndroidManifest.xml` -- applicationId `fr.antoinegrb.kadi`, libellé « Kadi », debug `applicationIdSuffix ".debug"`, release signée par `key.properties` -- convention Livraison.
-- [ ] `lib/core/db/tables/` -- `articles`, `frequents`, `list_lines`, `list_contributions`, `settings` avec les colonnes d'AD-4 à AD-8 et AD-17 -- base v1 de l'epic.
-- [ ] `lib/core/db/app_database.dart` + `drift_schemas/` -- `schemaVersion = 1`, `driftDatabase`, dump du schéma -- AD-14.
-- [ ] `lib/core/clock/`, `lib/core/rayons/`, `lib/core/settings/`, `lib/core/units/` (affichage sans quantité seulement) -- AD-7, AD-11, AD-2.
-- [ ] `lib/core/db/seed/` + `assets/seed/articles.json` -- chargeur à chaque démarrage ; Lait (cremerie, piece), Œufs (cremerie, piece), Tomates (fruits-legumes, g), Courgettes (fruits-legumes, g), Oignons (fruits-legumes, piece), Riz (epicerie-salee, g), Lardons (viande-poisson, g), UUID v4 figés, `seed_version` 1 -- AD-8.
-- [ ] `lib/core/theme/`, `lib/core/pictos/`, `lib/core/strings/strings_fr.dart` -- tokens clair et sombre, `ThemeExtension` des rayons, résolveur à repli neutre -- AD-12, AD-18.
-- [ ] `lib/core/router/` + `lib/main.dart` -- `StatefulShellRoute` Recettes / Liste, ouverture sur Liste, écran d'erreur bloquant -- AD-13.
-- [ ] `lib/features/catalogue/` -- `normalizeName`, recherche sur les articles actifs -- AD-17.
-- [ ] `lib/features/liste/` -- repository (ajout = ligne + contribution `ajout`), Liste groupée par rayon dans l'ordre du parcours avec compteur, état vide, FAB +, Panneau + (recherche focalisée, lignes de résultat) -- AD-1, AD-4.
-- [ ] `test/` -- repositories et chargeur sur Drift en mémoire, widgets avec `closeStreamsSynchronously: true`, test d'interdiction d'imports, test de migration v1 -- conventions Tests.
+- [x] `android/key.properties` -- créer le fichier, ignoré par git, avec `storeFile=C:/Users/admin/kadi-release.jks` et `keyAlias=kadi` ; les deux mots de passe restent vides et Antoine les inscrit lui-même (HITL) -- la clé ne quitte pas son poste.
+- [x] racine -- `flutter create --org fr.antoinegrb --project-name kadi --platforms android .`, puis `dart fix --apply --code=migrate_design_widgets` -- starter retenu.
+- [x] `pubspec.yaml` -- dépendances épinglées du spine, `assets/seed/` -- Stack.
+- [x] `android/app/build.gradle.kts`, `AndroidManifest.xml` -- applicationId `fr.antoinegrb.kadi`, libellé « Kadi », debug `applicationIdSuffix ".debug"`, release signée par `key.properties` -- convention Livraison.
+- [x] `lib/core/db/tables/` -- `articles`, `frequents`, `list_lines`, `list_contributions`, `settings` avec les colonnes d'AD-4 à AD-8 et AD-17 -- base v1 de l'epic.
+- [x] `lib/core/db/app_database.dart` + `drift_schemas/` -- `schemaVersion = 1`, `driftDatabase`, dump du schéma -- AD-14.
+- [x] `lib/core/clock/`, `lib/core/rayons/`, `lib/core/settings/`, `lib/core/units/` (affichage sans quantité seulement) -- AD-7, AD-11, AD-2.
+- [x] `lib/core/db/seed/` + `assets/seed/articles.json` -- chargeur à chaque démarrage ; Lait (cremerie, piece), Œufs (cremerie, piece), Tomates (fruits-legumes, g), Courgettes (fruits-legumes, g), Oignons (fruits-legumes, piece), Riz (epicerie-salee, g), Lardons (viande-poisson, g), UUID v4 figés, `seed_version` 1 -- AD-8.
+- [x] `lib/core/theme/`, `lib/core/pictos/`, `lib/core/strings/strings_fr.dart` -- tokens clair et sombre, `ThemeExtension` des rayons, résolveur à repli neutre -- AD-12, AD-18.
+- [x] `lib/core/router/` + `lib/main.dart` -- `StatefulShellRoute` Recettes / Liste, ouverture sur Liste, écran d'erreur bloquant -- AD-13.
+- [x] `lib/features/catalogue/` -- `normalizeName`, recherche sur les articles actifs -- AD-17.
+- [x] `lib/features/liste/` -- repository (ajout = ligne + contribution `ajout`), Liste groupée par rayon dans l'ordre du parcours avec compteur, état vide, FAB +, Panneau + (recherche focalisée, lignes de résultat) -- AD-1, AD-4.
+- [x] `test/` -- repositories et chargeur sur Drift en mémoire, widgets avec `closeStreamsSynchronously: true`, test d'interdiction d'imports, test de migration v1 -- conventions Tests.
 - [ ] HITL Antoine -- `flutter build apk --release`, installer sur le téléphone -- Done when.
 
 **Acceptance Criteria:**
@@ -81,9 +81,29 @@ Projet neuf : aucun code existant. Racine du projet Flutter = racine du dépôt 
 
 ## Implementation Notes
 
+- **Schéma v1** : toutes les tables ont `id`/`updated_at`/`deleted_at` (mixin `SyncColumns`). `list_lines` : `article_id`, `rayon` (copié), `unit` (nulle = `unit_key` `-`), `added_at`, `checked_at`, `manual_at`. `list_contributions` : `line_id`, `source` (`week_selection`/`ajout`/`edition`), `week_selection_id` (texte sans clé étrangère, la table arrive avec l'epic 2), `quantity`, `unit`. `settings` (id fixe `settings`) : `route_order` (13 codes séparés par `,`), `group_by_rayon`, `keep_screen_on`, `first_launch`, `seed_versions` (JSON par fichier, `{"articles":1}`). Aucune contrainte d'unicité en base sur le nom normalisé ni sur (`article_id`, `unit_key`) : elle casserait la fusion d'import d'AD-9 ; le repository la garantit. `PRAGMA foreign_keys = ON`.
+- **Dépendance core → catalogue** : `SeedLoader` (core) a besoin de `normalizeName` (catalogue). Il la reçoit en paramètre, câblée dans `lib/app/startup.dart` : une seule implémentation, et `core` n'importe aucune fonctionnalité. Même principe pour le routeur : `createAppRouter` reçoit les écrans depuis `lib/app/kadi_app.dart`.
+- **Chargeur** : un article fourni dont le nom normalisé existe déjà parmi les articles actifs n'est pas inséré (AD-17). Les réglages par défaut sont insérés avec `updated_at = 0` et les `seed_version` déjà à jour ; une montée de version ultérieure passe par l'horloge.
+- **`normalizeName`** retire tous les espaces (« Crème fraîche » → `cremefraiche`), lecture littérale d'AD-17.
+- **`formatQuantity`** ne gère que « sans quantité » ; une quantité chiffrée lève `UnimplementedError` (aucun chemin n'en crée dans cette story).
+- **Recettes** n'a pas de FAB (la Fiche recette est hors périmètre), bien que son message d'état vide mentionne « + ».
+- **Panneau +** : aucune zone de fréquents ni message « Pas encore de fréquents » (story fréquents). Un échec d'ajout affiche « Ajout impossible. Réessaie. » (microcopie ajoutée à `strings_fr.dart`).
+- **Pictos** : pas de pack, `PictoResolver.assetFor` renvoie toujours `null` → repli neutre (cercle au trait teinté du rayon).
+- **Build Android sur ce poste** : Avast intercepte TLS ; Gradle ne fait pas confiance à sa racine. Vérifié avec un truststore temporaire (copie du `cacerts` du JBR + racine Avast) passé par `JAVA_TOOL_OPTIONS`, sans changer la config du poste. Le wrapper passe de `gradle-9.3.1-all` à `gradle-9.3.1-bin` (seule distribution complète en cache). La plateforme SDK `android-35` (demandée par le plugin `jni`) a été installée par `sdkmanager`.
+
 ## Plan Change Log
 
 ## Review Triage Log
+
+### 2026-10-26 — Review pass
+- verdicts: 6 findings — high 0, medium 1, low 4, false 1, maybe-false 0
+- findings:
+  - `[medium]` `[patch]` Panneau + ouvert sur le navigateur de la branche Liste : la barrière ne couvre pas la NavigationBar, toucher « Recettes » change d'onglet et laisse le panneau ouvert — corrigé : `useRootNavigator: true` dans `showAddSheet`.
+  - `[low]` `[patch]` Les résultats de recherche disparaissent une image à chaque frappe (nouvelle instance autoDispose en chargement) — corrigé : `_lastResults` garde les derniers résultats pendant le chargement ; requête vide = liste vide.
+  - `[low]` `[reject]` `exists()` compte une ligne de réglages supprimée alors que `read()` la filtre — aucun chemin de la V1 ne supprime la ligne de réglages ; correction hors de l'usage courant.
+  - `[low]` `[reject]` Dossier `lib/core/ui/` absent du Structural Seed — l'arborescence du spine est une graine de départ, pas une liste fermée ; aucune règle enfreinte ni dommage nommé.
+  - `[false]` `[reject]` Textes absents de Voice and Tone (écran d'erreur, « Effacer la recherche », noms lus par TalkBack) — la convention exige la microcopie dans `strings_fr.dart` et la reprise des moments listés ; ces moments n'y figurent pas et les textes sont bien centralisés.
+  - `[low]` `[reject]` Critère 5 (release et debug côte à côte) non vérifié — étape HITL d'Antoine (mots de passe de `key.properties`, installation), suivie par le `done_checkpoint` ; la configuration (`.debug`, libellé, signature) est en place.
 
 ## Design Notes
 
@@ -103,3 +123,12 @@ L'ordre des groupes vient de `settings.route_order` (les 13 codes d'AD-11), jama
 
 Status: ready-for-dev
 Halt reason: plan_checkpoint = true on this entry — the plan is reviewed by Antoine before implementation. The two HITL prerequisites (git TLS repair + Flutter 3.47.8, release key + applicationId confirmation) must be done before step 3; this machine is on Flutter 3.44.5 / Dart 3.12.2 (checked 2026-10-26), and material_ui 1.8.0 requires Flutter 3.47 or later.
+
+### Finalize (2026-10-26)
+
+- **Résumé :** socle Kadi posé de bout en bout : projet Flutter (material_ui, thèmes clair et sombre, deux onglets), base Drift v1 avec toutes les tables de l'epic, horloge, réglages, chargeur de contenu fourni (7 articles), recherche du Panneau +, ajout d'un article, Liste groupée par rayon, états vides, écran d'erreur bloquant.
+- **Fichiers :** `pubspec.yaml`, `build.yaml`, `android/` (id `fr.antoinegrb.kadi`, `.debug`, signature par `key.properties`), `assets/seed/articles.json`, `lib/app/` (démarrage, racine), `lib/core/` (db, tables, seed, clock, settings, rayons, units, theme, pictos, router, strings, ui), `lib/features/catalogue/`, `lib/features/liste/`, `lib/features/recettes/ui/`, `drift_schemas/`, `test/` (41 tests).
+- **Revue :** 2 corrections appliquées (1 medium, 1 low), 0 reporté, 4 rejetés (raisons dans le Review Triage Log).
+- **Revue de suivi recommandée :** non — aucune correction high, une seule medium.
+- **Vérification :** `flutter analyze` sans problème ; `flutter test` 41/41 ; build debug réussi côté agent (`fr.antoinegrb.kadi.debug`, libellé « Kadi ») ; build release bloqué à la signature tant que les mots de passe de `android/key.properties` sont vides (prévu).
+- **Risques résiduels :** installation release non faite (HITL) ; TalkBack réel et rendu sur téléphone non vérifiés ; Gradle a besoin du certificat racine d'Avast (ou de couper l'analyse HTTPS) sur ce poste ; `formatQuantity` lève sur une quantité chiffrée jusqu'à la story 1.2.

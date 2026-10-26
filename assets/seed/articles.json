@@ -1,0 +1,12 @@
+{
+  "seed_version": 1,
+  "articles": [
+    { "id": "f5feeb60-c1da-402b-9507-c64ee2c4949f", "name": "Lait", "rayon": "cremerie", "unit": "piece", "picto_key": "lait" },
+    { "id": "0ed8bc06-24ce-4c68-96b9-462ff6798ccf", "name": "Œufs", "rayon": "cremerie", "unit": "piece", "picto_key": "oeufs" },
+    { "id": "90664cd2-59db-4657-acc7-d1e6115bf0a4", "name": "Tomates", "rayon": "fruits-legumes", "unit": "g", "picto_key": "tomates" },
+    { "id": "61915f5f-59ee-4562-b1ad-51adb74ece4a", "name": "Courgettes", "rayon": "fruits-legumes", "unit": "g", "picto_key": "courgettes" },
+    { "id": "be6140d9-2886-4397-b038-952bf8612a5b", "name": "Oignons", "rayon": "fruits-legumes", "unit": "piece", "picto_key": "oignons" },
+    { "id": "d92eff2c-67fd-42bf-83d6-5f34033dc5e9", "name": "Riz", "rayon": "epicerie-salee", "unit": "g", "picto_key": "riz" },
+    { "id": "02fe5b31-2754-4e5e-858b-f34811560f0c", "name": "Lardons", "rayon": "viande-poisson", "unit": "g", "picto_key": "lardons" }
+  ]
+}

@@ -1,2 +1,18 @@
 .claude
 .agents
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+*.iml
+.idea/
+.metadata.bak
+/coverage/
+
+# Android signing (la clé reste hors dépôt)
+android/key.properties
+*.jks
+*.keystore
