@@ -3,7 +3,7 @@ title: 'Kadi installée : un article cherché apparaît dans la Liste'
 type: 'feature'
 ticket: '1'
 created: '2026-10-26'
-status: 'built'
+status: done
 baseline_revision: 'd79abc80acb8833e4dc2d099fd5efe1bec7aa18d'
 route: 'full'
 route_source: 'auto'
