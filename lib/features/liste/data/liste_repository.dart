@@ -41,62 +41,126 @@ class ListeRepository {
   final Clock _clock;
   final Uuid _uuid;
 
-  /// Ajoute [articleId] sans quantité depuis le Panneau + : une contribution
-  /// `ajout` qui rejoint la ligne non cochée existante de l'article, quelle
-  /// que soit son unité, sinon une nouvelle ligne au rayon de l'article
-  /// (AD-4, AD-15). Une transaction : un échec n'écrit rien.
-  Future<void> addArticle(String articleId) {
-    return _db.transaction(() async {
-      final article =
-          await (_db.select(_db.articles)
-                ..where((a) => a.id.equals(articleId) & a.deletedAt.isNull()))
-              .getSingleOrNull();
-      if (article == null) {
-        throw StateError('Article absent ou supprimé : $articleId');
+  /// Ajoute [articleId] depuis le Panneau + : une contribution `ajout`, sans
+  /// quantité par défaut, ou de [quantity] dans [unit] (AD-4, AD-6).
+  ///
+  /// Une quantité 0 vaut « sans quantité ». Lève une [ArgumentError] si l'une
+  /// est donnée sans l'autre ou si la quantité est négative, une
+  /// [StateError] si l'article est absent ou supprimé. Une transaction : un
+  /// échec n'écrit rien.
+  Future<void> addArticle(String articleId, {int? quantity, Unit? unit}) {
+    return _db.transaction(
+      () => _contribute(
+        articleId: articleId,
+        source: ContributionSource.ajout,
+        quantity: quantity,
+        unit: unit,
+      ),
+    );
+  }
+
+  /// Écrit une contribution de [source] pour [articleId] selon les règles de
+  /// fusion d'AD-4, à appeler dans une transaction.
+  ///
+  /// Sans quantité, elle rejoint la plus ancienne ligne non cochée de
+  /// l'article, quelle que soit son unité, sinon crée une ligne sans unité.
+  /// Chiffrée, elle rejoint la ligne non cochée de son unité, sinon la ligne
+  /// non cochée sans unité (qui prend l'unité), sinon crée une ligne dans son
+  /// unité. Une ligne cochée n'est jamais complétée. Entre candidates :
+  /// `added_at` puis `id`. Une nouvelle ligne copie le rayon de l'article
+  /// (AD-15).
+  Future<void> _contribute({
+    required String articleId,
+    required String source,
+    int? quantity,
+    Unit? unit,
+  }) async {
+    if (quantity != null && quantity < 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'Quantité négative');
+    }
+    if (quantity == 0) {
+      quantity = null;
+      unit = null;
+    }
+    if ((quantity == null) != (unit == null)) {
+      throw ArgumentError(
+        'Quantité et unité sont nulles ensemble (AD-6) : '
+        'quantity = $quantity, unit = $unit',
+      );
+    }
+
+    final article =
+        await (_db.select(_db.articles)
+              ..where((a) => a.id.equals(articleId) & a.deletedAt.isNull()))
+            .getSingleOrNull();
+    if (article == null) {
+      throw StateError('Article absent ou supprimé : $articleId');
+    }
+
+    final unchecked =
+        await (_db.select(_db.listLines)
+              ..where(
+                (l) =>
+                    l.articleId.equals(articleId) &
+                    l.deletedAt.isNull() &
+                    l.checkedAt.isNull(),
+              )
+              ..orderBy([
+                (l) => OrderingTerm.asc(l.addedAt),
+                (l) => OrderingTerm.asc(l.id),
+              ]))
+            .get();
+
+    ListLine? target;
+    if (unit == null) {
+      target = unchecked.firstOrNull;
+    } else {
+      final code = unit.code;
+      target = unchecked.where((l) => l.unit == code).firstOrNull;
+      final unitless = unchecked.where((l) => l.unit == null).firstOrNull;
+      if (target == null && unitless != null) {
+        // La ligne sans quantité prend l'unité de la contribution.
+        await (_db.update(
+          _db.listLines,
+        )..where((l) => l.id.equals(unitless.id))).write(
+          ListLinesCompanion(
+            unit: Value(code),
+            updatedAt: Value(_clock.stamp(unitless.updatedAt)),
+          ),
+        );
+        target = unitless;
       }
+    }
 
-      final now = _clock.stamp();
-      final existing =
-          await (_db.select(_db.listLines)
-                ..where(
-                  (l) =>
-                      l.articleId.equals(articleId) &
-                      l.deletedAt.isNull() &
-                      l.checkedAt.isNull(),
-                )
-                ..orderBy([
-                  (l) => OrderingTerm.asc(l.addedAt),
-                  (l) => OrderingTerm.asc(l.id),
-                ])
-                ..limit(1))
-              .getSingleOrNull();
-
-      final lineId = existing?.id ?? _uuid.v4();
-      if (existing == null) {
-        await _db
-            .into(_db.listLines)
-            .insert(
-              ListLinesCompanion.insert(
-                id: lineId,
-                updatedAt: now,
-                articleId: articleId,
-                rayon: article.rayon,
-                addedAt: now,
-              ),
-            );
-      }
-
+    final now = _clock.stamp();
+    final lineId = target?.id ?? _uuid.v4();
+    if (target == null) {
       await _db
-          .into(_db.listContributions)
+          .into(_db.listLines)
           .insert(
-            ListContributionsCompanion.insert(
-              id: _uuid.v4(),
+            ListLinesCompanion.insert(
+              id: lineId,
               updatedAt: now,
-              lineId: lineId,
-              source: ContributionSource.ajout,
+              articleId: articleId,
+              rayon: article.rayon,
+              unit: Value(unit?.code),
+              addedAt: now,
             ),
           );
-    });
+    }
+
+    await _db
+        .into(_db.listContributions)
+        .insert(
+          ListContributionsCompanion.insert(
+            id: _uuid.v4(),
+            updatedAt: now,
+            lineId: lineId,
+            source: source,
+            quantity: Value(quantity),
+            unit: Value(unit?.code),
+          ),
+        );
   }
 
   /// Lignes actives non cochées, dans l'ordre d'ajout (AD-4). Une ligne dont

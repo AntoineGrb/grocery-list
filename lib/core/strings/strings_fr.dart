@@ -30,6 +30,15 @@ abstract final class StringsFr {
   /// Compteur d'un En-tête de rayon : « 1 article », « 3 articles ».
   static String articles(int n) => n == 1 ? '1 article' : '$n articles';
 
+  // Suffixes d'unité d'une quantité lue (AD-6).
+  static const uniteG = 'g';
+  static const uniteKg = 'kg';
+  static const uniteMl = 'ml';
+  static const uniteCl = 'cl';
+  static const uniteL = 'l';
+  static const unitePiece = 'pièce';
+  static const unitePieces = 'pièces';
+
   // Noms affichés des 13 rayons (AD-11).
   static const rayonFruitsLegumes = 'Fruits & légumes';
   static const rayonBoulangerie = 'Boulangerie';
