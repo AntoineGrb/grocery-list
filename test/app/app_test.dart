@@ -4,6 +4,7 @@ import 'package:kadi/app/kadi_app.dart';
 import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
+import 'package:kadi/core/db/seed/seed_loader.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/liste/ui/add_sheet.dart';
@@ -14,20 +15,18 @@ import '../helpers/test_db.dart';
 Future<AppDatabase> _pumpApp(
   WidgetTester tester, {
   Brightness platformBrightness = Brightness.light,
-  Future<String> Function(String)? loadAsset,
+  Map<String, String> assetOverrides = const {},
 }) async {
   tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-  final seed = (await tester.runAsync(
-    () => diskAssetLoader('assets/seed/articles.json'),
-  ))!;
+  final assets = (await tester.runAsync(readSeedAssets))!;
   final db = memoryDatabase();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(db),
         seedAssetLoaderProvider.overrideWithValue(
-          loadAsset ?? (_) async => seed,
+          assetLoaderWith({...assets, ...assetOverrides}),
         ),
       ],
       child: const KadiApp(),
@@ -73,10 +72,15 @@ void main() {
 
       await tester.enterText(field, 'lait');
       await tester.pumpAndSettle();
-      expect(find.byType(SearchResultRow), findsOneWidget);
+      // Lait en premier, parmi d'autres résultats (Lait de coco…).
+      final laitRow = find.byType(SearchResultRow).first;
+      expect(
+        find.descendant(of: laitRow, matching: find.text('Lait')),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel('Lait, Crèmerie'), findsOneWidget);
 
-      await tester.tap(find.byType(SearchResultRow));
+      await tester.tap(laitRow);
       await tester.pumpAndSettle();
 
       // Le Panneau + reste ouvert.
@@ -97,11 +101,11 @@ void main() {
     },
   );
 
-  testWidgets('« pesto » : aucune ligne de résultat', (tester) async {
+  testWidgets('« kumquat » : aucune ligne de résultat', (tester) async {
     await _pumpApp(tester);
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), 'pesto');
+    await tester.enterText(find.byType(TextField), 'kumquat');
     await tester.pumpAndSettle();
     expect(find.byType(SearchResultRow), findsNothing);
   });
@@ -146,7 +150,10 @@ void main() {
   testWidgets('contenu fourni illisible : écran d’erreur bloquant', (
     tester,
   ) async {
-    final db = await _pumpApp(tester, loadAsset: (_) async => '{pas du json');
+    final db = await _pumpApp(
+      tester,
+      assetOverrides: {SeedLoader.articlesPath: '{pas du json'},
+    );
 
     expect(find.byType(BlockingErrorScreen), findsOneWidget);
     expect(find.text(StringsFr.erreurOuvertureTitre), findsOneWidget);

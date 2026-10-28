@@ -15,15 +15,13 @@ import '../../helpers/test_db.dart';
 
 /// Monte Kadi sur une base en mémoire ; l'app s'ouvre sur la Liste.
 Future<AppDatabase> _pumpApp(WidgetTester tester) async {
-  final seed = (await tester.runAsync(
-    () => diskAssetLoader('assets/seed/articles.json'),
-  ))!;
+  final assets = (await tester.runAsync(readSeedAssets))!;
   final db = memoryDatabase();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
         databaseProvider.overrideWithValue(db),
-        seedAssetLoaderProvider.overrideWithValue((_) async => seed),
+        seedAssetLoaderProvider.overrideWithValue(assetLoaderWith(assets)),
       ],
       child: const KadiApp(),
     ),

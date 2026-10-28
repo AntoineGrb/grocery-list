@@ -30,11 +30,11 @@ void main() {
     tearDown(() => db.close());
 
     for (final query in ['lait', 'LAIT', 'lâit']) {
-      test('« $query » trouve Lait, Crèmerie', () async {
+      test('« $query » trouve Lait, Crèmerie, en premier', () async {
         final hits = await repo.watchSearch(query).first;
-        expect(hits.map((a) => a.name), ['Lait']);
-        expect(hits.single.rayon, Rayon.cremerie);
-        expect(hits.single.pictoKey, 'lait');
+        expect(hits.first.name, 'Lait');
+        expect(hits.first.rayon, Rayon.cremerie);
+        expect(hits.first.pictoKey, 'lait');
       });
     }
 
@@ -43,7 +43,7 @@ void main() {
       expect(hits.map((a) => a.name), ['Œufs']);
     });
 
-    for (final query in ['', '   ', 'pesto']) {
+    for (final query in ['', '   ', 'kumquat']) {
       test('« $query » : aucun résultat', () async {
         expect(await repo.watchSearch(query).first, isEmpty);
       });
@@ -55,13 +55,46 @@ void main() {
       )..where((a) => a.id.equals(SeedIds.lait))).write(
         const ArticlesCompanion(deletedAt: Value(1), updatedAt: Value(1)),
       );
-      expect(await repo.watchSearch('lait').first, isEmpty);
+      final hits = await repo.watchSearch('lait').first;
+      expect(hits.map((a) => a.id), isNot(contains(SeedIds.lait)));
     });
 
     test('début de nom en premier', () async {
       // « o » : Oignons et Œufs commencent par o, Tomates le contient.
-      final hits = await repo.watchSearch('o').first;
-      expect(hits.take(2).map((a) => a.name).toSet(), {'Oignons', 'Œufs'});
+      final names = (await repo.watchSearch('o').first)
+          .map((a) => a.name)
+          .toList();
+      final starts = names.where((n) => normalizeName(n).startsWith('o'));
+      expect(names.take(starts.length), starts);
+      expect(starts, containsAll(['Oignons', 'Œufs']));
+      expect(names.skip(starts.length), contains('Tomates'));
+    });
+
+    for (final (query, name, rayon) in [
+      ('cou', 'Courgettes', Rayon.fruitsLegumes),
+      ('beurre', 'Beurre', Rayon.cremerie),
+      ('baguette', 'Baguettes', Rayon.boulangerie),
+      ('jambon', 'Jambon', Rayon.viandePoisson),
+      ('papier', 'Papier toilette', Rayon.hygiene),
+      ('pates', 'Pâtes', Rayon.epicerieSalee),
+      ('cafe', 'Café', Rayon.epicerieSucree),
+      ('frites', 'Frites', Rayon.surgeles),
+      ('quiche', 'Quiche', Rayon.platsPrepares),
+      ('eau plate', 'Eau plate', Rayon.boissons),
+      ('lessive', 'Lessive', Rayon.entretien),
+      ('couches', 'Couches', Rayon.bebeAnimaux),
+      ('piles', 'Piles', Rayon.divers),
+    ]) {
+      test('« $query » trouve $name, ${rayon.code}', () async {
+        final hits = await repo.watchSearch(query).first;
+        final hit = hits.singleWhere((a) => a.name == name);
+        expect(hit.rayon, rayon);
+      });
+    }
+
+    test('« cou » : Courgettes parmi d’autres articles', () async {
+      final hits = await repo.watchSearch('cou').first;
+      expect(hits.length, greaterThan(1));
     });
   });
 }

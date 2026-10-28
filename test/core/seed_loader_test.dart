@@ -4,7 +4,9 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
+import 'package:kadi/core/db/seed/seed_loader.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
+import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
 
 import '../helpers/test_db.dart';
@@ -17,58 +19,154 @@ Map<String, Object?> _article(String id, String name, String rayon) => {
   'picto_key': 'x',
 };
 
+String _frequentsFile(int version, List<String> articleIds) => jsonEncode({
+  'seed_version': version,
+  'frequents': [
+    for (final id in articleIds) {'article_id': id},
+  ],
+});
+
+/// Les `article_id` de `assets/seed/frequents.json`, dans l'ordre du fichier.
+Future<List<String>> _realFrequentArticleIds() async {
+  final json = jsonDecode(
+    await diskAssetLoader(SeedLoader.frequentsPath),
+  ) as Map<String, dynamic>;
+  return [
+    for (final f in json['frequents'] as List)
+      (f as Map)['article_id'] as String,
+  ];
+}
+
+Future<int> _realArticleCount() async {
+  final json = jsonDecode(
+    await diskAssetLoader(SeedLoader.articlesPath),
+  ) as Map<String, dynamic>;
+  return (json['articles'] as List).length;
+}
+
 void main() {
   late AppDatabase db;
 
   setUp(() => db = memoryDatabase());
   tearDown(() => db.close());
 
-  test(
-    'premier démarrage : 7 articles et réglages par défaut à updated_at 0',
-    () async {
-      await seedLoader(db).run();
-
-      final articles = await db.select(db.articles).get();
-      expect(articles.map((a) => a.name).toSet(), {
-        'Lait',
-        'Œufs',
-        'Tomates',
-        'Courgettes',
-        'Oignons',
-        'Riz',
-        'Lardons',
-      });
-      expect(articles.every((a) => a.updatedAt == 0), isTrue);
-      expect(articles.every((a) => a.deletedAt == null), isTrue);
-      for (final a in articles) {
-        expect(a.normalizedName, normalizeName(a.name));
-      }
-      final lait = articles.singleWhere((a) => a.id == SeedIds.lait);
+  group('frequentId', () {
+    test('UUID v5 stable et déterministe', () {
+      final id = frequentId(SeedIds.lait);
+      // Valeur figée : ne doit jamais changer (fusion à l'import, AD-9).
+      expect(id, frequentId(SeedIds.lait));
       expect(
-        (lait.rayon, lait.unit, lait.pictoKey),
-        ('cremerie', 'piece', 'lait'),
+        RegExp(
+          r'^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+        ).hasMatch(id),
+        isTrue,
       );
+      expect(id, _laitFrequentId);
+      expect(frequentId(SeedIds.riz), isNot(id));
+    });
+  });
 
-      final settings = await db.select(db.settings).getSingle();
-      expect(settings.id, SettingsRepository.rowId);
-      expect(settings.updatedAt, 0);
-      expect(settings.routeOrder.split(',').length, 13);
-      expect(jsonDecode(settings.seedVersions), {'articles': 1});
-    },
-  );
+  test('installation neuve : articles et fréquents à updated_at 0', () async {
+    await seedLoader(db).run();
 
-  test('les UUID fournis sont des v4 distincts', () async {
-    final json = jsonDecode(
-      await diskAssetLoader('assets/seed/articles.json'),
-    ) as Map<String, dynamic>;
-    final ids = [
-      for (final a in json['articles'] as List) (a as Map)['id'] as String,
-    ];
-    final v4 = RegExp(
-      r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
+    final articles = await db.select(db.articles).get();
+    expect(articles.length, await _realArticleCount());
+    expect(articles.every((a) => a.updatedAt == 0), isTrue);
+    expect(articles.every((a) => a.deletedAt == null), isTrue);
+    for (final a in articles) {
+      expect(a.normalizedName, normalizeName(a.name));
+    }
+    for (final o in originalArticles) {
+      final a = articles.singleWhere((a) => a.id == o['id']);
+      expect(
+        (a.name, a.rayon, a.unit, a.pictoKey),
+        (o['name'], o['rayon'], o['unit'], o['picto_key']),
+      );
+    }
+
+    final expectedArticleIds = await _realFrequentArticleIds();
+    final frequents = await (db.select(
+      db.frequents,
+    )..orderBy([(f) => OrderingTerm(expression: f.position)])).get();
+    expect(frequents.map((f) => f.articleId), expectedArticleIds);
+    for (final (i, f) in frequents.indexed) {
+      expect(f.id, frequentId(f.articleId));
+      expect(f.position, i);
+      expect(f.updatedAt, 0);
+      expect(f.deletedAt, isNull);
+    }
+
+    final settings = await db.select(db.settings).getSingle();
+    expect(settings.id, SettingsRepository.rowId);
+    expect(settings.updatedAt, 0);
+    expect(settings.routeOrder.split(',').length, 13);
+    expect(jsonDecode(settings.seedVersions), {'articles': 2, 'frequents': 1});
+  });
+
+  test('montée de version depuis la v1 : rien d’écrasé ni de recréé', () async {
+    // Base de la story 1 : les 7 articles, pas de fichier de fréquents
+    // (version 0, rien inséré).
+    final v1 = jsonEncode({'seed_version': 1, 'articles': originalArticles});
+    await seedLoader(
+      db,
+      loadAsset: assetLoaderWith({
+        SeedLoader.articlesPath: v1,
+        SeedLoader.frequentsPath: _frequentsFile(0, const []),
+      }),
+    ).run();
+    expect(await db.select(db.articles).get(), hasLength(7));
+    expect(await db.select(db.frequents).get(), isEmpty);
+    expect(
+      jsonDecode((await db.select(db.settings).getSingle()).seedVersions),
+      {'articles': 1},
     );
-    expect(ids.every(v4.hasMatch), isTrue);
-    expect(ids.toSet().length, ids.length);
+
+    // Antoine renomme Lait, supprime Riz et a une liste en cours.
+    await (db.update(
+      db.articles,
+    )..where((a) => a.id.equals(SeedIds.lait))).write(
+      const ArticlesCompanion(
+        name: Value('Lait demi-écrémé'),
+        normalizedName: Value('laitdemiecreme'),
+        updatedAt: Value(10),
+      ),
+    );
+    await (db.update(
+      db.articles,
+    )..where((a) => a.id.equals(SeedIds.riz))).write(
+      const ArticlesCompanion(deletedAt: Value(20), updatedAt: Value(20)),
+    );
+    await db
+        .into(db.listLines)
+        .insert(
+          ListLinesCompanion.insert(
+            id: 'ligne-1',
+            updatedAt: 30,
+            articleId: SeedIds.tomates,
+            rayon: 'fruits-legumes',
+            addedAt: 30,
+          ),
+        );
+    final linesBefore = await db.select(db.listLines).get();
+
+    await seedLoader(db, clock: Clock(now: () => 5000)).run();
+
+    final articles = await db.select(db.articles).get();
+    expect(articles.length, await _realArticleCount());
+    final lait = articles.singleWhere((a) => a.id == SeedIds.lait);
+    expect((lait.name, lait.updatedAt), ('Lait demi-écrémé', 10));
+    final riz = articles.singleWhere((a) => a.id == SeedIds.riz);
+    expect((riz.deletedAt, riz.updatedAt), (20, 20));
+    expect(articles.where((a) => a.updatedAt == 0).length, articles.length - 2);
+    // Le fréquent de Riz est inséré : son article est en base (supprimé).
+    expect(
+      (await db.select(db.frequents).get()).map((f) => f.articleId).toSet(),
+      (await _realFrequentArticleIds()).toSet(),
+    );
+    expect(await db.select(db.listLines).get(), linesBefore);
+    final settings = await db.select(db.settings).getSingle();
+    expect(jsonDecode(settings.seedVersions), {'articles': 2, 'frequents': 1});
+    expect(settings.updatedAt, 5000);
   });
 
   test('redémarrage : rien inséré ni modifié, supprimés compris', () async {
@@ -86,19 +184,102 @@ void main() {
     )..where((a) => a.id.equals(SeedIds.riz))).write(
       const ArticlesCompanion(deletedAt: Value(20), updatedAt: Value(20)),
     );
+    await (db.update(
+      db.frequents,
+    )..where((f) => f.id.equals(frequentId(SeedIds.lait)))).write(
+      const FrequentsCompanion(deletedAt: Value(30), updatedAt: Value(30)),
+    );
     final before = await db.select(db.articles).get();
+    final frequentsBefore = await db.select(db.frequents).get();
     final settingsBefore = await db.select(db.settings).getSingle();
 
     await seedLoader(db).run();
 
     expect(await db.select(db.articles).get(), before);
+    expect(await db.select(db.frequents).get(), frequentsBefore);
     expect(await db.select(db.settings).getSingle(), settingsBefore);
+  });
+
+  test('fréquent supprimé : pas recréé par une version supérieure', () async {
+    await seedLoader(db).run();
+    final laitFrequent = frequentId(SeedIds.lait);
+    await (db.update(
+      db.frequents,
+    )..where((f) => f.id.equals(laitFrequent))).write(
+      const FrequentsCompanion(deletedAt: Value(30), updatedAt: Value(30)),
+    );
+    final before = await db.select(db.frequents).get();
+    final v1Ids = await _realFrequentArticleIds();
+    expect(v1Ids, isNot(contains(SeedIds.courgettes)));
+
+    await seedLoader(
+      db,
+      loadAsset: assetLoaderWith({
+        SeedLoader.frequentsPath: _frequentsFile(2, [
+          ...v1Ids,
+          SeedIds.courgettes,
+        ]),
+      }),
+    ).run();
+
+    // Le fréquent absent (Courgettes) est inséré ; les présents, inchangés.
+    final courgettesFrequent = frequentId(SeedIds.courgettes);
+    final after = await db.select(db.frequents).get();
+    expect(after.where((f) => f.id != courgettesFrequent).toList(), before);
+    final courgettes = after.singleWhere((f) => f.id == courgettesFrequent);
+    expect(
+      (courgettes.articleId, courgettes.position, courgettes.deletedAt),
+      (SeedIds.courgettes, v1Ids.length, null),
+    );
+    final lait = await (db.select(
+      db.frequents,
+    )..where((f) => f.id.equals(laitFrequent))).getSingle();
+    expect((lait.deletedAt, lait.updatedAt), (30, 30));
+    expect(
+      jsonDecode((await db.select(db.settings).getSingle()).seedVersions),
+      {'articles': 2, 'frequents': 2},
+    );
+  });
+
+  test('article d’un fréquent absent : ce fréquent est sauté', () async {
+    // Un « Beurre » actif existe déjà : l'article fourni est sauté, donc son
+    // fréquent aussi, sans erreur de clé étrangère.
+    const userBeurre = '11111111-1111-4111-8111-111111111111';
+    await db
+        .into(db.articles)
+        .insert(
+          ArticlesCompanion.insert(
+            id: userBeurre,
+            updatedAt: 1,
+            name: 'beurre',
+            normalizedName: 'beurre',
+            rayon: 'cremerie',
+            pictoKey: 'beurre',
+          ),
+        );
+
+    await seedLoader(db).run();
+
+    final articles = await db.select(db.articles).get();
+    final beurres = articles.where((a) => a.normalizedName == 'beurre');
+    expect(beurres.map((a) => a.id), [userBeurre]);
+    expect(articles.length, await _realArticleCount());
+
+    final frequentArticleIds = (await db.select(db.frequents).get())
+        .map((f) => f.articleId)
+        .toSet();
+    final expected = (await _realFrequentArticleIds()).toSet();
+    final articleIds = articles.map((a) => a.id).toSet();
+    expect(frequentArticleIds, expected.intersection(articleIds));
+    expect(frequentArticleIds.length, expected.length - 1);
+    expect(frequentArticleIds, contains(SeedIds.lait));
   });
 
   test(
     'nouvelle version : insère les seuls UUID absents, sans mise à jour',
     () async {
       await seedLoader(db).run();
+      final count = (await db.select(db.articles).get()).length;
       await (db.update(
         db.articles,
       )..where((a) => a.id.equals(SeedIds.lait))).write(
@@ -108,36 +289,42 @@ void main() {
         ),
       );
 
-      final v2 = jsonEncode({
-        'seed_version': 2,
+      final v3 = jsonEncode({
+        'seed_version': 3,
         'articles': [
           _article(SeedIds.lait, 'Lait', 'cremerie'),
           _article(
             '7d1c2f0e-3b8a-4c5d-9e6f-0a1b2c3d4e5f',
-            'Pâtes',
-            'epicerie-salee',
+            'Kumquats',
+            'fruits-legumes',
           ),
         ],
       });
       await seedLoader(
         db,
         clock: Clock(now: () => 5000),
-        loadAsset: (_) async => v2,
+        loadAsset: assetLoaderWith({
+          SeedLoader.articlesPath: v3,
+          SeedLoader.frequentsPath: _frequentsFile(1, [SeedIds.lait]),
+        }),
       ).run();
 
       final articles = await db.select(db.articles).get();
-      expect(articles.length, 8);
+      expect(articles.length, count + 1);
       expect(
         articles.singleWhere((a) => a.id == SeedIds.lait).name,
         'Lait entier',
       );
       final settings = await db.select(db.settings).getSingle();
-      expect(jsonDecode(settings.seedVersions), {'articles': 2});
+      expect(jsonDecode(settings.seedVersions), {
+        'articles': 3,
+        'frequents': 1,
+      });
       expect(settings.updatedAt, 5000);
     },
   );
 
-  test('fichier invalide : erreur et rien d’écrit', () async {
+  test('fichier d’articles invalide : erreur et rien d’écrit', () async {
     final bad = jsonEncode({
       'seed_version': 1,
       'articles': [
@@ -146,20 +333,49 @@ void main() {
       ],
     });
     await expectLater(
-      seedLoader(db, loadAsset: (_) async => bad).run(),
+      seedLoader(
+        db,
+        loadAsset: assetLoaderWith({SeedLoader.articlesPath: bad}),
+      ).run(),
       throwsFormatException,
     );
     expect(await db.select(db.articles).get(), isEmpty);
     expect(await db.select(db.settings).get(), isEmpty);
   });
 
+  for (final (label, articleIds) in [
+    ('article absent d’articles.json', [SeedIds.lait, _unknownArticle]),
+    ('fréquent en double', [SeedIds.lait, SeedIds.riz, SeedIds.lait]),
+  ]) {
+    test('fichier de fréquents invalide ($label) : rien d’écrit', () async {
+      await expectLater(
+        seedLoader(
+          db,
+          loadAsset: assetLoaderWith({
+            SeedLoader.frequentsPath: _frequentsFile(1, articleIds),
+          }),
+        ).run(),
+        throwsFormatException,
+      );
+      expect(await db.select(db.articles).get(), isEmpty);
+      expect(await db.select(db.frequents).get(), isEmpty);
+      expect(await db.select(db.settings).get(), isEmpty);
+    });
+  }
+
   test('échec pendant l’écriture : la transaction est annulée', () async {
-    // Les articles s'insèrent, puis l'insertion des réglages échoue.
+    // Articles et fréquents s'insèrent, puis l'insertion des réglages échoue.
     await db.customStatement(
       'CREATE TRIGGER boom BEFORE INSERT ON settings '
       "BEGIN SELECT RAISE(ABORT, 'boom'); END",
     );
     await expectLater(seedLoader(db).run(), throwsA(anything));
     expect(await db.select(db.articles).get(), isEmpty);
+    expect(await db.select(db.frequents).get(), isEmpty);
   });
 }
+
+const _unknownArticle = '22222222-2222-4222-8222-222222222222';
+
+/// `frequentId(SeedIds.lait)`, figé.
+const _laitFrequentId = '1265e470-f634-566b-a103-339309569e28';
