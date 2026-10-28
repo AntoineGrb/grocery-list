@@ -42,3 +42,8 @@ List<RayonGroup> groupByRoute(List<ListeItem> items, List<Rayon> routeOrder) {
       if (byRayon[rayon] case final lines?) RayonGroup(rayon, lines),
   ];
 }
+
+/// Lignes cochées de la Section Cochés, la dernière cochée en tête.
+final listeCheckedProvider = StreamProvider<List<ListeItem>>(
+  (ref) => ref.watch(listeRepositoryProvider).watchChecked(),
+);

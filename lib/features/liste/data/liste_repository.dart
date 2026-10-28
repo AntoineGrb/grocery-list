@@ -12,7 +12,7 @@ abstract final class ContributionSource {
   static const edition = 'edition';
 }
 
-/// Ligne active non cochée de la Liste, avec sa quantité calculée.
+/// Ligne active de la Liste, avec sa quantité calculée.
 class ListeItem {
   const ListeItem({
     required this.lineId,
@@ -21,6 +21,7 @@ class ListeItem {
     required this.rayon,
     required this.unit,
     required this.quantity,
+    this.checked = false,
   });
 
   final String lineId;
@@ -31,6 +32,9 @@ class ListeItem {
 
   /// Somme des contributions actives ; nulle sans quantité (AD-4).
   final int? quantity;
+
+  /// Ligne cochée (dans la Section Cochés).
+  final bool checked;
 }
 
 /// Propriétaire de `list_lines` et `list_contributions` (AD-2).
@@ -163,9 +167,97 @@ class ListeRepository {
         );
   }
 
+  /// Coche la ligne [lineId] : `checked_at` et `updated_at` fixés. Rien
+  /// n'est écrit si la ligne est absente, supprimée ou déjà cochée.
+  Future<void> check(String lineId) {
+    return _db.transaction(() async {
+      final line = await _activeLine(lineId);
+      if (line == null || line.checkedAt != null) return;
+      final stamp = _clock.stamp(line.updatedAt);
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(lineId))).write(
+        ListLinesCompanion(checkedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+    });
+  }
+
+  /// Décoche la ligne [lineId] (AD-4). Si une autre ligne active non cochée
+  /// du même article et de même `unit_key` existe (le jumeau), les
+  /// contributions actives de la ligne passent sur le jumeau et la ligne est
+  /// supprimée logiquement ; sinon `checked_at` est remis à nul et la ligne
+  /// reprend sa place d'ajout. Rien n'est écrit si la ligne est absente,
+  /// supprimée ou non cochée.
+  Future<void> uncheck(String lineId) {
+    return _db.transaction(() async {
+      final line = await _activeLine(lineId);
+      if (line == null || line.checkedAt == null) return;
+
+      final unit = line.unit;
+      final twin =
+          await (_db.select(_db.listLines)
+                ..where(
+                  (l) =>
+                      l.articleId.equals(line.articleId) &
+                      l.id.equals(line.id).not() &
+                      l.deletedAt.isNull() &
+                      l.checkedAt.isNull() &
+                      (unit == null ? l.unit.isNull() : l.unit.equals(unit)),
+                )
+                ..orderBy([
+                  (l) => OrderingTerm.asc(l.addedAt),
+                  (l) => OrderingTerm.asc(l.id),
+                ])
+                ..limit(1))
+              .getSingleOrNull();
+
+      if (twin == null) {
+        await (_db.update(
+          _db.listLines,
+        )..where((l) => l.id.equals(lineId))).write(
+          ListLinesCompanion(
+            checkedAt: const Value(null),
+            updatedAt: Value(_clock.stamp(line.updatedAt)),
+          ),
+        );
+        return;
+      }
+
+      final contributions = await (_db.select(
+        _db.listContributions,
+      )..where((c) => c.lineId.equals(lineId) & c.deletedAt.isNull())).get();
+      for (final c in contributions) {
+        await (_db.update(
+          _db.listContributions,
+        )..where((x) => x.id.equals(c.id))).write(
+          ListContributionsCompanion(
+            lineId: Value(twin.id),
+            updatedAt: Value(_clock.stamp(c.updatedAt)),
+          ),
+        );
+      }
+      final stamp = _clock.stamp(line.updatedAt);
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(lineId))).write(
+        ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+    });
+  }
+
+  Future<ListLine?> _activeLine(String lineId) =>
+      (_db.select(_db.listLines)
+            ..where((l) => l.id.equals(lineId) & l.deletedAt.isNull()))
+          .getSingleOrNull();
+
   /// Lignes actives non cochées, dans l'ordre d'ajout (AD-4). Une ligne dont
   /// l'article est supprimé compte comme supprimée (AD-7).
-  Stream<List<ListeItem>> watchUnchecked() {
+  Stream<List<ListeItem>> watchUnchecked() => _watch(checked: false);
+
+  /// Lignes actives cochées, la dernière cochée en tête.
+  Stream<List<ListeItem>> watchChecked() => _watch(checked: true);
+
+  Stream<List<ListeItem>> _watch({required bool checked}) {
     final l = _db.listLines;
     final a = _db.articles;
     final c = _db.listContributions;
@@ -176,10 +268,17 @@ class ListeRepository {
             innerJoin(a, a.id.equalsExp(l.articleId) & a.deletedAt.isNull()),
             leftOuterJoin(c, c.lineId.equalsExp(l.id) & c.deletedAt.isNull()),
           ])
-          ..where(l.deletedAt.isNull() & l.checkedAt.isNull())
+          ..where(
+            l.deletedAt.isNull() &
+                (checked ? l.checkedAt.isNotNull() : l.checkedAt.isNull()),
+          )
           ..addColumns([quantity])
           ..groupBy([l.id])
-          ..orderBy([OrderingTerm.asc(l.addedAt), OrderingTerm.asc(l.id)]);
+          ..orderBy(
+            checked
+                ? [OrderingTerm.desc(l.checkedAt), OrderingTerm.asc(l.id)]
+                : [OrderingTerm.asc(l.addedAt), OrderingTerm.asc(l.id)],
+          );
 
     return query.watch().map(
       (rows) => [
@@ -198,6 +297,7 @@ class ListeRepository {
       rayon: Rayon.tryFromCode(line.rayon) ?? Rayon.divers,
       unit: unit,
       quantity: unit == null ? null : quantity,
+      checked: line.checkedAt != null,
     );
   }
 }

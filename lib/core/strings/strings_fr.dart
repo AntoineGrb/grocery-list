@@ -30,6 +30,22 @@ abstract final class StringsFr {
   /// Compteur d'un En-tête de rayon : « 1 article », « 3 articles ».
   static String articles(int n) => n == 1 ? '1 article' : '$n articles';
 
+  // Section Cochés.
+  static String cochesTitre(int n) => 'Cochés ($n)';
+  static const afficher = 'Afficher';
+  static const replier = 'Replier';
+
+  /// En-tête de la Section Cochés lu par TalkBack :
+  /// « Cochés, 2 articles, replié ».
+  static String cochesLu(int n, {required bool expanded}) =>
+      'Cochés, ${articles(n)}, ${expanded ? 'déplié' : 'replié'}';
+
+  /// Annonce d'un changement de coche : « Tomates, coché ».
+  static String cocheAnnonce(String name) => '$name, coché';
+
+  /// Annonce d'un changement de coche : « Tomates, non coché ».
+  static String nonCocheAnnonce(String name) => '$name, non coché';
+
   // Suffixes d'unité d'une quantité lue (AD-6).
   static const uniteG = 'g';
   static const uniteKg = 'kg';

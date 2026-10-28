@@ -285,4 +285,183 @@ void main() {
       expect(item.quantity, 200);
     });
   });
+
+  group('cocher et décocher (AD-4)', () {
+    Future<ListLine> lineOf(String id) =>
+        (db.select(db.listLines)..where((l) => l.id.equals(id))).getSingle();
+
+    Future<List<ListLine>> activeTomates() =>
+        (db.select(db.listLines)..where(
+              (l) => l.articleId.equals(SeedIds.tomates) & l.deletedAt.isNull(),
+            ))
+            .get();
+
+    test('cocher : checked_at et updated_at fixés, la ligne passe dans '
+        'watchChecked avec 500 g', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      final id = (await repo.watchUnchecked().first).single.lineId;
+      now = 2000;
+
+      await repo.check(id);
+
+      final line = await lineOf(id);
+      expect(line.checkedAt, 2000);
+      expect(line.updatedAt, 2000);
+      expect(line.addedAt, 1000);
+      expect(await repo.watchUnchecked().first, isEmpty);
+      final checked = (await repo.watchChecked().first).single;
+      expect(checked.lineId, id);
+      expect(checked.checked, isTrue);
+      expect(checked.unit, Unit.g);
+      expect(checked.quantity, 500);
+    });
+
+    test('décocher sans jumeau : checked_at nul, retour à sa place '
+        'd’ajout', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      now = 2000;
+      await repo.addArticle(SeedIds.riz, quantity: 300, unit: Unit.g);
+      final tomates = (await repo.watchUnchecked().first).first.lineId;
+      now = 3000;
+      await repo.check(tomates);
+      now = 4000;
+
+      await repo.uncheck(tomates);
+
+      final line = await lineOf(tomates);
+      expect(line.checkedAt, isNull);
+      expect(line.deletedAt, isNull);
+      expect(line.updatedAt, 4000);
+      expect(line.addedAt, 1000);
+      expect(await repo.watchChecked().first, isEmpty);
+      final items = await repo.watchUnchecked().first;
+      expect(items.map((i) => i.name), ['Tomates', 'Riz']);
+      expect(items.first.checked, isFalse);
+      expect(items.first.quantity, 500);
+    });
+
+    test('décocher avec jumeau : contributions reportées, la cochée '
+        'supprimée, une ligne de 500 g', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 300, unit: Unit.g);
+      final cochee = (await repo.watchUnchecked().first).single.lineId;
+      now = 2000;
+      await repo.check(cochee);
+      now = 3000;
+      await repo.addArticle(SeedIds.tomates, quantity: 200, unit: Unit.g);
+      final jumeau = (await repo.watchUnchecked().first).single.lineId;
+      expect(jumeau, isNot(cochee));
+      now = 4000;
+
+      await repo.uncheck(cochee);
+
+      final old = await lineOf(cochee);
+      expect(old.deletedAt, greaterThanOrEqualTo(4000));
+      expect(old.updatedAt, old.deletedAt);
+      final contributions = await db.select(db.listContributions).get();
+      expect(contributions, hasLength(2));
+      expect(contributions.every((c) => c.lineId == jumeau), isTrue);
+      expect(contributions.every((c) => c.deletedAt == null), isTrue);
+      final moved = contributions.singleWhere((c) => c.quantity == 300);
+      expect(moved.updatedAt, greaterThanOrEqualTo(4000));
+
+      expect((await activeTomates()).single.id, jumeau);
+      final item = (await repo.watchUnchecked().first).single;
+      expect(item.lineId, jumeau);
+      expect(item.unit, Unit.g);
+      expect(item.quantity, 500);
+      expect(await repo.watchChecked().first, isEmpty);
+    });
+
+    test('jumeau sans quantité : fusion dans la non cochée', () async {
+      await repo.addArticle(SeedIds.tomates);
+      final cochee = (await repo.watchUnchecked().first).single.lineId;
+      now = 2000;
+      await repo.check(cochee);
+      now = 3000;
+      await repo.addArticle(SeedIds.tomates);
+      final jumeau = (await repo.watchUnchecked().first).single.lineId;
+      now = 4000;
+
+      await repo.uncheck(cochee);
+
+      expect((await activeTomates()).single.id, jumeau);
+      final contributions = await db.select(db.listContributions).get();
+      expect(contributions.every((c) => c.lineId == jumeau), isTrue);
+      final item = (await repo.watchUnchecked().first).single;
+      expect(item.quantity, isNull);
+      expect(await repo.watchChecked().first, isEmpty);
+    });
+
+    test('unité différente : pas de fusion, deux lignes g et pièce', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      final cochee = (await repo.watchUnchecked().first).single.lineId;
+      now = 2000;
+      await repo.check(cochee);
+      now = 3000;
+      await repo.addArticle(SeedIds.tomates, quantity: 2000, unit: Unit.piece);
+      now = 4000;
+
+      await repo.uncheck(cochee);
+
+      expect(await activeTomates(), hasLength(2));
+      final items = await repo.watchUnchecked().first;
+      expect(items.map((i) => (i.unit, i.quantity)), [
+        (Unit.g, 500),
+        (Unit.piece, 2000),
+      ]);
+      expect((await lineOf(cochee)).checkedAt, isNull);
+    });
+
+    test('idempotence : rien n’est écrit, aucune erreur', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      now = 2000;
+      await repo.addArticle(SeedIds.riz, quantity: 300, unit: Unit.g);
+      final items = await repo.watchUnchecked().first;
+      final tomates = items.first.lineId;
+      final riz = items.last.lineId;
+      now = 3000;
+      await repo.check(tomates);
+      await (db.update(db.listLines)..where((l) => l.id.equals(riz))).write(
+        const ListLinesCompanion(
+          deletedAt: Value(3500),
+          updatedAt: Value(3500),
+        ),
+      );
+      final linesBefore = await db.select(db.listLines).get();
+      final contributionsBefore = await db.select(db.listContributions).get();
+      now = 4000;
+
+      await repo.check(tomates); // déjà cochée
+      await repo.check(riz); // supprimée
+      await repo.uncheck(riz); // supprimée
+      await repo.check('inconnu');
+      await repo.uncheck('inconnu');
+      await repo.uncheck(tomates);
+      now = 5000;
+      await repo.uncheck(tomates); // déjà décochée
+
+      final linesAfter = await db.select(db.listLines).get();
+      expect(
+        linesAfter.where((l) => l.id != tomates),
+        linesBefore.where((l) => l.id != tomates),
+      );
+      expect((await lineOf(tomates)).updatedAt, 4000);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+    });
+
+    test('ordre des cochés : le dernier coché en tête', () async {
+      await repo.addArticle(SeedIds.tomates);
+      now = 2000;
+      await repo.addArticle(SeedIds.riz);
+      final items = await repo.watchUnchecked().first;
+      now = 3000;
+      await repo.check(items.first.lineId);
+      now = 4000;
+      await repo.check(items.last.lineId);
+
+      final checked = await repo.watchChecked().first;
+      expect(checked.map((i) => i.name), ['Riz', 'Tomates']);
+      expect(checked.every((i) => i.checked), isTrue);
+    });
+  });
 }
