@@ -7,6 +7,7 @@ import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/ui/checked_section.dart';
@@ -17,7 +18,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../helpers/test_db.dart';
 
 /// Monte Kadi sur une base en mémoire ; l'app s'ouvre sur la Liste.
-Future<AppDatabase> _pumpApp(WidgetTester tester) async {
+Future<AppDatabase> _pumpApp(WidgetTester tester, {_SpyUndo? undo}) async {
   final assets = (await tester.runAsync(readSeedAssets))!;
   final db = memoryDatabase();
   await tester.pumpWidget(
@@ -25,6 +26,11 @@ Future<AppDatabase> _pumpApp(WidgetTester tester) async {
       overrides: [
         databaseProvider.overrideWithValue(db),
         seedAssetLoaderProvider.overrideWithValue(assetLoaderWith(assets)),
+        if (undo != null)
+          undoProvider.overrideWith((ref) {
+            undo.attach(ref.watch(databaseProvider), ref.watch(clockProvider));
+            return undo;
+          }),
       ],
       child: const KadiApp(),
     ),
@@ -77,9 +83,29 @@ Future<void> _tapBox(
   await tester.pumpAndSettle();
 }
 
+/// Service Annuler qui garde la dernière entrée enregistrée.
+class _SpyUndo implements Undo {
+  late Undo _undo;
+  UndoEntry? last;
+
+  void attach(AppDatabase db, Clock clock) => _undo = Undo(db, clock);
+
+  @override
+  UndoEntry record(List<UndoRow> rows) => last = _undo.record(rows);
+
+  @override
+  Future<bool> undo(UndoEntry entry) => _undo.undo(entry);
+
+  @override
+  void clear([UndoEntry? entry]) => _undo.clear(entry);
+}
+
 /// Monte Kadi avec Tomates 500 g et Courgettes dans la liste.
-Future<AppDatabase> _pumpWithTomatesCourgettes(WidgetTester tester) async {
-  final db = await _pumpApp(tester);
+Future<AppDatabase> _pumpWithTomatesCourgettes(
+  WidgetTester tester, {
+  _SpyUndo? undo,
+}) async {
+  final db = await _pumpApp(tester, undo: undo);
   final repo = ListeRepository(db, Clock());
   await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
   await repo.addArticle(SeedIds.courgettes);
@@ -308,6 +334,182 @@ void main() {
       expect(find.byType(CheckedSection), findsNothing);
       final lines = await db.select(db.listLines).get();
       expect(lines.every((l) => l.checkedAt == null), isTrue);
+    });
+  });
+
+  group('terminer les courses', () {
+    final terminer = find.widgetWithText(
+      FilledButton,
+      StringsFr.terminerLesCourses,
+    );
+
+    Future<void> checkAll(WidgetTester tester) async {
+      await _tapBox(tester, 'Tomates');
+      await _tapBox(tester, 'Courgettes');
+    }
+
+    Future<void> tapTerminer(WidgetTester tester) async {
+      await tester.tap(terminer);
+      await tester.pump();
+      await tester.pumpAndSettle();
+    }
+
+    /// Laisse passer la durée du snackbar et sa sortie.
+    Future<void> letSnackBarClose(WidgetTester tester) async {
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('le bouton n’apparaît que quand tout est coché, en bas de la '
+        'Liste, au-dessus de la Barre de navigation', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpWithTomatesCourgettes(tester);
+      expect(terminer, findsNothing);
+
+      await _tapBox(tester, 'Tomates');
+      expect(terminer, findsNothing);
+
+      await _tapBox(tester, 'Courgettes');
+      expect(terminer, findsOneWidget);
+      expect(
+        tester.getBottomLeft(terminer).dy,
+        lessThanOrEqualTo(tester.getTopLeft(find.byType(NavigationBar)).dy),
+      );
+      expect(
+        tester.getBottomLeft(terminer).dy,
+        greaterThan(tester.getBottomLeft(find.byType(CheckedSection)).dy),
+      );
+      // Le FAB + remonte au-dessus du bouton.
+      expect(
+        tester.getBottomLeft(find.byType(FloatingActionButton)).dy,
+        lessThanOrEqualTo(tester.getTopLeft(terminer).dy),
+      );
+      expect(
+        tester.getSemantics(
+          find.bySemanticsLabel(StringsFr.terminerLesCourses),
+        ),
+        isSemantics(
+          label: StringsFr.terminerLesCourses,
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('Terminer vide la liste et montre le snackbar Annuler ; '
+        'Annuler la restaure telle quelle', (tester) async {
+      await _pumpWithTomatesCourgettes(tester);
+      await checkAll(tester);
+
+      await tapTerminer(tester);
+
+      expect(find.text(StringsFr.listeVide), findsOneWidget);
+      expect(terminer, findsNothing);
+      expect(find.byType(CheckedSection), findsNothing);
+      expect(find.text(StringsFr.coursesTerminees), findsOneWidget);
+      expect(
+        find.widgetWithText(SnackBarAction, StringsFr.annuler),
+        findsOneWidget,
+      );
+      // Snackbar de la Liste : au-dessus du FAB + et de la Barre de
+      // navigation.
+      final snackBar = find.byType(SnackBar);
+      expect(
+        tester.getBottomLeft(snackBar).dy,
+        lessThanOrEqualTo(
+          tester.getTopLeft(find.byType(FloatingActionButton)).dy,
+        ),
+      );
+      expect(
+        tester.getBottomLeft(snackBar).dy,
+        lessThanOrEqualTo(tester.getTopLeft(find.byType(NavigationBar)).dy),
+      );
+
+      await tester.tap(find.widgetWithText(SnackBarAction, StringsFr.annuler));
+      await tester.pumpAndSettle();
+
+      expect(find.text(StringsFr.listeVide), findsNothing);
+      expect(find.text(StringsFr.coursesTerminees), findsNothing);
+      expect(find.text(StringsFr.cochesTitre(2)), findsOneWidget);
+      expect(find.text(StringsFr.afficher), findsOneWidget);
+      expect(terminer, findsOneWidget);
+
+      await tester.tap(find.text(StringsFr.cochesTitre(2)));
+      await tester.pumpAndSettle();
+      expect(_row('Tomates', inSection: true), findsOneWidget);
+      expect(_row('Courgettes', inSection: true), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(CheckedSection),
+          matching: find.text('500 g'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('snackbar fermé à la fin de sa durée : plus rien ne restaure '
+        'la liste', (tester) async {
+      final undo = _SpyUndo();
+      await _pumpWithTomatesCourgettes(tester, undo: undo);
+      await checkAll(tester);
+      await tapTerminer(tester);
+      final entry = undo.last!;
+
+      await letSnackBarClose(tester);
+
+      expect(find.text(StringsFr.coursesTerminees), findsNothing);
+      expect(await undo.undo(entry), isFalse);
+      await tester.pumpAndSettle();
+      expect(find.text(StringsFr.listeVide), findsOneWidget);
+    });
+
+    testWidgets('échec de Terminer : snackbar d’erreur, liste inchangée', (
+      tester,
+    ) async {
+      final db = await _pumpWithTomatesCourgettes(tester);
+      await checkAll(tester);
+      await db.customStatement(
+        'CREATE TRIGGER no_clear BEFORE UPDATE OF deleted_at ON list_lines '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+
+      await tapTerminer(tester);
+
+      expect(find.text(StringsFr.terminerImpossible), findsOneWidget);
+      expect(find.text(StringsFr.cochesTitre(2)), findsOneWidget);
+      expect(terminer, findsOneWidget);
+      // Le snackbar ne cache pas le bouton à retoucher.
+      expect(
+        tester.getBottomLeft(find.byType(SnackBar)).dy,
+        lessThanOrEqualTo(tester.getTopLeft(terminer).dy),
+      );
+      await letSnackBarClose(tester);
+    });
+
+    testWidgets('échec d’Annuler : snackbar d’erreur, liste toujours vide', (
+      tester,
+    ) async {
+      final db = await _pumpWithTomatesCourgettes(tester);
+      await checkAll(tester);
+      await tapTerminer(tester);
+      await db.customStatement(
+        'CREATE TRIGGER no_restore BEFORE UPDATE OF deleted_at ON list_lines '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+
+      await tester.tap(find.widgetWithText(SnackBarAction, StringsFr.annuler));
+      await tester.pumpAndSettle();
+
+      expect(find.text(StringsFr.annulationImpossible), findsOneWidget);
+      expect(find.text(StringsFr.coursesTerminees), findsNothing);
+      expect(find.text(StringsFr.listeVide), findsOneWidget);
+      expect(terminer, findsNothing);
+      final active = await (db.select(
+        db.listLines,
+      )..where((l) => l.deletedAt.isNull())).get();
+      expect(active, isEmpty);
+      await letSnackBarClose(tester);
     });
   });
 }

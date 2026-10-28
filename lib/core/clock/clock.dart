@@ -10,6 +10,11 @@ class Clock {
   final int Function() _now;
   int _last = 0;
 
+  /// Dernier horodatage émis, 0 avant la première écriture.
+  ///
+  /// Témoin d'écriture d'Annuler (AD-10) : il bouge à chaque écriture.
+  int get last => _last;
+
   /// Horodatage en millisecondes UTC pour une écriture.
   ///
   /// [previous] est l'ancien `updated_at` de la ligne modifiée, s'il existe.

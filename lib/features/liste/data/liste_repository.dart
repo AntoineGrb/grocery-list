@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:uuid/uuid.dart';
 
@@ -243,6 +244,45 @@ class ListeRepository {
         ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
       );
     });
+  }
+
+  /// Vide la liste, à appeler dans une transaction : toutes les lignes
+  /// actives, cochées ou non, et leurs contributions actives sont supprimées
+  /// logiquement (AD-7). Rend leur état d'avant pour Annuler (AD-10) ; une
+  /// liste vide n'écrit rien et rend une liste vide.
+  Future<List<UndoRow>> clearList() async {
+    final lines = await (_db.select(
+      _db.listLines,
+    )..where((l) => l.deletedAt.isNull())).get();
+    if (lines.isEmpty) return const [];
+    final lineIds = [for (final l in lines) l.id];
+    final contributions = await (_db.select(
+      _db.listContributions,
+    )..where((c) => c.lineId.isIn(lineIds) & c.deletedAt.isNull())).get();
+
+    // Un seul horodatage, postérieur à chaque ancien `updated_at`.
+    final previous = [
+      for (final l in lines) l.updatedAt,
+      for (final c in contributions) c.updatedAt,
+    ].reduce((a, b) => a > b ? a : b);
+    final stamp = _clock.stamp(previous);
+
+    await (_db.update(
+      _db.listContributions,
+    )..where((c) => c.id.isIn([for (final c in contributions) c.id]))).write(
+      ListContributionsCompanion(
+        deletedAt: Value(stamp),
+        updatedAt: Value(stamp),
+      ),
+    );
+    await (_db.update(_db.listLines)..where((l) => l.id.isIn(lineIds))).write(
+      ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+    );
+
+    return [
+      for (final l in lines) UndoRow.before(_db.listLines, l),
+      for (final c in contributions) UndoRow.before(_db.listContributions, c),
+    ];
   }
 
   Future<ListLine?> _activeLine(String lineId) =>

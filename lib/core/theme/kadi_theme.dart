@@ -5,8 +5,9 @@ import 'kadi_tokens.dart';
 
 /// Construit seul les thèmes clair et sombre depuis les tokens (AD-12).
 ///
-/// L'argile (`primary`) ne colore que le FAB + et, par sa teinte claire,
-/// l'indicateur de l'onglet actif ; `surfaceTint` est neutralisé.
+/// L'argile (`primary`) ne colore que le FAB +, le Bouton d'action et, par
+/// sa teinte claire, l'indicateur de l'onglet actif ; `surfaceTint` est
+/// neutralisé.
 abstract final class KadiTheme {
   static ThemeData get light =>
       _build(KadiPalette.light, KadiPalette.dark, Brightness.light);
@@ -88,6 +89,16 @@ abstract final class KadiTheme {
         elevation: 6,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(KadiRadius.lg)),
+        ),
+      ),
+      // Bouton d'action (Terminer les courses, Valider, Ajouter à la liste).
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: p.primary,
+          foregroundColor: p.onPrimary,
+          textStyle: text.labelLarge,
+          minimumSize: const Size(0, KadiSpacing.touchTarget),
+          shape: const RoundedRectangleBorder(borderRadius: fullRadius),
         ),
       ),
       bottomSheetTheme: BottomSheetThemeData(

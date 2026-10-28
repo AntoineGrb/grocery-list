@@ -22,6 +22,14 @@ abstract final class StringsFr {
   static const effacerLaRecherche = 'Effacer la recherche';
   static const ajoutImpossible = 'Ajout impossible. Réessaie.';
 
+  // Terminer les courses et Annuler.
+  static const terminerLesCourses = 'Terminer les courses';
+  static const coursesTerminees = 'Courses terminées. Bon appétit !';
+  static const annuler = 'Annuler';
+  static const terminerImpossible =
+      'Impossible de terminer les courses. Réessaie.';
+  static const annulationImpossible = 'Annulation impossible.';
+
   // Écran d'erreur bloquant (base ou contenu fourni illisible).
   static const erreurOuvertureTitre = 'Impossible d’ouvrir tes données.';
   static const erreurOuvertureCorps =
