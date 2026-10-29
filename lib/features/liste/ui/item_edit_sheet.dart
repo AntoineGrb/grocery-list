@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/ui/quantity_field.dart';
 import 'package:kadi/core/ui/rayon_picker.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -93,13 +94,8 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
     super.dispose();
   }
 
-  void _showError() {
-    final messenger = widget.messenger;
-    if (!messenger.mounted) return;
-    messenger.showSnackBar(
-      const SnackBar(content: Text(StringsFr.modificationImpossible)),
-    );
-  }
+  void _showError() =>
+      showErrorSnackBar(widget.messenger, StringsFr.modificationImpossible);
 
   /// Écrit la quantité saisie si le champ a été saisi et qu'elle diffère
   /// de la quantité stockée ou dernière écrite.

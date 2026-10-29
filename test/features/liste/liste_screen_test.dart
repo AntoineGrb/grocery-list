@@ -1,10 +1,7 @@
 import 'package:drift/drift.dart' show BooleanExpressionOperators;
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kadi/app/kadi_app.dart';
-import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
@@ -23,33 +20,20 @@ import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../helpers/pump_app.dart';
 import '../../helpers/test_db.dart';
 
 /// Monte Kadi sur une base en mémoire ; l'app s'ouvre sur la Liste.
-Future<AppDatabase> _pumpApp(WidgetTester tester, {_SpyUndo? undo}) async {
-  final assets = (await tester.runAsync(readSeedAssets))!;
-  final db = memoryDatabase();
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-        seedAssetLoaderProvider.overrideWithValue(assetLoaderWith(assets)),
-        if (undo != null)
-          undoProvider.overrideWith((ref) {
-            undo.attach(ref.watch(databaseProvider), ref.watch(clockProvider));
-            return undo;
-          }),
-      ],
-      child: const KadiApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
-  addTearDown(() async {
-    await tester.pumpWidget(const SizedBox());
-    await db.close();
-  });
-  return db;
-}
+Future<AppDatabase> _pumpApp(WidgetTester tester, {_SpyUndo? undo}) => pumpKadi(
+  tester,
+  overrides: [
+    if (undo != null)
+      undoProvider.overrideWith((ref) {
+        undo.attach(ref.watch(databaseProvider), ref.watch(clockProvider));
+        return undo;
+      }),
+  ],
+);
 
 /// La quantité [quantity] affichée dans une Ligne d'article de [name].
 Finder _rowWith(String name, String quantity) => find.descendant(

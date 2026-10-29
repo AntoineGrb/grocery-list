@@ -32,18 +32,35 @@ final listeGroupsProvider = StreamProvider<List<RayonGroup>>((ref) async* {
       .map((items) => groupByRoute(items, settings.routeOrder));
 });
 
-/// Regroupe [items] par rayon dans l'ordre [routeOrder] ; seuls les rayons
-/// non vides restent. Dans un rayon, l'ordre d'ajout est conservé.
-List<RayonGroup> groupByRoute(List<ListeItem> items, List<Rayon> routeOrder) {
-  final byRayon = <Rayon, List<ListeItem>>{};
+/// Regroupe [items] par rayon ([rayonOf]) dans l'ordre [routeOrder] : un
+/// couple (rayon, éléments) par rayon non vide. Dans un rayon, l'ordre reçu
+/// est conservé.
+List<(Rayon, List<T>)> groupByRayon<T>(
+  List<T> items,
+  Rayon Function(T item) rayonOf,
+  List<Rayon> routeOrder,
+) {
+  final byRayon = <Rayon, List<T>>{};
   for (final item in items) {
-    byRayon.putIfAbsent(item.rayon, () => []).add(item);
+    byRayon.putIfAbsent(rayonOf(item), () => []).add(item);
   }
   return [
     for (final rayon in routeOrder)
-      if (byRayon[rayon] case final lines?) RayonGroup(rayon, lines),
+      if (byRayon[rayon] case final group?) (rayon, group),
   ];
 }
+
+/// Regroupe [items] par rayon dans l'ordre [routeOrder] ; seuls les rayons
+/// non vides restent. Dans un rayon, l'ordre d'ajout est conservé.
+List<RayonGroup> groupByRoute(List<ListeItem> items, List<Rayon> routeOrder) =>
+    [
+      for (final (rayon, lines) in groupByRayon(
+        items,
+        (item) => item.rayon,
+        routeOrder,
+      ))
+        RayonGroup(rayon, lines),
+    ];
 
 /// Lignes cochées de la Section Cochés, la dernière cochée en tête.
 final listeCheckedProvider = StreamProvider<List<ListeItem>>(
@@ -77,13 +94,11 @@ final frequentGroupsProvider = FutureProvider<List<FrequentGroup>>((ref) async {
 List<FrequentGroup> groupFrequentsByRoute(
   List<CatalogueArticle> articles,
   List<Rayon> routeOrder,
-) {
-  final byRayon = <Rayon, List<CatalogueArticle>>{};
-  for (final article in articles) {
-    byRayon.putIfAbsent(article.rayon, () => []).add(article);
-  }
-  return [
-    for (final rayon in routeOrder)
-      if (byRayon[rayon] case final group?) FrequentGroup(rayon, group),
-  ];
-}
+) => [
+  for (final (rayon, group) in groupByRayon(
+    articles,
+    (article) => article.rayon,
+    routeOrder,
+  ))
+    FrequentGroup(rayon, group),
+];

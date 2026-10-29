@@ -1,11 +1,7 @@
 import 'package:drift/drift.dart' show BooleanExpressionOperators, Value;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kadi/app/kadi_app.dart';
-import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
-import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -15,10 +11,12 @@ import 'package:kadi/core/ui/rayon_picker.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/ui/add_sheet.dart';
+import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../helpers/pump_app.dart';
 import '../../helpers/test_db.dart';
 
 /// Monte Kadi sur une base en mémoire, dans une vue assez haute pour que
@@ -27,23 +25,7 @@ Future<AppDatabase> _pumpApp(WidgetTester tester) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(800, 3000);
   addTearDown(tester.view.reset);
-  final assets = (await tester.runAsync(readSeedAssets))!;
-  final db = memoryDatabase();
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-        seedAssetLoaderProvider.overrideWithValue(assetLoaderWith(assets)),
-      ],
-      child: const KadiApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
-  addTearDown(() async {
-    await tester.pumpWidget(const SizedBox());
-    await db.close();
-  });
-  return db;
+  return pumpKadi(tester);
 }
 
 final _sheet = find.byType(AddSheet);

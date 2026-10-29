@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../strings/strings_fr.dart';
+import '../ui/error_snackbar.dart';
 import 'undo.dart';
 
 /// Montre le snackbar Annuler de [entry] avec [message] (AD-10).
@@ -25,9 +26,7 @@ ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
     try {
       await undo.undo(entry);
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text(StringsFr.annulationImpossible)),
-      );
+      showErrorSnackBar(messenger, StringsFr.annulationImpossible);
     }
   }
 

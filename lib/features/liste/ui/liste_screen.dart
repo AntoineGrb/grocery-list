@@ -3,6 +3,7 @@ import 'package:kadi/app/actions/terminer_les_courses.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/empty_state.dart';
+import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
@@ -27,9 +28,7 @@ class ListeScreen extends ConsumerWidget {
     try {
       entry = await ref.read(terminerLesCoursesProvider).call();
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text(StringsFr.terminerImpossible)),
-      );
+      showErrorSnackBar(messenger, StringsFr.terminerImpossible);
       return;
     }
     if (entry == null || !context.mounted) return;
@@ -54,9 +53,7 @@ class ListeScreen extends ConsumerWidget {
     try {
       rows = await repository.removeLine(item.lineId);
     } catch (_) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text(StringsFr.suppressionImpossible)),
-      );
+      showErrorSnackBar(messenger, StringsFr.suppressionImpossible);
       return false;
     }
     if (rows.isEmpty) return true;

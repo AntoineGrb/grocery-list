@@ -1,16 +1,14 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/app/kadi_app.dart';
-import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/db/app_database.dart';
-import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/db/seed/seed_loader.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/liste/ui/add_sheet.dart';
+import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../helpers/test_db.dart';
+import '../helpers/pump_app.dart';
 
 Future<AppDatabase> _pumpApp(
   WidgetTester tester, {
@@ -19,25 +17,7 @@ Future<AppDatabase> _pumpApp(
 }) async {
   tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-  final assets = (await tester.runAsync(readSeedAssets))!;
-  final db = memoryDatabase();
-  await tester.pumpWidget(
-    ProviderScope(
-      overrides: [
-        databaseProvider.overrideWithValue(db),
-        seedAssetLoaderProvider.overrideWithValue(
-          assetLoaderWith({...assets, ...assetOverrides}),
-        ),
-      ],
-      child: const KadiApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
-  addTearDown(() async {
-    await tester.pumpWidget(const SizedBox());
-    await db.close();
-  });
-  return db;
+  return pumpKadi(tester, assetOverrides: assetOverrides);
 }
 
 void main() {
