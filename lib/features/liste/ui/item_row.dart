@@ -15,14 +15,28 @@ import '../state/liste_providers.dart';
 /// (≈ 200 ms) plus un temps de lecture.
 const _checkDelay = Duration(milliseconds: 300);
 
+/// Actions TalkBack équivalentes au glisser et à l'appui long (R24).
+const _supprimerAction = CustomSemanticsAction(label: StringsFr.supprimer);
+const _modifierAction = CustomSemanticsAction(label: StringsFr.modifier);
+
 /// Ligne d'article de la Liste : case, nom et quantité, sans Picto.
 ///
-/// Seule la case coche ou décoche ; un tap sur le nom ne fait rien. Annoncée
-/// « Tomates, 500 g, Fruits et légumes » avec l'état coché ou non coché.
+/// Seule la case coche ou décoche ; un tap sur le nom ne fait rien. Glisser
+/// vers la gauche supprime ([onRemove]) ; un appui long ouvre la Feuille
+/// d'édition ([onEdit]). Annoncée « Tomates, 500 g, Fruits et légumes »
+/// avec l'état coché ou non coché, et les actions « Supprimer » et
+/// « Modifier ».
 class ItemRow extends ConsumerStatefulWidget {
-  const ItemRow({super.key, required this.item});
+  const ItemRow({super.key, required this.item, this.onRemove, this.onEdit});
 
   final ListeItem item;
+
+  /// Supprime la ligne (avec snackbar Annuler) ; rend `false` si
+  /// l'écriture a échoué et que la ligne reste. Sans elle, pas de glisser.
+  final Future<bool> Function()? onRemove;
+
+  /// Ouvre la Feuille d'édition d'article. Sans elle, pas d'appui long.
+  final VoidCallback? onEdit;
 
   @override
   ConsumerState<ItemRow> createState() => _ItemRowState();
@@ -32,11 +46,27 @@ class _ItemRowState extends ConsumerState<ItemRow> {
   /// État visé par un tap dont l'écriture n'est pas encore faite.
   bool? _pending;
 
+  /// Ligne glissée et supprimée : masquée jusqu'à ce que le flux de la
+  /// Liste la retire. Un `Dismissible` rejeté doit quitter l'arbre tout de
+  /// suite.
+  bool _dismissed = false;
+
+  /// Change la clé du `Dismissible` quand une ligne masquée revient (même
+  /// ligne réémise), pour repartir d'un `Dismissible` neuf.
+  int _generation = 0;
+
   @override
   void didUpdateWidget(ItemRow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.item.checked != widget.item.checked) _pending = null;
+    if (_dismissed && !identical(oldWidget.item, widget.item)) {
+      _dismissed = false;
+      _generation++;
+    }
   }
+
+  Future<bool> _confirmDismiss(DismissDirection _) async =>
+      await widget.onRemove?.call() ?? false;
 
   void _toggle() {
     if (_pending != null) return;
@@ -88,6 +118,7 @@ class _ItemRowState extends ConsumerState<ItemRow> {
 
   @override
   Widget build(BuildContext context) {
+    if (_dismissed) return const SizedBox.shrink();
     final item = widget.item;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
@@ -109,59 +140,101 @@ class _ItemRowState extends ConsumerState<ItemRow> {
           )
         : base?.copyWith(color: color);
 
+    Widget row = ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: KadiSpacing.rowMinHeight),
+      child: Padding(
+        padding: const EdgeInsets.only(
+          left: KadiSpacing.s1,
+          right: KadiSpacing.margin,
+        ),
+        child: Row(
+          children: [
+            SizedBox.square(
+              dimension: KadiSpacing.touchTarget,
+              child: Checkbox(
+                value: shown,
+                onChanged: (_) => _toggle(),
+                activeColor: accent,
+                checkColor: scheme.surface,
+                side: BorderSide(color: accent, width: 2),
+              ),
+            ),
+            const SizedBox(width: KadiSpacing.s1),
+            Expanded(
+              // Marge verticale du texte seul : un nom sur plusieurs
+              // lignes garde de l'air, la case reste à 48 dp.
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
+                child: Text(
+                  item.name,
+                  style: textStyle(theme.textTheme.bodyLarge, scheme.onSurface),
+                ),
+              ),
+            ),
+            if (quantity.isNotEmpty) ...[
+              const SizedBox(width: KadiSpacing.s3),
+              Text(
+                quantity,
+                style: textStyle(
+                  theme.textTheme.bodyMedium,
+                  scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+
+    final onEdit = widget.onEdit;
+    if (onEdit != null) {
+      row = GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onLongPress: onEdit,
+        child: row,
+      );
+    }
+    if (widget.onRemove != null) {
+      final noAnimation = MediaQuery.disableAnimationsOf(context);
+      row = Dismissible(
+        key: ValueKey((item.lineId, _generation)),
+        direction: DismissDirection.endToStart,
+        // Animations coupées : la ligne part sans glissement ni repli.
+        movementDuration: noAnimation
+            ? Duration.zero
+            : const Duration(milliseconds: 200),
+        resizeDuration: noAnimation
+            ? Duration.zero
+            : const Duration(milliseconds: 300),
+        confirmDismiss: _confirmDismiss,
+        onDismissed: (_) => setState(() => _dismissed = true),
+        background: ColoredBox(
+          color: scheme.error,
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(
+                end: KadiSpacing.margin,
+              ),
+              child: Icon(Icons.delete_outline, color: scheme.onError),
+            ),
+          ),
+        ),
+        child: row,
+      );
+    }
+
+    final onRemove = widget.onRemove;
     return Semantics(
       label: spoken,
       checked: shown,
       onTap: _toggle,
+      customSemanticsActions: {
+        if (onRemove != null) _supprimerAction: () => onRemove(),
+        _modifierAction: ?onEdit,
+      },
       excludeSemantics: true,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: KadiSpacing.rowMinHeight),
-        child: Padding(
-          padding: const EdgeInsets.only(
-            left: KadiSpacing.s1,
-            right: KadiSpacing.margin,
-          ),
-          child: Row(
-            children: [
-              SizedBox.square(
-                dimension: KadiSpacing.touchTarget,
-                child: Checkbox(
-                  value: shown,
-                  onChanged: (_) => _toggle(),
-                  activeColor: accent,
-                  checkColor: scheme.surface,
-                  side: BorderSide(color: accent, width: 2),
-                ),
-              ),
-              const SizedBox(width: KadiSpacing.s1),
-              Expanded(
-                // Marge verticale du texte seul : un nom sur plusieurs
-                // lignes garde de l'air, la case reste à 48 dp.
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
-                  child: Text(
-                    item.name,
-                    style: textStyle(
-                      theme.textTheme.bodyLarge,
-                      scheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-              if (quantity.isNotEmpty) ...[
-                const SizedBox(width: KadiSpacing.s3),
-                Text(
-                  quantity,
-                  style: textStyle(
-                    theme.textTheme.bodyMedium,
-                    scheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
+      child: row,
     );
   }
 }

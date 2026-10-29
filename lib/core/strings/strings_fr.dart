@@ -30,6 +30,16 @@ abstract final class StringsFr {
       'Impossible de terminer les courses. Réessaie.';
   static const annulationImpossible = 'Annulation impossible.';
 
+  // Supprimer et corriger une ligne (glisser, appui long, TalkBack).
+  /// Snackbar Annuler d'une suppression : « Retiré de la liste : Riz ».
+  static String retireDeLaListe(String name) => 'Retiré de la liste : $name';
+  static const supprimer = 'Supprimer';
+  static const modifier = 'Modifier';
+  static const quantite = 'Quantité';
+  static const rayon = 'Rayon';
+  static const suppressionImpossible = 'Suppression impossible. Réessaie.';
+  static const modificationImpossible = 'Modification impossible. Réessaie.';
+
   // Écran d'erreur bloquant (base ou contenu fourni illisible).
   static const erreurOuvertureTitre = 'Impossible d’ouvrir tes données.';
   static const erreurOuvertureCorps =
@@ -62,6 +72,12 @@ abstract final class StringsFr {
   static const uniteL = 'l';
   static const unitePiece = 'pièce';
   static const unitePieces = 'pièces';
+
+  // Suffixes d'unité du Champ quantité (unité de saisie : g, ml, pièces
+  // entières).
+  static const champUniteG = uniteG;
+  static const champUniteMl = uniteMl;
+  static const champUnitePieces = unitePieces;
 
   // Noms affichés des 13 rayons (AD-11).
   static const rayonFruitsLegumes = 'Fruits & légumes';

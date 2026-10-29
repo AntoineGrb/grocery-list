@@ -11,10 +11,21 @@ import 'item_row.dart';
 /// Repliée par défaut ; l'état replié / déplié vit dans le widget, jamais
 /// persisté. En-tête annoncé « Cochés, 2 articles, replié ».
 class CheckedSection extends StatefulWidget {
-  const CheckedSection({super.key, required this.items});
+  const CheckedSection({
+    super.key,
+    required this.items,
+    this.onRemove,
+    this.onEdit,
+  });
 
   /// Lignes cochées, la dernière cochée en tête.
   final List<ListeItem> items;
+
+  /// Supprime une ligne cochée (glisser, TalkBack), comme dans la Liste.
+  final Future<bool> Function(ListeItem item)? onRemove;
+
+  /// Ouvre la Feuille d'édition d'une ligne cochée.
+  final void Function(ListeItem item)? onEdit;
 
   @override
   State<CheckedSection> createState() => _CheckedSectionState();
@@ -86,7 +97,18 @@ class _CheckedSectionState extends State<CheckedSection>
         ),
         if (_expanded)
           for (final item in widget.items)
-            ItemRow(key: ValueKey(item.lineId), item: item),
+            ItemRow(
+              key: ValueKey(item.lineId),
+              item: item,
+              onRemove: switch (widget.onRemove) {
+                final onRemove? => () => onRemove(item),
+                null => null,
+              },
+              onEdit: switch (widget.onEdit) {
+                final onEdit? => () => onEdit(item),
+                null => null,
+              },
+            ),
       ],
     );
   }

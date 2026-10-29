@@ -7,9 +7,11 @@ import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../data/liste_repository.dart';
 import '../state/liste_providers.dart';
 import 'add_sheet.dart';
 import 'checked_section.dart';
+import 'item_edit_sheet.dart';
 import 'item_row.dart';
 import 'rayon_header.dart';
 
@@ -32,6 +34,49 @@ class ListeScreen extends ConsumerWidget {
     }
     if (entry == null || !context.mounted) return;
     showUndoSnackBar(context, StringsFr.coursesTerminees, entry);
+  }
+
+  /// Supprime la ligne de [item] (glisser, Feuille d'édition, TalkBack) et
+  /// montre le snackbar Annuler sous le messager de la Liste (AD-10).
+  ///
+  /// [context] est celui du `Builder` de la Liste. Rend `false` si
+  /// l'écriture a échoué (snackbar d'erreur, la ligne reste) ; une ligne
+  /// déjà absente rend `true` sans snackbar.
+  Future<bool> _remove(
+    BuildContext context,
+    WidgetRef ref,
+    ListeItem item,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = ref.read(listeRepositoryProvider);
+    final undo = ref.read(undoProvider);
+    final List<UndoRow> rows;
+    try {
+      rows = await repository.removeLine(item.lineId);
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text(StringsFr.suppressionImpossible)),
+      );
+      return false;
+    }
+    if (rows.isEmpty) return true;
+    final entry = undo.record(rows);
+    if (context.mounted) {
+      showUndoSnackBar(context, StringsFr.retireDeLaListe(item.name), entry);
+    }
+    return true;
+  }
+
+  /// Ouvre la Feuille d'édition de [item] ; « Supprimer » y revient ici.
+  Future<void> _edit(
+    BuildContext context,
+    WidgetRef ref,
+    ListeItem item,
+  ) async {
+    final result = await showItemEditSheet(context, item);
+    if (result == ItemEditResult.delete && context.mounted) {
+      await _remove(context, ref, item);
+    }
   }
 
   @override
@@ -64,7 +109,12 @@ class ListeScreen extends ConsumerWidget {
                 for (final group in groups) ...[
                   RayonHeader(rayon: group.rayon, count: group.count),
                   for (final item in group.items)
-                    ItemRow(key: ValueKey(item.lineId), item: item),
+                    ItemRow(
+                      key: ValueKey(item.lineId),
+                      item: item,
+                      onRemove: () => _remove(context, ref, item),
+                      onEdit: () => _edit(context, ref, item),
+                    ),
                 ],
                 // Clé : la section garde son état quand des groupes apparaissent
                 // ou disparaissent au-dessus d'elle.
@@ -72,6 +122,8 @@ class ListeScreen extends ConsumerWidget {
                   CheckedSection(
                     key: const ValueKey('checked-section'),
                     items: checked,
+                    onRemove: (item) => _remove(context, ref, item),
+                    onEdit: (item) => _edit(context, ref, item),
                   ),
               ],
             ),

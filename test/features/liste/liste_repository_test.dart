@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
@@ -11,13 +12,15 @@ import '../../helpers/test_db.dart';
 
 void main() {
   late AppDatabase db;
+  late Clock clock;
   late ListeRepository repo;
   var now = 1000;
 
   setUp(() async {
     db = await seededDatabase();
     now = 1000;
-    repo = ListeRepository(db, Clock(now: () => now));
+    clock = Clock(now: () => now);
+    repo = ListeRepository(db, clock);
   });
   tearDown(() => db.close());
 
@@ -462,6 +465,316 @@ void main() {
       final checked = await repo.watchChecked().first;
       expect(checked.map((i) => i.name), ['Riz', 'Tomates']);
       expect(checked.every((i) => i.checked), isTrue);
+    });
+  });
+
+  group('supprimer et corriger (AD-4, AD-5, AD-15)', () {
+    Future<ListLine> lineOf(String id) =>
+        (db.select(db.listLines)..where((l) => l.id.equals(id))).getSingle();
+
+    Future<List<ListContribution>> contributionsOf(String id) => (db.select(
+      db.listContributions,
+    )..where((c) => c.lineId.equals(id))).get();
+
+    Future<ListContribution> activeOf(String id) async =>
+        (await contributionsOf(id)).where((c) => c.deletedAt == null).single;
+
+    Future<String> lineIdOf(String name) async => [
+      ...await repo.watchUnchecked().first,
+      ...await repo.watchChecked().first,
+    ].singleWhere((i) => i.name == name).lineId;
+
+    test('supprimer : ligne et contributions supprimées logiquement, état '
+        'd’avant de chaque ligne touchée, absente des deux flux', () async {
+      await repo.addArticle(SeedIds.riz, quantity: 1000, unit: Unit.g);
+      await repo.addArticle(SeedIds.riz, quantity: 500, unit: Unit.g);
+      final id = await lineIdOf('Riz');
+      now = 2000;
+
+      final rows = await repo.removeLine(id);
+
+      final line = await lineOf(id);
+      expect(line.deletedAt, 2000);
+      expect(line.updatedAt, 2000);
+      final contributions = await contributionsOf(id);
+      expect(contributions, hasLength(2));
+      expect(contributions.every((c) => c.deletedAt == 2000), isTrue);
+      expect(rows, hasLength(3));
+      expect(rows.where((r) => r.table == db.listLines), hasLength(1));
+      expect(rows.where((r) => r.table == db.listContributions), hasLength(2));
+      expect(await repo.watchUnchecked().first, isEmpty);
+      expect(await repo.watchChecked().first, isEmpty);
+    });
+
+    test('annuler la suppression : Riz revient à sa place, 1,5 kg, cochée '
+        'ou non comme avant', () async {
+      await repo.addArticle(SeedIds.tomates);
+      now = 1500;
+      await repo.addArticle(SeedIds.riz, quantity: 1000, unit: Unit.g);
+      await repo.addArticle(SeedIds.riz, quantity: 500, unit: Unit.g);
+      final id = await lineIdOf('Riz');
+      now = 2000;
+      await repo.check(id);
+      final before = await lineOf(id);
+      final undo = Undo(db, clock);
+      now = 3000;
+
+      final entry = undo.record(await repo.removeLine(id));
+      expect(await repo.watchChecked().first, isEmpty);
+      now = 4000;
+      expect(await undo.undo(entry), isTrue);
+
+      final item = (await repo.watchChecked().first).single;
+      expect(item.lineId, id);
+      expect(item.checked, isTrue);
+      expect(item.rayon, Rayon.epicerieSalee);
+      expect((item.unit, item.quantity), (Unit.g, 1500));
+      final after = await lineOf(id);
+      expect(after.deletedAt, isNull);
+      expect(after.addedAt, before.addedAt);
+      expect(after.checkedAt, before.checkedAt);
+      expect(after.updatedAt, greaterThan(3000));
+      expect(
+        (await contributionsOf(id)).every((c) => c.deletedAt == null),
+        isTrue,
+      );
+
+      // Une ligne non cochée revient aussi, non cochée.
+      final tomates = await lineIdOf('Tomates');
+      final entry2 = undo.record(await repo.removeLine(tomates));
+      expect(await repo.watchUnchecked().first, isEmpty);
+      expect(await undo.undo(entry2), isTrue);
+      expect((await repo.watchUnchecked().first).single.lineId, tomates);
+    });
+
+    test('corriger : anciennes contributions supprimées, une contribution '
+        'edition 300 g, manual_at fixé', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 300, unit: Unit.g);
+      await repo.addArticle(SeedIds.tomates, quantity: 200, unit: Unit.g);
+      final id = await lineIdOf('Tomates');
+      now = 2000;
+
+      await repo.setQuantity(id, 300);
+
+      final contributions = await contributionsOf(id);
+      expect(contributions, hasLength(3));
+      final active = await activeOf(id);
+      expect(active.source, ContributionSource.edition);
+      expect((active.quantity, active.unit), (300, 'g'));
+      final ajouts = contributions.where(
+        (c) => c.source == ContributionSource.ajout,
+      );
+      expect(ajouts, hasLength(2));
+      expect(ajouts.every((c) => c.deletedAt == 2000), isTrue);
+      final line = await lineOf(id);
+      expect(line.manualAt, 2000);
+      expect(line.updatedAt, 2000);
+      expect(line.unit, 'g');
+      final item = (await repo.watchUnchecked().first).single;
+      expect((item.unit, item.quantity), (Unit.g, 300));
+    });
+
+    test('ligne sans quantité : elle prend l’unité de l’article', () async {
+      await repo.addArticle(SeedIds.lardons);
+      final id = await lineIdOf('Lardons');
+      final item = (await repo.watchUnchecked().first).single;
+      expect(item.unit, isNull);
+      expect(item.articleUnit, Unit.g);
+      now = 2000;
+
+      await repo.setQuantity(id, 300);
+
+      final line = await lineOf(id);
+      expect(line.unit, 'g');
+      expect(line.manualAt, 2000);
+      final active = await activeOf(id);
+      expect(active.source, ContributionSource.edition);
+      expect((active.quantity, active.unit), (300, 'g'));
+      final after = (await repo.watchUnchecked().first).single;
+      expect((after.unit, after.quantity), (Unit.g, 300));
+    });
+
+    for (final input in [null, 0]) {
+      test('vider ($input) : contribution edition sans quantité, ligne sans '
+          'unité, manual_at fixé', () async {
+        await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+        final id = await lineIdOf('Tomates');
+        now = 2000;
+
+        await repo.setQuantity(id, input);
+
+        final line = await lineOf(id);
+        expect(line.unit, isNull);
+        expect(line.manualAt, 2000);
+        final active = await activeOf(id);
+        expect(active.source, ContributionSource.edition);
+        expect(active.quantity, isNull);
+        expect(active.unit, isNull);
+        final item = (await repo.watchUnchecked().first).single;
+        expect(item.quantity, isNull);
+        expect(item.unit, isNull);
+      });
+    }
+
+    test('pièces : contribution edition 3000 piece', () async {
+      await repo.addArticle(SeedIds.lait, quantity: 2000, unit: Unit.piece);
+      final id = await lineIdOf('Lait');
+      now = 2000;
+
+      await repo.setQuantity(id, 3000);
+
+      final active = await activeOf(id);
+      expect(active.source, ContributionSource.edition);
+      expect((active.quantity, active.unit), (3000, 'piece'));
+      expect((await lineOf(id)).unit, 'piece');
+    });
+
+    test('vider puis ressaisir dans la même feuille : l’unité du champ est '
+        'gardée (ml), pas celle de l’article (pièce)', () async {
+      await repo.addArticle(SeedIds.lait, quantity: 500, unit: Unit.ml);
+      final id = await lineIdOf('Lait');
+      now = 2000;
+
+      await repo.setQuantity(id, null, unit: Unit.ml);
+      expect((await lineOf(id)).unit, isNull);
+      now = 3000;
+      await repo.setQuantity(id, 400, unit: Unit.ml);
+
+      expect((await lineOf(id)).unit, 'ml');
+      final active = await activeOf(id);
+      expect((active.quantity, active.unit), (400, 'ml'));
+      final item = (await repo.watchUnchecked().first).single;
+      expect((item.unit, item.quantity), (Unit.ml, 400));
+    });
+
+    test('unité du champ différente de celle de la ligne : refusée, rien '
+        'n’est écrit', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      final id = await lineIdOf('Tomates');
+      final contributionsBefore = await db.select(db.listContributions).get();
+
+      await expectLater(
+        repo.setQuantity(id, 3000, unit: Unit.piece),
+        throwsArgumentError,
+      );
+
+      expect((await lineOf(id)).manualAt, isNull);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+    });
+
+    test('inchangée : rien n’est écrit, manual_at reste nul', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 300, unit: Unit.g);
+      await repo.addArticle(SeedIds.tomates, quantity: 200, unit: Unit.g);
+      await repo.addArticle(SeedIds.lardons);
+      final tomates = await lineIdOf('Tomates');
+      final lardons = await lineIdOf('Lardons');
+      final linesBefore = await db.select(db.listLines).get();
+      final contributionsBefore = await db.select(db.listContributions).get();
+      now = 2000;
+
+      await repo.setQuantity(tomates, 500);
+      await repo.setQuantity(lardons, null);
+      await repo.setQuantity(lardons, 0);
+
+      expect(await db.select(db.listLines).get(), linesBefore);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+      expect((await lineOf(tomates)).manualAt, isNull);
+    });
+
+    test('rayon : seule la ligne change, l’article reste ; la ligne passe '
+        'sous Plats préparés', () async {
+      await repo.addArticle(SeedIds.lardons, quantity: 200, unit: Unit.g);
+      final id = await lineIdOf('Lardons');
+      Future<Article> lardons() => (db.select(
+        db.articles,
+      )..where((a) => a.id.equals(SeedIds.lardons))).getSingle();
+      final articleBefore = await lardons();
+      now = 2000;
+
+      await repo.setRayon(id, Rayon.platsPrepares);
+
+      final line = await lineOf(id);
+      expect(line.rayon, 'plats-prepares');
+      expect(line.updatedAt, 2000);
+      expect(line.manualAt, isNull);
+      expect(await lardons(), articleBefore);
+      final items = await repo.watchUnchecked().first;
+      expect(items.single.rayon, Rayon.platsPrepares);
+      expect(items.single.quantity, 200);
+      expect(
+        groupByRoute(items, Rayon.values).single.rayon,
+        Rayon.platsPrepares,
+      );
+
+      // Même rayon : rien n'est écrit.
+      now = 3000;
+      await repo.setRayon(id, Rayon.platsPrepares);
+      expect((await lineOf(id)).updatedAt, 2000);
+    });
+
+    test('ligne cochée : corriger, changer de rayon, supprimer', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      final id = await lineIdOf('Tomates');
+      now = 2000;
+      await repo.check(id);
+      now = 3000;
+
+      await repo.setQuantity(id, 300);
+      await repo.setRayon(id, Rayon.divers);
+
+      final item = (await repo.watchChecked().first).single;
+      expect(item.quantity, 300);
+      expect(item.rayon, Rayon.divers);
+      expect(item.checked, isTrue);
+      expect(await repo.removeLine(id), isNotEmpty);
+      expect(await repo.watchChecked().first, isEmpty);
+    });
+
+    test('ligne absente : rien n’est écrit, suppression rend une liste '
+        'vide', () async {
+      await repo.addArticle(SeedIds.riz, quantity: 300, unit: Unit.g);
+      final id = await lineIdOf('Riz');
+      await repo.removeLine(id);
+      final linesBefore = await db.select(db.listLines).get();
+      final contributionsBefore = await db.select(db.listContributions).get();
+      now = 5000;
+
+      expect(await repo.removeLine(id), isEmpty);
+      expect(await repo.removeLine('inconnu'), isEmpty);
+      await repo.setQuantity(id, 200);
+      await repo.setQuantity('inconnu', 200);
+      await repo.setRayon(id, Rayon.divers);
+      await repo.setRayon('inconnu', Rayon.divers);
+
+      expect(await db.select(db.listLines).get(), linesBefore);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+    });
+
+    test('entrée invalide : quantité négative refusée, rien n’est '
+        'écrit', () async {
+      await repo.addArticle(SeedIds.tomates, quantity: 500, unit: Unit.g);
+      final id = await lineIdOf('Tomates');
+      final linesBefore = await db.select(db.listLines).get();
+      final contributionsBefore = await db.select(db.listContributions).get();
+
+      await expectLater(repo.setQuantity(id, -1), throwsArgumentError);
+
+      expect(await db.select(db.listLines).get(), linesBefore);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+    });
+
+    test('ni la ligne ni l’article n’ont d’unité : quantité refusée, rien '
+        'n’est écrit', () async {
+      await (db.update(db.articles)..where((a) => a.id.equals(SeedIds.lardons)))
+          .write(const ArticlesCompanion(unit: Value(null)));
+      await repo.addArticle(SeedIds.lardons);
+      final id = await lineIdOf('Lardons');
+      expect((await repo.watchUnchecked().first).single.articleUnit, isNull);
+
+      await expectLater(repo.setQuantity(id, 300), throwsArgumentError);
+
+      expect((await lineOf(id)).manualAt, isNull);
+      expect((await activeOf(id)).source, ContributionSource.ajout);
     });
   });
 }

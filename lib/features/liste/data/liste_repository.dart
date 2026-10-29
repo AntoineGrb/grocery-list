@@ -23,6 +23,7 @@ class ListeItem {
     required this.unit,
     required this.quantity,
     this.checked = false,
+    this.articleUnit,
   });
 
   final String lineId;
@@ -30,6 +31,10 @@ class ListeItem {
   final String name;
   final Rayon rayon;
   final Unit? unit;
+
+  /// Unité par défaut de l'article : unité du Champ quantité d'une ligne
+  /// sans unité.
+  final Unit? articleUnit;
 
   /// Somme des contributions actives ; nulle sans quantité (AD-4).
   final int? quantity;
@@ -285,10 +290,160 @@ class ListeRepository {
     ];
   }
 
+  /// Supprime la ligne [lineId], cochée ou non (glisser, Feuille d'édition,
+  /// TalkBack) : la ligne et ses contributions actives sont supprimées
+  /// logiquement, dans une transaction (AD-7). Rend leur état d'avant pour
+  /// Annuler (AD-10) ; une ligne absente ou supprimée n'écrit rien et rend une
+  /// liste vide.
+  Future<List<UndoRow>> removeLine(String lineId) {
+    return _db.transaction(() async {
+      final line = await _activeLine(lineId);
+      if (line == null) return const <UndoRow>[];
+      final contributions = await _activeContributions(lineId);
+
+      final stamp = _clock.stamp(_latest(line, contributions));
+      await _deleteContributions(contributions, stamp);
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(lineId))).write(
+        ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+
+      return [
+        UndoRow.before(_db.listLines, line),
+        for (final c in contributions) UndoRow.before(_db.listContributions, c),
+      ];
+    });
+  }
+
+  /// Corrige la quantité de la ligne [lineId] depuis la Feuille d'édition
+  /// (AD-5) : dans une transaction, ses contributions actives sont supprimées
+  /// logiquement, une contribution `edition` de [quantity] est insérée et
+  /// `manual_at` est fixé.
+  ///
+  /// [quantity] est dans l'unité de la ligne, sinon (ligne sans quantité)
+  /// dans [unit] (l'unité du Champ quantité), sinon dans l'unité par défaut
+  /// de l'article, que la ligne prend ; jamais une autre : une [unit]
+  /// différente de celle de la ligne lève une [ArgumentError]. Nulle ou 0 : « sans quantité », la ligne perd son unité (AD-6).
+  /// Une quantité égale à celle affichée n'écrit rien ; une ligne absente ou
+  /// supprimée non plus. Lève une [ArgumentError] pour une quantité négative,
+  /// ou chiffrée quand ni la ligne ni l'article n'ont d'unité.
+  Future<void> setQuantity(String lineId, int? quantity, {Unit? unit}) async {
+    if (quantity != null && quantity < 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'Quantité négative');
+    }
+    if (quantity == 0) quantity = null;
+
+    await _db.transaction(() async {
+      final line = await _activeLine(lineId);
+      if (line == null) return;
+      final article =
+          await (_db.select(_db.articles)..where(
+                (a) => a.id.equals(line.articleId) & a.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      // Une ligne dont l'article est supprimé compte comme supprimée (AD-7).
+      if (article == null) return;
+
+      if (line.unit != null && unit != null && unit.code != line.unit) {
+        throw ArgumentError(
+          'Unité ${unit.code} différente de celle de la ligne (${line.unit})',
+        );
+      }
+      final code = quantity == null
+          ? null
+          : (line.unit ?? unit?.code ?? article.unit);
+      if (quantity != null && code == null) {
+        throw ArgumentError(
+          'Ni la ligne ni l’article n’ont d’unité : quantity = $quantity',
+        );
+      }
+
+      final contributions = await _activeContributions(lineId);
+      // Quantité affichée : somme des contributions, nulle sans unité.
+      final shown = line.unit == null
+          ? null
+          : contributions
+                .map((c) => c.quantity)
+                .nonNulls
+                .fold<int?>(null, (sum, q) => (sum ?? 0) + q);
+      if (shown == quantity) return;
+
+      final stamp = _clock.stamp(_latest(line, contributions));
+      await _deleteContributions(contributions, stamp);
+      await _db
+          .into(_db.listContributions)
+          .insert(
+            ListContributionsCompanion.insert(
+              id: _uuid.v4(),
+              updatedAt: stamp,
+              lineId: lineId,
+              source: ContributionSource.edition,
+              quantity: Value(quantity),
+              unit: Value(code),
+            ),
+          );
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(lineId))).write(
+        ListLinesCompanion(
+          unit: Value(code),
+          manualAt: Value(stamp),
+          updatedAt: Value(stamp),
+        ),
+      );
+    });
+  }
+
+  /// Place la ligne [lineId] dans [rayon] : seuls `list_lines.rayon` et
+  /// `updated_at` changent, jamais l'article (AD-15). Rien n'est écrit si la
+  /// ligne est absente, supprimée ou déjà dans ce rayon.
+  Future<void> setRayon(String lineId, Rayon rayon) {
+    return _db.transaction(() async {
+      final line = await _activeLine(lineId);
+      if (line == null || line.rayon == rayon.code) return;
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(lineId))).write(
+        ListLinesCompanion(
+          rayon: Value(rayon.code),
+          updatedAt: Value(_clock.stamp(line.updatedAt)),
+        ),
+      );
+    });
+  }
+
   Future<ListLine?> _activeLine(String lineId) =>
       (_db.select(_db.listLines)
             ..where((l) => l.id.equals(lineId) & l.deletedAt.isNull()))
           .getSingleOrNull();
+
+  Future<List<ListContribution>> _activeContributions(String lineId) =>
+      (_db.select(
+        _db.listContributions,
+      )..where((c) => c.lineId.equals(lineId) & c.deletedAt.isNull())).get();
+
+  /// Plus récent `updated_at` de [line] et [contributions] : un seul
+  /// horodatage, postérieur à chacun.
+  static int _latest(ListLine line, List<ListContribution> contributions) => [
+    line.updatedAt,
+    for (final c in contributions) c.updatedAt,
+  ].reduce((a, b) => a > b ? a : b);
+
+  Future<void> _deleteContributions(
+    List<ListContribution> contributions,
+    int stamp,
+  ) async {
+    if (contributions.isEmpty) return;
+    await (_db.update(
+      _db.listContributions,
+    )..where((c) => c.id.isIn([for (final c in contributions) c.id]))).write(
+      ListContributionsCompanion(
+        deletedAt: Value(stamp),
+        updatedAt: Value(stamp),
+      ),
+    );
+  }
 
   /// Lignes actives non cochées, dans l'ordre d'ajout (AD-4). Une ligne dont
   /// l'article est supprimé compte comme supprimée (AD-7).
@@ -338,6 +493,7 @@ class ListeRepository {
       unit: unit,
       quantity: unit == null ? null : quantity,
       checked: line.checkedAt != null,
+      articleUnit: Unit.tryFromCode(article.unit),
     );
   }
 }
