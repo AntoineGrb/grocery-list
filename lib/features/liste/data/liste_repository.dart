@@ -13,6 +13,9 @@ abstract final class ContributionSource {
   static const edition = 'edition';
 }
 
+/// Contribution écrite par un ajout : sa ligne et son id.
+typedef AddedContribution = ({String lineId, String contributionId});
+
 /// Ligne active de la Liste, avec sa quantité calculée.
 class ListeItem {
   const ListeItem({
@@ -57,8 +60,12 @@ class ListeRepository {
   /// Une quantité 0 vaut « sans quantité ». Lève une [ArgumentError] si l'une
   /// est donnée sans l'autre ou si la quantité est négative, une
   /// [StateError] si l'article est absent ou supprimé. Une transaction : un
-  /// échec n'écrit rien.
-  Future<void> addArticle(String articleId, {int? quantity, Unit? unit}) {
+  /// échec n'écrit rien. Rend la contribution `ajout` écrite et sa ligne.
+  Future<AddedContribution> addArticle(
+    String articleId, {
+    int? quantity,
+    Unit? unit,
+  }) {
     return _db.transaction(
       () => _contribute(
         articleId: articleId,
@@ -78,8 +85,8 @@ class ListeRepository {
   /// non cochée sans unité (qui prend l'unité), sinon crée une ligne dans son
   /// unité. Une ligne cochée n'est jamais complétée. Entre candidates :
   /// `added_at` puis `id`. Une nouvelle ligne copie le rayon de l'article
-  /// (AD-15).
-  Future<void> _contribute({
+  /// (AD-15). Rend la contribution écrite et sa ligne.
+  Future<AddedContribution> _contribute({
     required String articleId,
     required String source,
     int? quantity,
@@ -159,11 +166,12 @@ class ListeRepository {
           );
     }
 
+    final contributionId = _uuid.v4();
     await _db
         .into(_db.listContributions)
         .insert(
           ListContributionsCompanion.insert(
-            id: _uuid.v4(),
+            id: contributionId,
             updatedAt: now,
             lineId: lineId,
             source: source,
@@ -171,6 +179,83 @@ class ListeRepository {
             unit: Value(unit?.code),
           ),
         );
+    return (lineId: lineId, contributionId: contributionId);
+  }
+
+  /// Précise la quantité d'un ajout du Panneau + : la contribution `ajout`
+  /// [contributionId] prend [quantity] dans l'unité par défaut de l'article,
+  /// et sa ligne prend cette unité (AD-4, AD-6). Jamais `edition` : la ligne
+  /// ne devient pas manuelle (AD-5).
+  ///
+  /// [quantity] est déjà stockée (pièces ×1000) ; nulle ou 0 : « sans
+  /// quantité », contribution et ligne sans unité. Une valeur inchangée
+  /// n'écrit rien ; une contribution absente, supprimée ou d'une autre
+  /// source non plus, ni une contribution dont la ligne ou l'article est
+  /// supprimé. Lève une [ArgumentError] pour une quantité négative, ou
+  /// chiffrée quand l'article n'a pas d'unité ; une [StateError], sans rien
+  /// écrire, si la ligne porte d'autres contributions actives.
+  Future<void> setAddedQuantity(String contributionId, int? quantity) async {
+    if (quantity != null && quantity < 0) {
+      throw ArgumentError.value(quantity, 'quantity', 'Quantité négative');
+    }
+    if (quantity == 0) quantity = null;
+
+    await _db.transaction(() async {
+      final contribution =
+          await (_db.select(_db.listContributions)..where(
+                (c) =>
+                    c.id.equals(contributionId) &
+                    c.deletedAt.isNull() &
+                    c.source.equals(ContributionSource.ajout),
+              ))
+              .getSingleOrNull();
+      if (contribution == null) return;
+      final line = await _activeLine(contribution.lineId);
+      if (line == null) return;
+      final article =
+          await (_db.select(_db.articles)..where(
+                (a) => a.id.equals(line.articleId) & a.deletedAt.isNull(),
+              ))
+              .getSingleOrNull();
+      // Une ligne dont l'article est supprimé compte comme supprimée (AD-7).
+      if (article == null) return;
+
+      final code = quantity == null ? null : article.unit;
+      if (quantity != null && code == null) {
+        throw ArgumentError('L’article n’a pas d’unité : quantity = $quantity');
+      }
+      if (contribution.quantity == quantity && contribution.unit == code) {
+        return;
+      }
+
+      final others = (await _activeContributions(line.id))
+          .where((c) => c.id != contributionId);
+      if (others.isNotEmpty) {
+        throw StateError(
+          'La ligne ${line.id} porte d’autres contributions actives',
+        );
+      }
+
+      final stamp = _clock.stamp(
+        line.updatedAt > contribution.updatedAt
+            ? line.updatedAt
+            : contribution.updatedAt,
+      );
+      await (_db.update(
+        _db.listContributions,
+      )..where((c) => c.id.equals(contributionId))).write(
+        ListContributionsCompanion(
+          quantity: Value(quantity),
+          unit: Value(code),
+          updatedAt: Value(stamp),
+        ),
+      );
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(line.id))).write(
+        ListLinesCompanion(unit: Value(code), updatedAt: Value(stamp)),
+      );
+    });
   }
 
   /// Coche la ligne [lineId] : `checked_at` et `updated_at` fixés. Rien

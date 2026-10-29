@@ -4,7 +4,10 @@ import 'package:kadi/core/db/db_providers.dart';
 import '../data/catalogue_repository.dart';
 
 final catalogueRepositoryProvider = Provider<CatalogueRepository>(
-  (ref) => CatalogueRepository(ref.watch(databaseProvider)),
+  (ref) => CatalogueRepository(
+    ref.watch(databaseProvider),
+    ref.watch(clockProvider),
+  ),
 );
 
 /// Fréquents actifs du Panneau +, par `position`.

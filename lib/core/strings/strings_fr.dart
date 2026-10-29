@@ -22,6 +22,10 @@ abstract final class StringsFr {
   static const effacerLaRecherche = 'Effacer la recherche';
   static const ajoutImpossible = 'Ajout impossible. Réessaie.';
 
+  /// Dernière ligne des résultats sans correspondance exacte :
+  /// « Créer « piles » » (guillemets français, espaces insécables).
+  static String creer(String saisie) => 'Créer « $saisie »';
+
   /// État vide des fréquents du Panneau +.
   static const pasDeFrequents =
       'Pas encore de fréquents. Ajoute-les dans les paramètres.';

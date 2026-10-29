@@ -964,4 +964,138 @@ void main() {
       ],
     );
   });
+
+  group('quantité d’un ajout du Panneau + (AD-4, AD-5, AD-6)', () {
+    Future<ListLine> lineOf(String id) =>
+        (db.select(db.listLines)..where((l) => l.id.equals(id))).getSingle();
+    Future<ListContribution> contributionOf(String id) => (db.select(
+      db.listContributions,
+    )..where((c) => c.id.equals(id))).getSingle();
+
+    test('ajout : rend la contribution ajout et sa ligne', () async {
+      final added = await repo.addArticle(SeedIds.oeufs);
+      final c = await contributionOf(added.contributionId);
+      expect(c.lineId, added.lineId);
+      expect(c.source, ContributionSource.ajout);
+      expect((await lineOf(added.lineId)).articleId, SeedIds.oeufs);
+    });
+
+    test('Œufs, saisie 6 : contribution ajout 6000 piece, ligne piece, '
+        'manual_at nul, « 6 pièces »', () async {
+      final added = await repo.addArticle(SeedIds.oeufs);
+      now = 2000;
+      await repo.setAddedQuantity(added.contributionId, 6000);
+
+      final c = await contributionOf(added.contributionId);
+      expect(c.source, ContributionSource.ajout);
+      expect(c.quantity, 6000);
+      expect(c.unit, 'piece');
+      expect(c.updatedAt, 2000);
+      expect(c.deletedAt, isNull);
+      final line = await lineOf(added.lineId);
+      expect(line.unit, 'piece');
+      expect(line.manualAt, isNull);
+      expect(line.updatedAt, 2000);
+      expect(line.addedAt, 1000);
+      expect(await db.select(db.listContributions).get(), hasLength(1));
+
+      final item = (await repo.watchUnchecked().first).single;
+      expect(item.name, 'Œufs');
+      expect(formatQuantity(item.quantity, item.unit), '6 pièces');
+    });
+
+    for (final cleared in [null, 0]) {
+      test('Œufs 6 pièces, champ vidé ($cleared) : contribution et ligne sans '
+          'quantité ni unité', () async {
+        final added = await repo.addArticle(SeedIds.oeufs);
+        await repo.setAddedQuantity(added.contributionId, 6000);
+        now = 3000;
+        await repo.setAddedQuantity(added.contributionId, cleared);
+
+        final c = await contributionOf(added.contributionId);
+        expect(c.quantity, isNull);
+        expect(c.unit, isNull);
+        expect(c.source, ContributionSource.ajout);
+        final line = await lineOf(added.lineId);
+        expect(line.unit, isNull);
+        expect(line.manualAt, isNull);
+        final item = (await repo.watchUnchecked().first).single;
+        expect(item.quantity, isNull);
+        expect(item.unit, isNull);
+      });
+    }
+
+    test('valeur inchangée : rien n’est écrit', () async {
+      final added = await repo.addArticle(SeedIds.oeufs);
+      await repo.setAddedQuantity(added.contributionId, 6000);
+      final last = clock.last;
+      now = 5000;
+      await repo.setAddedQuantity(added.contributionId, 6000);
+      final fresh = await repo.addArticle(SeedIds.lait);
+      final lastAfterAdd = clock.last;
+      await repo.setAddedQuantity(fresh.contributionId, null);
+      expect(clock.last, lastAfterAdd);
+      expect((await contributionOf(added.contributionId)).updatedAt, last);
+    });
+
+    test('article sans unité : quantité refusée, rien n’est écrit ; sans '
+        'quantité accepté', () async {
+      await (db.update(db.articles)..where((a) => a.id.equals(SeedIds.lait)))
+          .write(const ArticlesCompanion(unit: Value(null)));
+      final added = await repo.addArticle(SeedIds.lait);
+      final last = clock.last;
+      await expectLater(
+        repo.setAddedQuantity(added.contributionId, 2000),
+        throwsArgumentError,
+      );
+      await expectLater(
+        repo.setAddedQuantity(added.contributionId, -1),
+        throwsArgumentError,
+      );
+      await repo.setAddedQuantity(added.contributionId, null);
+      expect(clock.last, last);
+      expect((await contributionOf(added.contributionId)).quantity, isNull);
+    });
+
+    test('ligne portant d’autres contributions : StateError, rien n’est '
+        'écrit', () async {
+      final first = await repo.addArticle(SeedIds.oeufs);
+      await repo.addArticle(SeedIds.oeufs);
+      final contributionsBefore = await db.select(db.listContributions).get();
+      final linesBefore = await db.select(db.listLines).get();
+
+      await expectLater(
+        repo.setAddedQuantity(first.contributionId, 6000),
+        throwsStateError,
+      );
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+      expect(await db.select(db.listLines).get(), linesBefore);
+    });
+
+    test('contribution supprimée, d’une autre source ou ligne supprimée : '
+        'rien n’est écrit', () async {
+      final added = await repo.addArticle(SeedIds.oeufs);
+      await repo.removeLine(added.lineId);
+      final last = clock.last;
+      await repo.setAddedQuantity(added.contributionId, 6000);
+      await repo.setAddedQuantity('absente', 6000);
+
+      final edited = await repo.addArticle(SeedIds.tomates);
+      await repo.setQuantity(edited.lineId, 500, unit: Unit.g);
+      final lastAfterEdit = clock.last;
+      final edition =
+          await (db.select(db.listContributions)..where(
+                (c) =>
+                    c.lineId.equals(edited.lineId) &
+                    c.source.equals(ContributionSource.edition),
+              ))
+              .getSingle();
+      await repo.setAddedQuantity(edition.id, 900);
+
+      expect(clock.last, lastAfterEdit);
+      expect(lastAfterEdit, greaterThan(last));
+      expect((await contributionOf(added.contributionId)).quantity, isNull);
+      expect((await contributionOf(edition.id)).quantity, 500);
+    });
+  });
 }

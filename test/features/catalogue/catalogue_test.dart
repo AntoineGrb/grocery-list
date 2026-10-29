@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
@@ -26,7 +28,7 @@ void main() {
 
     setUp(() async {
       db = await seededDatabase();
-      repo = CatalogueRepository(db);
+      repo = CatalogueRepository(db, Clock());
     });
     tearDown(() => db.close());
 
@@ -105,7 +107,7 @@ void main() {
 
     setUp(() async {
       db = await seededDatabase();
-      repo = CatalogueRepository(db);
+      repo = CatalogueRepository(db, Clock());
     });
     tearDown(() => db.close());
 
@@ -154,6 +156,171 @@ void main() {
             const FrequentsCompanion(deletedAt: Value(1), updatedAt: Value(1)),
           );
       expect(await repo.watchFrequents().first, isEmpty);
+    });
+  });
+
+  group('création d’un article (AD-17)', () {
+    late AppDatabase db;
+    late Clock clock;
+    late CatalogueRepository repo;
+    var now = 1000;
+
+    /// Id de l'article Piles fourni.
+    const pilesId = '647841c6-7cff-40f4-a8dd-69d7e781eb8b';
+
+    setUp(() async {
+      db = await seededDatabase();
+      now = 1000;
+      clock = Clock(now: () => now);
+      repo = CatalogueRepository(db, clock);
+      // « piles » absent du catalogue : l'article fourni est supprimé.
+      await (db.update(db.articles)..where((a) => a.id.equals(pilesId))).write(
+        const ArticlesCompanion(deletedAt: Value(1), updatedAt: Value(1)),
+      );
+    });
+    tearDown(() => db.close());
+
+    Future<List<Article>> activeNamed(String normalized) =>
+        (db.select(db.articles)..where(
+              (a) => a.normalizedName.equals(normalized) & a.deletedAt.isNull(),
+            ))
+            .get();
+
+    for (final query in ['LAIT', 'lait', ' lâit ']) {
+      test(
+        'correspondance exacte : « $query » trouve Lait, pas de Créer',
+        () async {
+          final hits = await repo.watchSearch(query).first;
+          expect(hits.first.id, SeedIds.lait);
+          expect(CatalogueRepository.hasExactMatch(hits, query), isTrue);
+        },
+      );
+    }
+
+    test(
+      'sans correspondance exacte : « lai » trouve Lait, Créer proposé',
+      () async {
+        final hits = await repo.watchSearch('lai').first;
+        expect(hits.map((a) => a.id), contains(SeedIds.lait));
+        expect(CatalogueRepository.hasExactMatch(hits, 'lai'), isFalse);
+      },
+    );
+
+    test('aucun résultat : « piles » (supprimé) et « zzz »', () async {
+      for (final query in ['piles', 'zzz']) {
+        final hits = await repo.watchSearch(query).first;
+        expect(hits, isEmpty);
+        expect(CatalogueRepository.hasExactMatch(hits, query), isFalse);
+      }
+    });
+
+    test('créer « piles » : Piles, normalisé piles, Divers, sans unité, '
+        'picto piles, UUID v4, updated_at de l’horloge', () async {
+      final article = await db.transaction(() => repo.createArticle('piles'));
+
+      expect(article.name, 'Piles');
+      expect(article.rayon, Rayon.divers);
+      expect(article.unit, isNull);
+      expect(article.pictoKey, 'piles');
+      expect(article.id, isNot(pilesId));
+      expect(
+        article.id,
+        matches(
+          RegExp(
+            r'^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-'
+            r'[0-9a-f]{12}$',
+          ),
+        ),
+      );
+
+      final row = (await activeNamed('piles')).single;
+      expect(row.id, article.id);
+      expect(row.name, 'Piles');
+      expect(row.normalizedName, 'piles');
+      expect(row.rayon, 'divers');
+      expect(row.unit, isNull);
+      expect(row.pictoKey, 'piles');
+      expect(row.updatedAt, 1000);
+      expect(row.deletedAt, isNull);
+
+      // Trouvé ensuite par la recherche, en correspondance exacte.
+      final hits = await repo.watchSearch('piles').first;
+      expect(hits.single.id, article.id);
+      expect(CatalogueRepository.hasExactMatch(hits, 'Piles'), isTrue);
+    });
+
+    test('nom nettoyé : espaces de bord et doublés retirés, majuscule '
+        'initiale ; clé de picto en [a-z0-9]', () async {
+      final article = await repo.createArticle('  œufs   de   caille ');
+      expect(article.name, 'Œufs de caille');
+      expect(article.pictoKey, 'oeufsdecaille');
+      final row = (await activeNamed('oeufsdecaille')).single;
+      expect(row.name, 'Œufs de caille');
+
+      final symbols = await repo.createArticle('%%');
+      expect(symbols.name, '%%');
+      expect(symbols.pictoKey, 'article');
+    });
+
+    test('rayon et unité explicites : écrits tels quels', () async {
+      final article = await repo.createArticle(
+        'piles',
+        rayon: Rayon.entretien,
+        unit: Unit.piece,
+      );
+      expect(article.rayon, Rayon.entretien);
+      expect(article.unit, Unit.piece);
+      final row = (await activeNamed('piles')).single;
+      expect(row.rayon, 'entretien');
+      expect(row.unit, 'piece');
+    });
+
+    test('nom vide : refusé, rien n’est écrit', () async {
+      final before = await db.select(db.articles).get();
+      await expectLater(repo.createArticle('   '), throwsArgumentError);
+      expect(await db.select(db.articles).get(), before);
+    });
+
+    for (final name in ['Lait', 'lait', 'LÂIT ']) {
+      test(
+        'nom déjà pris (« $name ») : aucun nouvel article, Lait rendu',
+        () async {
+          final before = await db.select(db.articles).get();
+          final article = await repo.createArticle(name);
+          expect(article.id, SeedIds.lait);
+          expect(article.name, 'Lait');
+          expect(article.rayon, Rayon.cremerie);
+          expect(await db.select(db.articles).get(), before);
+          expect(clock.last, 0);
+        },
+      );
+    }
+
+    test('créer deux fois : un seul article actif', () async {
+      final first = await repo.createArticle('piles');
+      final second = await repo.createArticle('PILES');
+      expect(second.id, first.id);
+      expect(await activeNamed('piles'), hasLength(1));
+    });
+
+    test('rayon d’un article : rayon et updated_at changent ; même rayon ou '
+        'article supprimé : rien n’est écrit', () async {
+      final piles = await repo.createArticle('piles');
+      now = 2000;
+      await repo.setArticleRayon(piles.id, Rayon.entretien);
+      var row = (await activeNamed('piles')).single;
+      expect(row.rayon, 'entretien');
+      expect(row.updatedAt, 2000);
+
+      now = 3000;
+      await repo.setArticleRayon(piles.id, Rayon.entretien);
+      await repo.setArticleRayon(pilesId, Rayon.hygiene);
+      row = (await activeNamed('piles')).single;
+      expect(row.updatedAt, 2000);
+      final seeded = await (db.select(
+        db.articles,
+      )..where((a) => a.id.equals(pilesId))).getSingle();
+      expect(seeded.rayon, 'divers');
     });
   });
 }
