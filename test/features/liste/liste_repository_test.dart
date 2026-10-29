@@ -5,6 +5,7 @@ import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
+import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
 
@@ -776,5 +777,191 @@ void main() {
       expect((await lineOf(id)).manualAt, isNull);
       expect((await activeOf(id)).source, ContributionSource.ajout);
     });
+  });
+  group('dans la liste et retirer depuis le Panneau + (AD-4, AD-10)', () {
+    Future<List<ListLine>> linesOf(String articleId) => (db.select(
+      db.listLines,
+    )..where((l) => l.articleId.equals(articleId))).get();
+
+    Future<List<ListContribution>> contributionsOfLines(List<String> lineIds) =>
+        (db.select(
+          db.listContributions,
+        )..where((c) => c.lineId.isIn(lineIds))).get();
+
+    /// Lait coché (2 pièces), puis Lait 500 g + 200 g et Lait 1 pièce, non
+    /// cochés. Rend l'id de la ligne cochée.
+    Future<String> laitTroisLignes() async {
+      await repo.addArticle(SeedIds.lait, quantity: 2000, unit: Unit.piece);
+      final checkedId = (await linesOf(SeedIds.lait)).single.id;
+      await repo.check(checkedId);
+      now = 1500;
+      await repo.addArticle(SeedIds.lait, quantity: 500, unit: Unit.g);
+      await repo.addArticle(SeedIds.lait, quantity: 200, unit: Unit.g);
+      await repo.addArticle(SeedIds.lait, quantity: 1000, unit: Unit.piece);
+      return checkedId;
+    }
+
+    test('liste vide : aucun article dans la liste', () async {
+      expect(await repo.watchInListArticleIds().first, isEmpty);
+    });
+
+    test('Lait avec une ligne non cochée : dans la liste', () async {
+      await repo.addArticle(SeedIds.lait);
+      await repo.addArticle(SeedIds.riz, quantity: 500, unit: Unit.g);
+      expect(await repo.watchInListArticleIds().first, {
+        SeedIds.lait,
+        SeedIds.riz,
+      });
+    });
+
+    test('Lait avec sa seule ligne cochée : pas dans la liste', () async {
+      await repo.addArticle(SeedIds.lait);
+      await repo.check((await linesOf(SeedIds.lait)).single.id);
+      expect(await repo.watchInListArticleIds().first, isEmpty);
+    });
+
+    test('ligne supprimée ou article supprimé : pas dans la liste', () async {
+      await repo.addArticle(SeedIds.lait);
+      await repo.addArticle(SeedIds.riz);
+      await repo.removeLine((await linesOf(SeedIds.lait)).single.id);
+      await (db.update(db.articles)..where((a) => a.id.equals(SeedIds.riz)))
+          .write(const ArticlesCompanion(deletedAt: Value(1)));
+      expect(await repo.watchInListArticleIds().first, isEmpty);
+    });
+
+    test('le flux suit la liste dans les deux sens', () async {
+      final states = <Set<String>>[];
+      final sub = repo.watchInListArticleIds().listen(states.add);
+      addTearDown(sub.cancel);
+      await pumpEventQueue();
+      await repo.addArticle(SeedIds.lait);
+      await pumpEventQueue();
+      await repo.removeArticle(SeedIds.lait);
+      await pumpEventQueue();
+      expect(states, [
+        <String>{},
+        {SeedIds.lait},
+        <String>{},
+      ]);
+    });
+
+    test('retirer Lait en g et en pièces, plus une ligne cochée : les deux '
+        'lignes non cochées et leurs contributions supprimées logiquement, la '
+        'cochée intacte', () async {
+      final checkedId = await laitTroisLignes();
+      final checkedBefore = (await linesOf(SeedIds.lait))
+          .singleWhere((l) => l.id == checkedId);
+      now = 2000;
+
+      final rows = await repo.removeArticle(SeedIds.lait);
+
+      final lines = await linesOf(SeedIds.lait);
+      final removed = lines.where((l) => l.id != checkedId).toList();
+      expect(removed, hasLength(2));
+      for (final l in removed) {
+        expect(l.deletedAt, 2000);
+        expect(l.updatedAt, 2000);
+      }
+      final removedContributions = await contributionsOfLines([
+        for (final l in removed) l.id,
+      ]);
+      expect(removedContributions, hasLength(3));
+      expect(removedContributions.every((c) => c.deletedAt == 2000), isTrue);
+
+      expect(lines.singleWhere((l) => l.id == checkedId), checkedBefore);
+      final checkedContribution = (await contributionsOfLines([checkedId]))
+          .single;
+      expect(checkedContribution.deletedAt, isNull);
+
+      expect(rows, hasLength(5));
+      expect(rows.where((r) => r.table == db.listLines), hasLength(2));
+      expect(rows.where((r) => r.table == db.listContributions), hasLength(3));
+      expect(await repo.watchUnchecked().first, isEmpty);
+      expect((await repo.watchChecked().first).single.lineId, checkedId);
+      expect(await repo.watchInListArticleIds().first, isEmpty);
+    });
+
+    test('retirer un article sans ligne non cochée : rien n’est écrit, liste '
+        'rendue vide', () async {
+      await repo.addArticle(SeedIds.lait);
+      await repo.check((await linesOf(SeedIds.lait)).single.id);
+      final linesBefore = await db.select(db.listLines).get();
+      final contributionsBefore = await db.select(db.listContributions).get();
+
+      expect(await repo.removeArticle(SeedIds.lait), isEmpty);
+      expect(await repo.removeArticle(SeedIds.riz), isEmpty);
+
+      expect(await db.select(db.listLines).get(), linesBefore);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+    });
+
+    test('annuler juste après le retrait : les deux lignes reviennent telles '
+        'quelles', () async {
+      await laitTroisLignes();
+      final itemsBefore = await repo.watchUnchecked().first;
+      final linesBefore = await linesOf(SeedIds.lait);
+      final undo = Undo(db, clock);
+      now = 2000;
+
+      final entry = undo.record(await repo.removeArticle(SeedIds.lait));
+      now = 3000;
+      expect(await undo.undo(entry), isTrue);
+
+      final items = await repo.watchUnchecked().first;
+      expect(
+        [for (final i in items) (i.lineId, i.unit, i.quantity, i.rayon)],
+        [for (final i in itemsBefore) (i.lineId, i.unit, i.quantity, i.rayon)],
+      );
+      expect(
+        [for (final i in items) (i.unit, i.quantity)],
+        [(Unit.g, 700), (Unit.piece, 1000)],
+      );
+      final linesAfter = await linesOf(SeedIds.lait);
+      for (final before in linesBefore) {
+        final after = linesAfter.singleWhere((l) => l.id == before.id);
+        expect(after.deletedAt, isNull);
+        expect(after.addedAt, before.addedAt);
+        expect(after.checkedAt, before.checkedAt);
+        expect(after.unit, before.unit);
+      }
+      expect(
+        (await db.select(db.listContributions).get()).every(
+          (c) => c.deletedAt == null,
+        ),
+        isTrue,
+      );
+      expect(await repo.watchInListArticleIds().first, {SeedIds.lait});
+    });
+  });
+
+  test('fréquents groupés par rayon dans l’ordre du parcours, par position '
+      'dans un rayon, rayons vides absents', () {
+    CatalogueArticle article(String id, Rayon rayon) => CatalogueArticle(
+      id: id,
+      name: id,
+      rayon: rayon,
+      unit: null,
+      pictoKey: id,
+    );
+    final groups = groupFrequentsByRoute(
+      [
+        article('lait', Rayon.cremerie),
+        article('tomates', Rayon.fruitsLegumes),
+        article('beurre', Rayon.cremerie),
+        article('pain', Rayon.boulangerie),
+      ],
+      [Rayon.cremerie, Rayon.surgeles, Rayon.fruitsLegumes, Rayon.boulangerie],
+    );
+    expect(
+      [
+        for (final g in groups)
+          (g.rayon, g.articles.map((a) => a.id).join(' ')),
+      ],
+      [
+        (Rayon.cremerie, 'lait beurre'),
+        (Rayon.fruitsLegumes, 'tomates'),
+        (Rayon.boulangerie, 'pain'),
+      ],
+    );
   });
 }

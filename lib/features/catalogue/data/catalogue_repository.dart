@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -45,6 +46,22 @@ class CatalogueRepository {
         });
       return hits.map(_toModel).toList(growable: false);
     });
+  }
+
+  /// Articles des fréquents actifs dont l'article est actif, par `position`
+  /// (puis par id, pour un ordre stable).
+  Stream<List<CatalogueArticle>> watchFrequents() {
+    final f = _db.frequents;
+    final a = _db.articles;
+    final query =
+        _db.select(f).join([
+            innerJoin(a, a.id.equalsExp(f.articleId) & a.deletedAt.isNull()),
+          ])
+          ..where(f.deletedAt.isNull())
+          ..orderBy([OrderingTerm.asc(f.position), OrderingTerm.asc(f.id)]);
+    return query.watch().map(
+      (rows) => [for (final row in rows) _toModel(row.readTable(a))],
+    );
   }
 
   static CatalogueArticle _toModel(Article a) => CatalogueArticle(

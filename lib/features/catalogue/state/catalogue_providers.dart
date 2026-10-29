@@ -7,6 +7,11 @@ final catalogueRepositoryProvider = Provider<CatalogueRepository>(
   (ref) => CatalogueRepository(ref.watch(databaseProvider)),
 );
 
+/// Fréquents actifs du Panneau +, par `position`.
+final frequentsProvider = StreamProvider<List<CatalogueArticle>>(
+  (ref) => ref.watch(catalogueRepositoryProvider).watchFrequents(),
+);
+
 /// Résultats de recherche pour une saisie du Panneau +.
 final articleSearchProvider = StreamProvider.autoDispose
     .family<List<CatalogueArticle>, String>(

@@ -102,6 +102,9 @@ class _SpyUndo implements Undo {
   UndoEntry record(List<UndoRow> rows) => last = _undo.record(rows);
 
   @override
+  bool canUndo(UndoEntry entry) => _undo.canUndo(entry);
+
+  @override
   Future<bool> undo(UndoEntry entry) => _undo.undo(entry);
 
   @override

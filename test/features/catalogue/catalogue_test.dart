@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
+import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
 
 import '../../helpers/test_db.dart';
@@ -95,6 +96,64 @@ void main() {
     test('« cou » : Courgettes parmi d’autres articles', () async {
       final hits = await repo.watchSearch('cou').first;
       expect(hits.length, greaterThan(1));
+    });
+  });
+
+  group('CatalogueRepository.watchFrequents (AD-2)', () {
+    late AppDatabase db;
+    late CatalogueRepository repo;
+
+    setUp(() async {
+      db = await seededDatabase();
+      repo = CatalogueRepository(db);
+    });
+    tearDown(() => db.close());
+
+    /// Ids des articles fréquents, dans l'ordre de `position`.
+    Future<List<String>> byPosition() async {
+      final rows = await (db.select(
+        db.frequents,
+      )..orderBy([(f) => OrderingTerm.asc(f.position)])).get();
+      return [for (final f in rows) f.articleId];
+    }
+
+    test('contenu fourni : 31 fréquents, par position', () async {
+      final frequents = await repo.watchFrequents().first;
+      expect(frequents, hasLength(31));
+      expect(frequents.map((a) => a.id), await byPosition());
+      final lait = frequents.singleWhere((a) => a.id == SeedIds.lait);
+      expect(lait.name, 'Lait');
+      expect(lait.rayon, Rayon.cremerie);
+    });
+
+    test('un fréquent dont l’article est supprimé et un fréquent supprimé : '
+        'exclus, les autres par position', () async {
+      final expected = (await byPosition())
+        ..remove(SeedIds.lait)
+        ..remove(SeedIds.tomates);
+      await (db.update(
+        db.articles,
+      )..where((a) => a.id.equals(SeedIds.lait))).write(
+        const ArticlesCompanion(deletedAt: Value(1), updatedAt: Value(1)),
+      );
+      await (db.update(
+        db.frequents,
+      )..where((f) => f.id.equals(frequentId(SeedIds.tomates)))).write(
+        const FrequentsCompanion(deletedAt: Value(1), updatedAt: Value(1)),
+      );
+
+      final frequents = await repo.watchFrequents().first;
+      expect(frequents.map((a) => a.id), expected);
+      expect(frequents, hasLength(29));
+    });
+
+    test('tous les fréquents supprimés : aucun', () async {
+      await db
+          .update(db.frequents)
+          .write(
+            const FrequentsCompanion(deletedAt: Value(1), updatedAt: Value(1)),
+          );
+      expect(await repo.watchFrequents().first, isEmpty);
     });
   });
 }

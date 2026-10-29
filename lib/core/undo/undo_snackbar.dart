@@ -9,8 +9,12 @@ import 'undo.dart';
 /// Remplace le snackbar courant ; à sa fermeture, l'emplacement est vidé
 /// s'il contient encore [entry]. « Annuler » réécrit l'état d'avant ; un
 /// Annuler devenu sans effet (autre écriture entre-temps) ne fait rien, un
-/// échec montre « Annulation impossible ».
-void showUndoSnackBar(BuildContext context, String message, UndoEntry entry) {
+/// échec montre « Annulation impossible ». Rend le contrôleur du snackbar.
+ScaffoldFeatureController<SnackBar, SnackBarClosedReason> showUndoSnackBar(
+  BuildContext context,
+  String message,
+  UndoEntry entry,
+) {
   final undo = ProviderScope.containerOf(
     context,
     listen: false,
@@ -28,17 +32,16 @@ void showUndoSnackBar(BuildContext context, String message, UndoEntry entry) {
   }
 
   messenger.hideCurrentSnackBar();
-  messenger
-      .showSnackBar(
-        SnackBar(
-          content: Text(message),
-          action: SnackBarAction(label: StringsFr.annuler, onPressed: onUndo),
-          persist: false,
-          // Flottant : le Scaffold le pose au-dessus du FAB + (DESIGN,
-          // `undo-snackbar`).
-          behavior: SnackBarBehavior.floating,
-        ),
-      )
-      .closed
-      .then((_) => undo.clear(entry));
+  final controller = messenger.showSnackBar(
+    SnackBar(
+      content: Text(message),
+      action: SnackBarAction(label: StringsFr.annuler, onPressed: onUndo),
+      persist: false,
+      // Flottant : le Scaffold le pose au-dessus du FAB + (DESIGN,
+      // `undo-snackbar`).
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+  controller.closed.then((_) => undo.clear(entry));
+  return controller;
 }

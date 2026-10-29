@@ -22,6 +22,13 @@ abstract final class StringsFr {
   static const effacerLaRecherche = 'Effacer la recherche';
   static const ajoutImpossible = 'Ajout impossible. Réessaie.';
 
+  /// État vide des fréquents du Panneau +.
+  static const pasDeFrequents =
+      'Pas encore de fréquents. Ajoute-les dans les paramètres.';
+
+  /// État lu d'un fréquent ou d'un résultat : « Lait, dans la liste ».
+  static const dansLaListe = 'dans la liste';
+
   // Terminer les courses et Annuler.
   static const terminerLesCourses = 'Terminer les courses';
   static const coursesTerminees = 'Courses terminées. Bon appétit !';

@@ -90,6 +90,11 @@ class Undo {
   UndoEntry record(List<UndoRow> rows) =>
       _slot = UndoEntry._(List.unmodifiable(rows), _clock.last);
 
+  /// Vrai si [entry] est encore l'emplacement et qu'aucune autre écriture
+  /// n'a eu lieu depuis : [undo] l'appliquerait.
+  bool canUndo(UndoEntry entry) =>
+      identical(_slot, entry) && _clock.last == entry.stamp;
+
   /// Réécrit l'état d'avant de [entry] dans une transaction, avec des
   /// `updated_at` neufs ; une ligne absente est supprimée logiquement.
   ///

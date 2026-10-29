@@ -316,6 +316,47 @@ class ListeRepository {
     });
   }
 
+  /// Retire [articleId] de la liste depuis le Panneau + (tap sur un article
+  /// « dans la liste », AD-4) : toutes ses lignes actives non cochées et
+  /// leurs contributions actives sont supprimées logiquement, dans une
+  /// transaction (AD-7) ; les lignes cochées restent. Rend leur état d'avant
+  /// pour Annuler (AD-10) ; sans ligne non cochée, rien n'est écrit et la
+  /// liste rendue est vide.
+  Future<List<UndoRow>> removeArticle(String articleId) {
+    return _db.transaction(() async {
+      final lines =
+          await (_db.select(_db.listLines)..where(
+                (l) =>
+                    l.articleId.equals(articleId) &
+                    l.deletedAt.isNull() &
+                    l.checkedAt.isNull(),
+              ))
+              .get();
+      if (lines.isEmpty) return const <UndoRow>[];
+      final lineIds = [for (final l in lines) l.id];
+      final contributions = await (_db.select(
+        _db.listContributions,
+      )..where((c) => c.lineId.isIn(lineIds) & c.deletedAt.isNull())).get();
+
+      // Un seul horodatage, postérieur à chaque ancien `updated_at`.
+      final previous = [
+        for (final l in lines) l.updatedAt,
+        for (final c in contributions) c.updatedAt,
+      ].reduce((a, b) => a > b ? a : b);
+      final stamp = _clock.stamp(previous);
+
+      await _deleteContributions(contributions, stamp);
+      await (_db.update(_db.listLines)..where((l) => l.id.isIn(lineIds))).write(
+        ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+
+      return [
+        for (final l in lines) UndoRow.before(_db.listLines, l),
+        for (final c in contributions) UndoRow.before(_db.listContributions, c),
+      ];
+    });
+  }
+
   /// Corrige la quantité de la ligne [lineId] depuis la Feuille d'édition
   /// (AD-5) : dans une transaction, ses contributions actives sont supprimées
   /// logiquement, une contribution `edition` de [quantity] est insérée et
@@ -448,6 +489,23 @@ class ListeRepository {
   /// Lignes actives non cochées, dans l'ordre d'ajout (AD-4). Une ligne dont
   /// l'article est supprimé compte comme supprimée (AD-7).
   Stream<List<ListeItem>> watchUnchecked() => _watch(checked: false);
+
+  /// Ids des articles « dans la liste » (AD-4) : ceux qui ont une ligne
+  /// active non cochée. Une ligne cochée ou supprimée ne compte pas, ni une
+  /// ligne dont l'article est supprimé (AD-7).
+  Stream<Set<String>> watchInListArticleIds() {
+    final l = _db.listLines;
+    final a = _db.articles;
+    final query =
+        _db.selectOnly(l, distinct: true).join([
+            innerJoin(a, a.id.equalsExp(l.articleId) & a.deletedAt.isNull()),
+          ])
+          ..addColumns([l.articleId])
+          ..where(l.deletedAt.isNull() & l.checkedAt.isNull());
+    return query.watch().map(
+      (rows) => {for (final row in rows) row.read(l.articleId)!},
+    );
+  }
 
   /// Lignes actives cochées, la dernière cochée en tête.
   Stream<List<ListeItem>> watchChecked() => _watch(checked: true);
