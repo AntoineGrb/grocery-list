@@ -575,6 +575,22 @@ class ListeRepository {
   /// l'article est supprimé compte comme supprimée (AD-7).
   Stream<List<ListeItem>> watchUnchecked() => _watch(checked: false);
 
+  /// Vrai si [articleId] est « dans la liste » (AD-4) : il a une ligne
+  /// active non cochée.
+  Future<bool> isInList(String articleId) async {
+    final line =
+        await (_db.select(_db.listLines)
+              ..where(
+                (l) =>
+                    l.articleId.equals(articleId) &
+                    l.deletedAt.isNull() &
+                    l.checkedAt.isNull(),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    return line != null;
+  }
+
   /// Ids des articles « dans la liste » (AD-4) : ceux qui ont une ligne
   /// active non cochée. Une ligne cochée ou supprimée ne compte pas, ni une
   /// ligne dont l'article est supprimé (AD-7).

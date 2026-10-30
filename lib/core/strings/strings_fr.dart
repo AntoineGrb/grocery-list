@@ -17,14 +17,15 @@ abstract final class StringsFr {
   // FAB + de la Liste.
   static const ajouterUnArticle = 'Ajouter un article';
 
-  // Panneau +.
-  static const rechercherUnArticle = 'Rechercher un article';
-  static const effacerLaRecherche = 'Effacer la recherche';
+  // Panneau + : le Champ d'ajout porte le texte indicatif
+  // [ajouterUnArticle].
+  static const effacerLeTexte = 'Effacer le texte';
   static const ajoutImpossible = 'Ajout impossible. Réessaie.';
 
-  /// Dernière ligne des résultats sans correspondance exacte :
-  /// « Créer « piles » » (guillemets français, espaces insécables).
-  static String creer(String saisie) => 'Créer « $saisie »';
+  /// Seule ligne des résultats quand la saisie ne trouve rien, qui fait
+  /// comme Entrée : « Ajouter « piles » » (guillemets français, espaces
+  /// insécables).
+  static String ajouterNom(String saisie) => 'Ajouter « $saisie »';
 
   /// État vide des fréquents du Panneau +.
   static const pasDeFrequents =

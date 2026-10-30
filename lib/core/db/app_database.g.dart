@@ -88,6 +88,21 @@ class $ArticlesTable extends Articles with TableInfo<$ArticlesTable, Article> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _inCatalogueMeta = const VerificationMeta(
+    'inCatalogue',
+  );
+  @override
+  late final GeneratedColumn<bool> inCatalogue = GeneratedColumn<bool>(
+    'in_catalogue',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("in_catalogue" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -98,6 +113,7 @@ class $ArticlesTable extends Articles with TableInfo<$ArticlesTable, Article> {
     rayon,
     unit,
     pictoKey,
+    inCatalogue,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -171,6 +187,15 @@ class $ArticlesTable extends Articles with TableInfo<$ArticlesTable, Article> {
     } else if (isInserting) {
       context.missing(_pictoKeyMeta);
     }
+    if (data.containsKey('in_catalogue')) {
+      context.handle(
+        _inCatalogueMeta,
+        inCatalogue.isAcceptableOrUnknown(
+          data['in_catalogue']!,
+          _inCatalogueMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -212,6 +237,10 @@ class $ArticlesTable extends Articles with TableInfo<$ArticlesTable, Article> {
         DriftSqlType.string,
         data['${effectivePrefix}picto_key'],
       )!,
+      inCatalogue: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}in_catalogue'],
+      )!,
     );
   }
 
@@ -238,6 +267,11 @@ class Article extends DataClass implements Insertable<Article> {
 
   /// Clé de picto stable, en kebab-case (AD-18).
   final String pictoKey;
+
+  /// Faux pour un article hors catalogue, né d'un texte validé par Entrée
+  /// dans le Panneau + : absent de la recherche et de Paramètres › Articles
+  /// (AD-17). Vrai pour les articles d'avant la v2 (AD-14).
+  final bool inCatalogue;
   const Article({
     required this.id,
     required this.updatedAt,
@@ -247,6 +281,7 @@ class Article extends DataClass implements Insertable<Article> {
     required this.rayon,
     this.unit,
     required this.pictoKey,
+    required this.inCatalogue,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -263,6 +298,7 @@ class Article extends DataClass implements Insertable<Article> {
       map['unit'] = Variable<String>(unit);
     }
     map['picto_key'] = Variable<String>(pictoKey);
+    map['in_catalogue'] = Variable<bool>(inCatalogue);
     return map;
   }
 
@@ -278,6 +314,7 @@ class Article extends DataClass implements Insertable<Article> {
       rayon: Value(rayon),
       unit: unit == null && nullToAbsent ? const Value.absent() : Value(unit),
       pictoKey: Value(pictoKey),
+      inCatalogue: Value(inCatalogue),
     );
   }
 
@@ -295,6 +332,7 @@ class Article extends DataClass implements Insertable<Article> {
       rayon: serializer.fromJson<String>(json['rayon']),
       unit: serializer.fromJson<String?>(json['unit']),
       pictoKey: serializer.fromJson<String>(json['pictoKey']),
+      inCatalogue: serializer.fromJson<bool>(json['inCatalogue']),
     );
   }
   @override
@@ -309,6 +347,7 @@ class Article extends DataClass implements Insertable<Article> {
       'rayon': serializer.toJson<String>(rayon),
       'unit': serializer.toJson<String?>(unit),
       'pictoKey': serializer.toJson<String>(pictoKey),
+      'inCatalogue': serializer.toJson<bool>(inCatalogue),
     };
   }
 
@@ -321,6 +360,7 @@ class Article extends DataClass implements Insertable<Article> {
     String? rayon,
     Value<String?> unit = const Value.absent(),
     String? pictoKey,
+    bool? inCatalogue,
   }) => Article(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -330,6 +370,7 @@ class Article extends DataClass implements Insertable<Article> {
     rayon: rayon ?? this.rayon,
     unit: unit.present ? unit.value : this.unit,
     pictoKey: pictoKey ?? this.pictoKey,
+    inCatalogue: inCatalogue ?? this.inCatalogue,
   );
   Article copyWithCompanion(ArticlesCompanion data) {
     return Article(
@@ -343,6 +384,9 @@ class Article extends DataClass implements Insertable<Article> {
       rayon: data.rayon.present ? data.rayon.value : this.rayon,
       unit: data.unit.present ? data.unit.value : this.unit,
       pictoKey: data.pictoKey.present ? data.pictoKey.value : this.pictoKey,
+      inCatalogue: data.inCatalogue.present
+          ? data.inCatalogue.value
+          : this.inCatalogue,
     );
   }
 
@@ -356,7 +400,8 @@ class Article extends DataClass implements Insertable<Article> {
           ..write('normalizedName: $normalizedName, ')
           ..write('rayon: $rayon, ')
           ..write('unit: $unit, ')
-          ..write('pictoKey: $pictoKey')
+          ..write('pictoKey: $pictoKey, ')
+          ..write('inCatalogue: $inCatalogue')
           ..write(')'))
         .toString();
   }
@@ -371,6 +416,7 @@ class Article extends DataClass implements Insertable<Article> {
     rayon,
     unit,
     pictoKey,
+    inCatalogue,
   );
   @override
   bool operator ==(Object other) =>
@@ -383,7 +429,8 @@ class Article extends DataClass implements Insertable<Article> {
           other.normalizedName == this.normalizedName &&
           other.rayon == this.rayon &&
           other.unit == this.unit &&
-          other.pictoKey == this.pictoKey);
+          other.pictoKey == this.pictoKey &&
+          other.inCatalogue == this.inCatalogue);
 }
 
 class ArticlesCompanion extends UpdateCompanion<Article> {
@@ -395,6 +442,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
   final Value<String> rayon;
   final Value<String?> unit;
   final Value<String> pictoKey;
+  final Value<bool> inCatalogue;
   final Value<int> rowid;
   const ArticlesCompanion({
     this.id = const Value.absent(),
@@ -405,6 +453,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
     this.rayon = const Value.absent(),
     this.unit = const Value.absent(),
     this.pictoKey = const Value.absent(),
+    this.inCatalogue = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ArticlesCompanion.insert({
@@ -416,6 +465,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
     required String rayon,
     this.unit = const Value.absent(),
     required String pictoKey,
+    this.inCatalogue = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        updatedAt = Value(updatedAt),
@@ -432,6 +482,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
     Expression<String>? rayon,
     Expression<String>? unit,
     Expression<String>? pictoKey,
+    Expression<bool>? inCatalogue,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -443,6 +494,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
       if (rayon != null) 'rayon': rayon,
       if (unit != null) 'unit': unit,
       if (pictoKey != null) 'picto_key': pictoKey,
+      if (inCatalogue != null) 'in_catalogue': inCatalogue,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -456,6 +508,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
     Value<String>? rayon,
     Value<String?>? unit,
     Value<String>? pictoKey,
+    Value<bool>? inCatalogue,
     Value<int>? rowid,
   }) {
     return ArticlesCompanion(
@@ -467,6 +520,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
       rayon: rayon ?? this.rayon,
       unit: unit ?? this.unit,
       pictoKey: pictoKey ?? this.pictoKey,
+      inCatalogue: inCatalogue ?? this.inCatalogue,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -498,6 +552,9 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
     if (pictoKey.present) {
       map['picto_key'] = Variable<String>(pictoKey.value);
     }
+    if (inCatalogue.present) {
+      map['in_catalogue'] = Variable<bool>(inCatalogue.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -515,6 +572,7 @@ class ArticlesCompanion extends UpdateCompanion<Article> {
           ..write('rayon: $rayon, ')
           ..write('unit: $unit, ')
           ..write('pictoKey: $pictoKey, ')
+          ..write('inCatalogue: $inCatalogue, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2568,6 +2626,7 @@ typedef $$ArticlesTableCreateCompanionBuilder = ArticlesCompanion Function({
   required String rayon,
   Value<String?> unit,
   required String pictoKey,
+  Value<bool> inCatalogue,
   Value<int> rowid,
 });
 typedef $$ArticlesTableUpdateCompanionBuilder = ArticlesCompanion Function({
@@ -2579,6 +2638,7 @@ typedef $$ArticlesTableUpdateCompanionBuilder = ArticlesCompanion Function({
   Value<String> rayon,
   Value<String?> unit,
   Value<String> pictoKey,
+  Value<bool> inCatalogue,
   Value<int> rowid,
 });
 
@@ -2669,6 +2729,11 @@ class $$ArticlesTableFilterComposer
 
   ColumnFilters<String> get pictoKey => $composableBuilder(
     column: $table.pictoKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get inCatalogue => $composableBuilder(
+    column: $table.inCatalogue,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2771,6 +2836,11 @@ class $$ArticlesTableOrderingComposer
     column: $table.pictoKey,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get inCatalogue => $composableBuilder(
+    column: $table.inCatalogue,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ArticlesTableAnnotationComposer
@@ -2807,6 +2877,11 @@ class $$ArticlesTableAnnotationComposer
 
   GeneratedColumn<String> get pictoKey =>
       $composableBuilder(column: $table.pictoKey, builder: (column) => column);
+
+  GeneratedColumn<bool> get inCatalogue => $composableBuilder(
+    column: $table.inCatalogue,
+    builder: (column) => column,
+  );
 
   Expression<T> frequentsRefs<T extends Object>(
     Expression<T> Function($$FrequentsTableAnnotationComposer a) f,
@@ -2895,6 +2970,7 @@ class $$ArticlesTableTableManager
                 Value<String> rayon = const Value.absent(),
                 Value<String?> unit = const Value.absent(),
                 Value<String> pictoKey = const Value.absent(),
+                Value<bool> inCatalogue = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ArticlesCompanion(
                 id: id,
@@ -2905,6 +2981,7 @@ class $$ArticlesTableTableManager
                 rayon: rayon,
                 unit: unit,
                 pictoKey: pictoKey,
+                inCatalogue: inCatalogue,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2917,6 +2994,7 @@ class $$ArticlesTableTableManager
                 required String rayon,
                 Value<String?> unit = const Value.absent(),
                 required String pictoKey,
+                Value<bool> inCatalogue = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ArticlesCompanion.insert(
                 id: id,
@@ -2927,6 +3005,7 @@ class $$ArticlesTableTableManager
                 rayon: rayon,
                 unit: unit,
                 pictoKey: pictoKey,
+                inCatalogue: inCatalogue,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

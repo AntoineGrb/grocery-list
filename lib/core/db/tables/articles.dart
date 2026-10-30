@@ -17,4 +17,9 @@ class Articles extends Table with SyncColumns {
 
   /// Clé de picto stable, en kebab-case (AD-18).
   TextColumn get pictoKey => text()();
+
+  /// Faux pour un article hors catalogue, né d'un texte validé par Entrée
+  /// dans le Panneau + : absent de la recherche et de Paramètres › Articles
+  /// (AD-17). Vrai pour les articles d'avant la v2 (AD-14).
+  BoolColumn get inCatalogue => boolean().withDefault(const Constant(true))();
 }

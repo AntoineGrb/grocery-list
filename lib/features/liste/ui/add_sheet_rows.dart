@@ -86,10 +86,11 @@ class AddedLineEditor extends StatelessWidget {
   }
 }
 
-/// Dernière ligne des résultats sans correspondance exacte : signe + neutre
-/// et « Créer « piles » ». Un bouton, lu « Créer « piles » ».
-class CreateArticleRow extends StatelessWidget {
-  const CreateArticleRow({super.key, required this.name, required this.onTap});
+/// Seule ligne des résultats quand la saisie ne trouve rien : signe +
+/// neutre et « Ajouter « piles » », qui fait comme Entrée. Un bouton, lu
+/// « Ajouter « piles » ».
+class AddTypedRow extends StatelessWidget {
+  const AddTypedRow({super.key, required this.name, required this.onTap});
 
   /// La saisie, telle que tapée.
   final String name;
@@ -99,7 +100,7 @@ class CreateArticleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final label = StringsFr.creer(name);
+    final label = StringsFr.ajouterNom(name);
 
     return Semantics(
       button: true,

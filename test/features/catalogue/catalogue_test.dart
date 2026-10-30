@@ -187,30 +187,15 @@ void main() {
             .get();
 
     for (final query in ['LAIT', 'lait', ' lâit ']) {
-      test(
-        'correspondance exacte : « $query » trouve Lait, pas de Créer',
-        () async {
-          final hits = await repo.watchSearch(query).first;
-          expect(hits.first.id, SeedIds.lait);
-          expect(CatalogueRepository.hasExactMatch(hits, query), isTrue);
-        },
-      );
+      test('« $query » trouve Lait en premier', () async {
+        final hits = await repo.watchSearch(query).first;
+        expect(hits.first.id, SeedIds.lait);
+      });
     }
-
-    test(
-      'sans correspondance exacte : « lai » trouve Lait, Créer proposé',
-      () async {
-        final hits = await repo.watchSearch('lai').first;
-        expect(hits.map((a) => a.id), contains(SeedIds.lait));
-        expect(CatalogueRepository.hasExactMatch(hits, 'lai'), isFalse);
-      },
-    );
 
     test('aucun résultat : « piles » (supprimé) et « zzz »', () async {
       for (final query in ['piles', 'zzz']) {
-        final hits = await repo.watchSearch(query).first;
-        expect(hits, isEmpty);
-        expect(CatalogueRepository.hasExactMatch(hits, query), isFalse);
+        expect(await repo.watchSearch(query).first, isEmpty);
       }
     });
 
@@ -243,10 +228,11 @@ void main() {
       expect(row.updatedAt, 1000);
       expect(row.deletedAt, isNull);
 
-      // Trouvé ensuite par la recherche, en correspondance exacte.
+      expect(row.inCatalogue, isTrue);
+
+      // Trouvé ensuite par la recherche.
       final hits = await repo.watchSearch('piles').first;
       expect(hits.single.id, article.id);
-      expect(CatalogueRepository.hasExactMatch(hits, 'Piles'), isTrue);
     });
 
     test('nom nettoyé : espaces de bord et doublés retirés, majuscule '
@@ -301,6 +287,77 @@ void main() {
       final second = await repo.createArticle('PILES');
       expect(second.id, first.id);
       expect(await activeNamed('piles'), hasLength(1));
+    });
+
+    test(
+      'texte tapé inconnu : article hors catalogue Piles (Divers, sans '
+      'unité, picto de repli « article », UUID v4), jamais dans la recherche',
+      () async {
+        final article = await repo.resolveTypedArticle('  piles ');
+
+        expect(article.name, 'Piles');
+        expect(article.rayon, Rayon.divers);
+        expect(article.unit, isNull);
+        expect(article.pictoKey, 'article');
+        final row = (await activeNamed('piles')).single;
+        expect(row.id, article.id);
+        expect(row.inCatalogue, isFalse);
+        expect(row.rayon, 'divers');
+        expect(row.unit, isNull);
+        expect(row.updatedAt, 1000);
+
+        for (final query in ['pil', 'piles', 'PILES']) {
+          expect(await repo.watchSearch(query).first, isEmpty);
+        }
+        // findByName le trouve : un nom reste unique (AD-17).
+        expect((await repo.findByName('Piles'))?.id, article.id);
+      },
+    );
+
+    test(
+      'texte tapé du catalogue : « LAIT » rend Lait, rien n’est écrit',
+      () async {
+        final before = await db.select(db.articles).get();
+        final article = await repo.resolveTypedArticle('LÂIT');
+        expect(article.id, SeedIds.lait);
+        expect(article.rayon, Rayon.cremerie);
+        expect(await db.select(db.articles).get(), before);
+        expect(clock.last, 0);
+      },
+    );
+
+    test('texte tapé réutilisé : un seul article hors catalogue', () async {
+      final first = await repo.resolveTypedArticle('piles');
+      final second = await repo.resolveTypedArticle('Piles');
+      expect(second.id, first.id);
+      expect(await activeNamed('piles'), hasLength(1));
+    });
+
+    test('texte tapé vide : refusé, rien n’est écrit', () async {
+      final before = await db.select(db.articles).get();
+      await expectLater(repo.resolveTypedArticle('  '), throwsArgumentError);
+      expect(await db.select(db.articles).get(), before);
+    });
+
+    test('créer un nom hors catalogue : l’article entre au catalogue, même '
+        'id, rayon et unité inchangés', () async {
+      final typed = await repo.resolveTypedArticle('piles');
+      now = 2000;
+
+      final created = await repo.createArticle(
+        'PILES',
+        rayon: Rayon.entretien,
+        unit: Unit.piece,
+      );
+
+      expect(created.id, typed.id);
+      final row = (await activeNamed('piles')).single;
+      expect(row.id, typed.id);
+      expect(row.inCatalogue, isTrue);
+      expect(row.updatedAt, 2000);
+      expect(row.rayon, 'divers');
+      expect(row.unit, isNull);
+      expect((await repo.watchSearch('pil').first).single.id, typed.id);
     });
 
     test('rayon d’un article : rayon et updated_at changent ; même rayon ou '

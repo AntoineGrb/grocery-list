@@ -99,13 +99,17 @@ SeedLoader seedLoader(
   AppDatabase db, {
   Clock? clock,
   SeedAssetLoader loadAsset = diskAssetLoader,
-}) => SeedLoader(
-  db: db,
-  settings: SettingsRepository(db, clock ?? Clock()),
-  loadAsset: loadAsset,
-  normalizeName: normalizeName,
-  frequentId: frequentId,
-);
+}) {
+  final c = clock ?? Clock();
+  return SeedLoader(
+    db: db,
+    settings: SettingsRepository(db, c),
+    clock: c,
+    loadAsset: loadAsset,
+    normalizeName: normalizeName,
+    frequentId: frequentId,
+  );
+}
 
 /// Base en mémoire avec le contenu fourni chargé.
 Future<AppDatabase> seededDatabase() async {

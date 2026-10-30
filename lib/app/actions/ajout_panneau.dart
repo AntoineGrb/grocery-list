@@ -7,80 +7,64 @@ import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
 
-/// Dernier ajout du Panneau + : l'article, sa ligne, la contribution `ajout`
-/// écrite et si l'article vient d'être créé dans le panneau.
+/// Dernier ajout du Panneau + : l'article, sa ligne et la contribution
+/// `ajout` écrite.
 class ArticleAjoute {
   const ArticleAjoute({
     required this.article,
     required this.lineId,
     required this.contributionId,
-    this.articleCree = false,
   });
 
   final CatalogueArticle article;
   final String lineId;
   final String contributionId;
-
-  /// L'article a été créé par « Créer « … » » : le Choix de rayon change
-  /// aussi son rayon.
-  final bool articleCree;
 }
 
-/// « Créer « … » » du Panneau + (R8, AD-3, AD-17) : crée l'article par
-/// l'unique `createArticle` (Divers, sans unité) puis l'ajoute à la liste,
-/// en une transaction.
-class CreerEtAjouter {
-  CreerEtAjouter(this._db, this._catalogue, this._liste);
+/// Résultat d'Entrée dans le Panneau + : l'article du texte tapé et s'il
+/// vient d'être ajouté (faux : il était déjà dans la liste).
+typedef TexteAjoute = ({CatalogueArticle article, bool ajoute});
+
+/// Entrée dans le Champ d'ajout du Panneau + (R25, AD-3, AD-17), en une
+/// transaction : l'article du texte par l'unique `resolveTypedArticle`
+/// (l'article actif de ce nom, sinon un article hors catalogue), puis son
+/// ajout sans quantité, sauf s'il est déjà dans la liste : Entrée ne retire
+/// jamais et n'ajoute jamais deux fois.
+class AjouterTexte {
+  AjouterTexte(this._db, this._catalogue, this._liste);
 
   final AppDatabase _db;
   final CatalogueRepository _catalogue;
   final ListeRepository _liste;
 
-  /// Crée l'article de nom [name] et l'ajoute sans quantité. Si un article
-  /// actif porte déjà ce nom normalisé, il est ajouté sans création
-  /// (`articleCree` faux). Un échec lève et n'écrit rien.
-  Future<ArticleAjoute> call(String name) {
+  /// Ajoute l'article du texte [name]. Lève une [ArgumentError] pour un
+  /// texte vide ; un échec lève et n'écrit rien.
+  Future<TexteAjoute> call(String name) {
     return _db.transaction(() async {
-      final existing = await _catalogue.findByName(name);
-      final article = existing ?? await _catalogue.createArticle(name);
-      final added = await _liste.addArticle(article.id);
-      return ArticleAjoute(
-        article: article,
-        lineId: added.lineId,
-        contributionId: added.contributionId,
-        articleCree: existing == null,
-      );
+      final article = await _catalogue.resolveTypedArticle(name);
+      if (await _liste.isInList(article.id)) {
+        return (article: article, ajoute: false);
+      }
+      await _liste.addArticle(article.id);
+      return (article: article, ajoute: true);
     });
   }
 }
 
 /// Choix de rayon d'une ligne ajoutée depuis le Panneau + (R9, AD-3,
-/// AD-15) : la ligne change de rayon ; l'article aussi s'il vient d'être
-/// créé dans le panneau, dans la même transaction.
+/// AD-15) : seule la ligne change de rayon, jamais l'article.
 class PlacerLigneAjoutee {
-  PlacerLigneAjoutee(this._db, this._catalogue, this._liste);
+  PlacerLigneAjoutee(this._liste);
 
-  final AppDatabase _db;
-  final CatalogueRepository _catalogue;
   final ListeRepository _liste;
 
-  /// Place la ligne [lineId] dans [rayon], et l'article [articleId] avec
-  /// elle si [articleCree]. Un échec lève et n'écrit rien.
-  Future<void> call(
-    String lineId,
-    String articleId,
-    Rayon rayon, {
-    bool articleCree = false,
-  }) {
-    return _db.transaction(() async {
-      await _liste.setRayon(lineId, rayon);
-      if (articleCree) await _catalogue.setArticleRayon(articleId, rayon);
-    });
-  }
+  /// Place la ligne [lineId] dans [rayon]. Un échec lève et n'écrit rien.
+  Future<void> call(String lineId, Rayon rayon) =>
+      _liste.setRayon(lineId, rayon);
 }
 
-final creerEtAjouterProvider = Provider<CreerEtAjouter>(
-  (ref) => CreerEtAjouter(
+final ajouterTexteProvider = Provider<AjouterTexte>(
+  (ref) => AjouterTexte(
     ref.watch(databaseProvider),
     ref.watch(catalogueRepositoryProvider),
     ref.watch(listeRepositoryProvider),
@@ -88,9 +72,5 @@ final creerEtAjouterProvider = Provider<CreerEtAjouter>(
 );
 
 final placerLigneAjouteeProvider = Provider<PlacerLigneAjoutee>(
-  (ref) => PlacerLigneAjoutee(
-    ref.watch(databaseProvider),
-    ref.watch(catalogueRepositoryProvider),
-    ref.watch(listeRepositoryProvider),
-  ),
+  (ref) => PlacerLigneAjoutee(ref.watch(listeRepositoryProvider)),
 );

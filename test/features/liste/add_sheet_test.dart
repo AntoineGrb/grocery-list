@@ -63,15 +63,36 @@ Future<void> _letSnackBarClose(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Le Champ de recherche du panneau (le premier champ : un Champ quantité
-/// peut le suivre).
+/// Le Champ d'ajout du panneau (le premier champ : un Champ quantité peut
+/// le suivre).
 Finder get _search => _inSheet(find.byType(TextField)).first;
 
 /// Le Champ quantité de la ligne dépliée.
 final _quantity = _inSheet(find.byType(QuantityField));
 
-/// La ligne « Créer « … » ».
-final _create = find.byType(CreateArticleRow);
+/// La ligne « Ajouter « … » ».
+final _addTyped = find.byType(AddTypedRow);
+
+/// La Ligne saisie, sous le Champ d'ajout.
+final _saisie = find.byKey(const ValueKey('saisie'));
+
+/// Entrée dans le Champ d'ajout.
+Future<void> _enter(WidgetTester tester) async {
+  await tester.testTextInput.receiveAction(TextInputAction.done);
+  await tester.pumpAndSettle();
+}
+
+/// Texte du Champ d'ajout.
+String _fieldText(WidgetTester tester) =>
+    tester.widget<TextField>(_search).controller!.text;
+
+/// Le Champ d'ajout a le focus (clavier ouvert).
+bool _fieldFocused(WidgetTester tester) => tester
+    .widget<EditableText>(
+      find.descendant(of: _search, matching: find.byType(EditableText)),
+    )
+    .focusNode
+    .hasFocus;
 
 /// La pastille [rayon] du Choix de rayon de la ligne dépliée.
 Finder _pastille(Rayon rayon) => find.descendant(
@@ -345,7 +366,7 @@ void main() {
     expect(_inSheet(_undoAction), findsOneWidget);
 
     // Effacer la recherche : les fréquents reviennent.
-    await tester.tap(find.byTooltip(StringsFr.effacerLaRecherche));
+    await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
     await tester.pumpAndSettle();
     expect(find.byType(FrequentRow), findsNWidgets(31));
     expect(find.byType(SearchResultRow), findsNothing);
@@ -436,58 +457,55 @@ void main() {
     await _letSnackBarClose(tester);
   });
 
-  group('créer, quantité et rayon à l’ajout', () {
-    testWidgets('« piles » absent : une seule ligne « Créer « piles » » ; '
-        'la toucher crée Piles, dépliée sans Champ quantité, Divers entouré ; '
-        'Entretien place la ligne et l’article', (tester) async {
+  group('Entrée et Ligne saisie', () {
+    testWidgets('« piles » + Entrée : Piles hors catalogue sous Divers ; champ '
+        'vidé, clavier ouvert, Ligne saisie « Piles » avec sa coche ; « pil » '
+        'ne le montre pas', (tester) async {
       final db = await _pumpApp(tester);
       await _withoutPiles(tester, db);
       await _openSheet(tester);
 
-      await _type(tester, 'piles');
-
-      expect(_create, findsOneWidget);
-      expect(find.byType(SearchResultRow), findsNothing);
-      expect(find.text('Créer «\u00A0piles\u00A0»'), findsOneWidget);
+      final field = tester.widget<TextField>(_search);
+      expect(field.decoration!.hintText, StringsFr.ajouterUnArticle);
+      expect(field.textInputAction, TextInputAction.done);
       expect(
-        find.descendant(of: _create, matching: find.byIcon(Icons.add)),
+        find.descendant(of: _search, matching: find.byIcon(Icons.add)),
         findsOneWidget,
       );
-      expect(tester.getSize(_create).height, greaterThanOrEqualTo(48));
 
-      await _tap(tester, _create);
+      await _type(tester, 'piles');
+      await _enter(tester);
 
       final piles = (await _activeArticles(db, 'piles')).single;
       expect(piles.name, 'Piles');
       expect(piles.rayon, 'divers');
       expect(piles.unit, isNull);
+      expect(piles.inCatalogue, isFalse);
       expect((await _activeLines(db, piles.id)).single.rayon, 'divers');
-      // La saisie reste ; Piles apparaît comme résultat, déplié.
-      expect(tester.widget<TextField>(_search).controller!.text, 'piles');
-      expect(_create, findsNothing);
-      expect(_indicator(_result('Piles'), Icons.check), findsOneWidget);
-      expect(find.byType(AddedLineEditor), findsOneWidget);
-      expect(_quantity, findsNothing);
-      expect(
-        tester.widget<RayonPicker>(find.byType(RayonPicker)).selected,
-        Rayon.divers,
-      );
 
-      await _tap(tester, _pastille(Rayon.entretien));
-
+      expect(_fieldText(tester), isEmpty);
+      expect(_fieldFocused(tester), isTrue);
+      expect(tester.testTextInput.isVisible, isTrue);
+      expect(_saisie, findsOneWidget);
       expect(
-        tester.widget<RayonPicker>(find.byType(RayonPicker)).selected,
-        Rayon.entretien,
-      );
-      expect((await _activeArticles(db, 'piles')).single.rayon, 'entretien');
-      expect((await _activeLines(db, piles.id)).single.rayon, 'entretien');
-      expect(
-        find.descendant(
-          of: _result('Piles'),
-          matching: find.text(Rayon.entretien.label),
-        ),
+        find.descendant(of: _saisie, matching: find.text('Piles')),
         findsOneWidget,
       );
+      expect(_indicator(_saisie, Icons.check), findsOneWidget);
+      // Rien ne se déplie après Entrée ; les fréquents reviennent, sous la
+      // Ligne saisie.
+      expect(find.byType(AddedLineEditor), findsNothing);
+      expect(_frequent('Lait'), findsOneWidget);
+      expect(
+        tester.getTopLeft(_saisie).dy,
+        lessThan(tester.getTopLeft(_frequent('Lait')).dy),
+      );
+
+      await _type(tester, 'pil');
+      expect(find.byType(SearchResultRow), findsNothing);
+      expect(_addTyped, findsOneWidget);
+      // La Ligne saisie reste pendant la saisie suivante.
+      expect(_saisie, findsOneWidget);
 
       await _closeSheet(tester);
       final row = find.widgetWithText(ItemRow, 'Piles');
@@ -495,30 +513,67 @@ void main() {
       expect(
         tester.getTopLeft(row).dy,
         greaterThan(
-          tester.getTopLeft(find.widgetWithText(RayonHeader, 'Entretien')).dy,
+          tester.getTopLeft(find.widgetWithText(RayonHeader, 'Divers')).dy,
         ),
       );
     });
 
-    testWidgets('« lait » puis « LAIT » : pas de « Créer » ; le résultat '
-        'ajoute Lait sans créer d’article', (tester) async {
+    testWidgets('« LAIT » + Entrée : le Lait du catalogue sous Crèmerie, aucun '
+        'article créé', (tester) async {
       final db = await _pumpApp(tester);
       await _openSheet(tester);
       final articlesBefore = await db.select(db.articles).get();
 
-      await _type(tester, 'lait');
-      expect(_create, findsNothing);
       await _type(tester, 'LAIT');
-      expect(_create, findsNothing);
+      expect(_addTyped, findsNothing);
+      await _enter(tester);
 
-      await _tap(tester, _result('Lait'));
-
-      expect(await _activeLines(db, SeedIds.lait), hasLength(1));
       expect(await db.select(db.articles).get(), articlesBefore);
-      expect(_create, findsNothing);
+      expect(
+        (await _activeLines(db, SeedIds.lait)).single.rayon,
+        Rayon.cremerie.code,
+      );
+      expect(
+        find.descendant(of: _saisie, matching: find.text('Lait')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('« lai » : les résultats puis, en dernier, « Créer « lai » »', (
+    testWidgets('déjà dans la liste : Entrée ne change rien, champ vidé, Ligne '
+        'saisie', (tester) async {
+      final db = await _pumpApp(tester);
+      await _openSheet(tester);
+      await _tap(tester, _frequent('Lait'));
+      final lines = await db.select(db.listLines).get();
+      final contributions = await db.select(db.listContributions).get();
+
+      await _type(tester, 'lait');
+      await _enter(tester);
+
+      expect(await db.select(db.listLines).get(), lines);
+      expect(await db.select(db.listContributions).get(), contributions);
+      expect(_fieldText(tester), isEmpty);
+      expect(
+        find.descendant(of: _saisie, matching: find.text('Lait')),
+        findsOneWidget,
+      );
+      expect(_inSheet(_undoAction), findsNothing);
+    });
+
+    testWidgets('texte vide ou espaces + Entrée : rien', (tester) async {
+      final db = await _pumpApp(tester);
+      await _openSheet(tester);
+
+      await _enter(tester);
+      await _type(tester, '   ');
+      await _enter(tester);
+
+      expect(await db.select(db.listLines).get(), isEmpty);
+      expect(_saisie, findsNothing);
+      expect(_fieldFocused(tester), isTrue);
+    });
+
+    testWidgets('« lai » : des résultats, pas de « Ajouter « … » »', (
       tester,
     ) async {
       await _pumpApp(tester);
@@ -526,28 +581,187 @@ void main() {
 
       await _type(tester, 'lai');
 
-      expect(_create, findsOneWidget);
-      expect(find.text('Créer «\u00A0lai\u00A0»'), findsOneWidget);
-      final results = find.byType(SearchResultRow);
-      expect(results, findsWidgets);
-      final createTop = tester.getTopLeft(_create).dy;
-      for (final element in results.evaluate()) {
-        final box = element.renderObject! as RenderBox;
-        expect(box.localToGlobal(Offset.zero).dy, lessThan(createTop));
-      }
+      expect(find.byType(SearchResultRow), findsWidgets);
+      expect(_addTyped, findsNothing);
     });
 
-    testWidgets('« zzz » : une seule ligne « Créer « zzz » »', (tester) async {
-      await _pumpApp(tester);
+    testWidgets('« zzz » sans résultat : une seule ligne « Ajouter « zzz » » ; '
+        'la toucher fait comme Entrée', (tester) async {
+      final db = await _pumpApp(tester);
       await _openSheet(tester);
 
       await _type(tester, 'zzz');
 
-      expect(_create, findsOneWidget);
+      expect(_addTyped, findsOneWidget);
       expect(find.byType(SearchResultRow), findsNothing);
-      expect(find.text(StringsFr.creer('zzz')), findsOneWidget);
+      expect(find.text(StringsFr.ajouterNom('zzz')), findsOneWidget);
+      expect(find.text('Ajouter « zzz »'), findsOneWidget);
+      expect(
+        find.descendant(of: _addTyped, matching: find.byIcon(Icons.add)),
+        findsOneWidget,
+      );
+      expect(tester.getSize(_addTyped).height, greaterThanOrEqualTo(48));
+
+      await _tap(tester, _addTyped);
+
+      final zzz = (await _activeArticles(db, 'zzz')).single;
+      expect(zzz.inCatalogue, isFalse);
+      expect(await _activeLines(db, zzz.id), hasLength(1));
+      expect(_fieldText(tester), isEmpty);
+      expect(
+        find.descendant(of: _saisie, matching: find.text('Zzz')),
+        findsOneWidget,
+      );
     });
 
+    testWidgets('texte libre réutilisé : Piles retiré puis retapé, même '
+        'article', (tester) async {
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await _openSheet(tester);
+
+      await _type(tester, 'piles');
+      await _enter(tester);
+      final piles = (await _activeArticles(db, 'piles')).single;
+      await _tap(tester, _saisie);
+      await _letSnackBarClose(tester);
+
+      await _type(tester, 'Piles');
+      await _enter(tester);
+
+      expect((await _activeArticles(db, 'piles')).single.id, piles.id);
+      expect(await _activeLines(db, piles.id), hasLength(1));
+    });
+
+    testWidgets('Ligne saisie, tap : retiré, snackbar Annuler, la ligne '
+        'disparaît ; Annuler la fait revenir', (tester) async {
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await _openSheet(tester);
+
+      await _type(tester, 'piles');
+      await _enter(tester);
+      final piles = (await _activeArticles(db, 'piles')).single;
+
+      await _tap(tester, _saisie);
+
+      expect(await _activeLines(db, piles.id), isEmpty);
+      expect(_saisie, findsNothing);
+      expect(
+        _inSheet(find.text(StringsFr.retireDeLaListe('Piles'))),
+        findsOneWidget,
+      );
+
+      await _tap(tester, _inSheet(_undoAction));
+
+      expect(await _activeLines(db, piles.id), hasLength(1));
+      expect(_saisie, findsOneWidget);
+      expect(_indicator(_saisie, Icons.check), findsOneWidget);
+    });
+
+    testWidgets('Ligne saisie cochée dans la Liste : elle disparaît', (
+      tester,
+    ) async {
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await _openSheet(tester);
+      await _type(tester, 'piles');
+      await _enter(tester);
+      final piles = (await _activeArticles(db, 'piles')).single;
+      final lineId = (await _activeLines(db, piles.id)).single.id;
+
+      await ListeRepository(db, Clock()).check(lineId);
+      await tester.pumpAndSettle();
+
+      expect(_saisie, findsNothing);
+    });
+
+    testWidgets('échec du retrait par la Ligne saisie : snackbar d’erreur, la '
+        'ligne reste', (tester) async {
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await _openSheet(tester);
+      await _type(tester, 'piles');
+      await _enter(tester);
+      await db.customStatement(
+        'CREATE TRIGGER no_remove BEFORE UPDATE OF deleted_at ON list_lines '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+
+      await _tap(tester, _saisie);
+
+      expect(
+        _inSheet(find.text(StringsFr.suppressionImpossible)),
+        findsOneWidget,
+      );
+      expect(_saisie, findsOneWidget);
+      await _letSnackBarClose(tester);
+    });
+
+    testWidgets('TalkBack : le champ lu « Ajouter un article », « Ajouter '
+        '« piles » » bouton, la Ligne saisie « Piles, dans la liste »', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await _openSheet(tester);
+
+      expect(
+        tester.getSemantics(find.byType(EditableText)),
+        isSemantics(
+          label: StringsFr.ajouterUnArticle,
+          isTextField: true,
+          isFocused: true,
+        ),
+      );
+
+      await _type(tester, 'piles');
+      expect(
+        tester.getSemantics(
+          find.bySemanticsLabel(StringsFr.ajouterNom('piles')),
+        ),
+        isSemantics(
+          label: StringsFr.ajouterNom('piles'),
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+      await _enter(tester);
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Piles, dans la liste')),
+        isSemantics(
+          label: 'Piles, ${StringsFr.dansLaListe}',
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('échec d’Entrée : snackbar d’erreur, rien n’est écrit, la '
+        'saisie reste', (tester) async {
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await db.customStatement(
+        'CREATE TRIGGER no_add BEFORE INSERT ON list_lines '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+      await _openSheet(tester);
+
+      await _type(tester, 'piles');
+      await _enter(tester);
+
+      expect(_inSheet(find.text(StringsFr.ajoutImpossible)), findsOneWidget);
+      expect(await _activeArticles(db, 'piles'), isEmpty);
+      expect(_fieldText(tester), 'piles');
+      expect(_saisie, findsNothing);
+      await _letSnackBarClose(tester);
+    });
+  });
+
+  group('quantité et rayon à l’ajout', () {
     testWidgets('Œufs dans les fréquents : dépliée avec le Champ quantité '
         '(pièces, vide) et Crèmerie entouré ; 6 validé : « 6 pièces » dans la '
         'Liste, ligne non manuelle', (tester) async {
@@ -710,27 +924,6 @@ void main() {
       );
     });
 
-    testWidgets('article créé, retiré puis rajouté dans le panneau : le Choix '
-        'de rayon change encore le rayon de l’article', (tester) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
-      await _openSheet(tester);
-
-      await _type(tester, 'piles');
-      await _tap(tester, _create);
-      await _tap(tester, _result('Piles'));
-      final piles = (await _activeArticles(db, 'piles')).single;
-      expect(await _activeLines(db, piles.id), isEmpty);
-      await _tap(tester, _result('Piles'));
-      expect(find.byType(AddedLineEditor), findsOneWidget);
-
-      await _tap(tester, _pastille(Rayon.entretien));
-
-      expect((await _activeArticles(db, 'piles')).single.rayon, 'entretien');
-      expect((await _activeLines(db, piles.id)).single.rayon, 'entretien');
-      await _letSnackBarClose(tester);
-    });
-
     testWidgets('rayon d’un article existant : seule la ligne change', (
       tester,
     ) async {
@@ -750,24 +943,12 @@ void main() {
       expect(lait.rayon, 'cremerie');
     });
 
-    testWidgets('TalkBack : « Créer « piles » » bouton, Champ quantité lu '
-        '« Quantité », pastilles lues par leur nom', (tester) async {
+    testWidgets('TalkBack : Champ quantité lu « Quantité », pastilles lues '
+        'par leur nom', (tester) async {
       final handle = tester.ensureSemantics();
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
+      await _pumpApp(tester);
       await _openSheet(tester);
 
-      await _type(tester, 'piles');
-      expect(
-        tester.getSemantics(find.bySemanticsLabel(StringsFr.creer('piles'))),
-        isSemantics(
-          label: StringsFr.creer('piles'),
-          isButton: true,
-          hasTapAction: true,
-        ),
-      );
-
-      await _tap(tester, find.byTooltip(StringsFr.effacerLaRecherche));
       await _tap(tester, _frequent('Œufs'));
       expect(
         tester.getSemantics(find.bySemanticsLabel(RegExp(r'^Quantité'))),
@@ -804,27 +985,6 @@ void main() {
         isSemantics(label: 'Crèmerie', isButton: true, isSelected: true),
       );
       handle.dispose();
-    });
-
-    testWidgets('échec de la création : snackbar d’erreur, rien n’est créé', (
-      tester,
-    ) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
-      await db.customStatement(
-        'CREATE TRIGGER no_add BEFORE INSERT ON list_lines '
-        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
-      );
-      await _openSheet(tester);
-
-      await _type(tester, 'piles');
-      await _tap(tester, _create);
-
-      expect(_inSheet(find.text(StringsFr.ajoutImpossible)), findsOneWidget);
-      expect(await _activeArticles(db, 'piles'), isEmpty);
-      expect(_create, findsOneWidget);
-      expect(find.byType(AddedLineEditor), findsNothing);
-      await _letSnackBarClose(tester);
     });
   });
 }

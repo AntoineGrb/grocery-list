@@ -32,14 +32,6 @@ class CatalogueRepository {
   final Clock _clock;
   final Uuid _uuid;
 
-  /// Vrai si [hits] contient la correspondance exacte de [query] (AD-17) :
-  /// un article de même nom normalisé que la saisie. Sans elle, le Panneau +
-  /// propose « Créer « … » ».
-  static bool hasExactMatch(List<CatalogueArticle> hits, String query) {
-    final q = normalizeName(query);
-    return q.isNotEmpty && hits.any((a) => normalizeName(a.name) == q);
-  }
-
   /// Nom d'un article créé depuis la saisie [input] : sans espaces de bord
   /// ni espaces doublés, première lettre en majuscule (« piles » → « Piles »).
   static String cleanName(String input) {
@@ -51,29 +43,33 @@ class CatalogueRepository {
         name.substring(String.fromCharCode(first).length);
   }
 
-  /// Article actif de même nom normalisé que [name], s'il existe (AD-17).
+  /// Article actif de même nom normalisé que [name], s'il existe (AD-17),
+  /// au catalogue ou hors catalogue.
   Future<CatalogueArticle?> findByName(String name) async {
-    final normalized = normalizeName(name);
-    if (normalized.isEmpty) return null;
-    final row =
-        await (_db.select(_db.articles)
-              ..where(
-                (a) =>
-                    a.normalizedName.equals(normalized) & a.deletedAt.isNull(),
-              )
-              ..limit(1))
-            .getSingleOrNull();
+    final row = await _activeRowNamed(normalizeName(name));
     return row == null ? null : _toModel(row);
   }
 
-  /// Seule création d'article (AD-17), à appeler dans une transaction :
-  /// nom nettoyé ([cleanName]), [rayon] (Divers par défaut), [unit] (sans
-  /// par défaut), `picto_key` = nom normalisé réduit à `[a-z0-9]`
-  /// (`article` si vide), id UUID v4.
+  Future<Article?> _activeRowNamed(String normalized) {
+    if (normalized.isEmpty) return Future.value();
+    return (_db.select(_db.articles)
+          ..where(
+            (a) => a.normalizedName.equals(normalized) & a.deletedAt.isNull(),
+          )
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  /// Création au catalogue (AD-17), à appeler dans une transaction : nom
+  /// nettoyé ([cleanName]), [rayon] (Divers par défaut), [unit] (sans par
+  /// défaut), `picto_key` = nom normalisé réduit à `[a-z0-9]` (`article` si
+  /// vide), id UUID v4.
   ///
-  /// Si un article actif porte déjà ce nom normalisé, rien n'est écrit et
-  /// cet article est rendu : un nom normalisé reste unique parmi les
-  /// articles actifs. Lève une [ArgumentError] pour un nom vide.
+  /// Si un article actif porte déjà ce nom normalisé, aucun article n'est
+  /// créé et cet article est rendu : un nom normalisé reste unique parmi les
+  /// articles actifs. Hors catalogue, il y entre (`in_catalogue` vrai, même
+  /// id) ; son rayon et son unité ne changent pas. Lève une [ArgumentError]
+  /// pour un nom vide.
   Future<CatalogueArticle> createArticle(
     String name, {
     Rayon rayon = Rayon.divers,
@@ -84,10 +80,53 @@ class CatalogueRepository {
     if (normalized.isEmpty) {
       throw ArgumentError.value(name, 'name', 'Nom vide');
     }
-    final existing = await findByName(cleaned);
-    if (existing != null) return existing;
+    final existing = await _activeRowNamed(normalized);
+    if (existing != null) {
+      if (!existing.inCatalogue) {
+        await (_db.update(
+          _db.articles,
+        )..where((a) => a.id.equals(existing.id))).write(
+          ArticlesCompanion(
+            inCatalogue: const Value(true),
+            updatedAt: Value(_clock.stamp(existing.updatedAt)),
+          ),
+        );
+      }
+      return _toModel(existing);
+    }
+    return _insert(cleaned, normalized, rayon: rayon, unit: unit);
+  }
 
-    final pictoKey = normalized.replaceAll(RegExp('[^a-z0-9]'), '');
+  /// Article du texte [name] validé par Entrée dans le Panneau + (AD-17) :
+  /// l'article actif de ce nom normalisé, au catalogue ou non ; sinon un
+  /// nouvel article hors catalogue (Divers, sans unité, nom [cleanName],
+  /// `picto_key` comme [createArticle]), absent de la recherche. Une
+  /// transaction ; lève une [ArgumentError] pour un nom vide.
+  Future<CatalogueArticle> resolveTypedArticle(String name) {
+    return _db.transaction(() async {
+      final cleaned = cleanName(name);
+      final normalized = normalizeName(cleaned);
+      if (normalized.isEmpty) {
+        throw ArgumentError.value(name, 'name', 'Nom vide');
+      }
+      final existing = await _activeRowNamed(normalized);
+      if (existing != null) return _toModel(existing);
+      return _insert(cleaned, normalized, inCatalogue: false);
+    });
+  }
+
+  Future<CatalogueArticle> _insert(
+    String cleaned,
+    String normalized, {
+    Rayon rayon = Rayon.divers,
+    Unit? unit,
+    bool inCatalogue = true,
+  }) async {
+    // Un article hors catalogue garde le repli neutre (EXPERIENCE, Picto),
+    // même quand un pack de pictos connaît son nom.
+    final pictoKey = inCatalogue
+        ? normalized.replaceAll(RegExp('[^a-z0-9]'), '')
+        : '';
     final row = ArticlesCompanion.insert(
       id: _uuid.v4(),
       updatedAt: _clock.stamp(),
@@ -96,6 +135,7 @@ class CatalogueRepository {
       rayon: rayon.code,
       unit: Value(unit?.code),
       pictoKey: pictoKey.isEmpty ? 'article' : pictoKey,
+      inCatalogue: Value(inCatalogue),
     );
     await _db.into(_db.articles).insert(row);
     return CatalogueArticle(
@@ -127,14 +167,16 @@ class CatalogueRepository {
     );
   }
 
-  /// Articles actifs dont le nom normalisé contient [query] normalisé.
+  /// Articles actifs du catalogue dont le nom normalisé contient [query]
+  /// normalisé ; un article hors catalogue n'en sort jamais (AD-17).
   ///
   /// Une recherche vide ne renvoie rien. Les noms qui commencent par la
   /// recherche passent en premier, puis l'ordre alphabétique.
   Stream<List<CatalogueArticle>> watchSearch(String query) {
     final q = normalizeName(query);
     if (q.isEmpty) return Stream.value(const []);
-    final select = _db.select(_db.articles)..where((a) => a.deletedAt.isNull());
+    final select = _db.select(_db.articles)
+      ..where((a) => a.deletedAt.isNull() & a.inCatalogue.equals(true));
     return select.watch().map((rows) {
       final hits = rows.where((a) => a.normalizedName.contains(q)).toList()
         ..sort((a, b) {

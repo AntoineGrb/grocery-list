@@ -46,7 +46,7 @@ void main() {
 
       final field = find.byType(TextField);
       expect(tester.widget<TextField>(field).autofocus, isTrue);
-      expect(find.text(StringsFr.rechercherUnArticle), findsOneWidget);
+      expect(find.text(StringsFr.ajouterUnArticle), findsOneWidget);
       // Recherche vide : aucune ligne de résultat.
       expect(find.byType(SearchResultRow), findsNothing);
 

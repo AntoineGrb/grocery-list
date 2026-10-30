@@ -18,6 +18,7 @@ final appStartupProvider = FutureProvider<void>((ref) async {
   final loader = SeedLoader(
     db: ref.watch(databaseProvider),
     settings: ref.watch(settingsRepositoryProvider),
+    clock: ref.watch(clockProvider),
     loadAsset: ref.watch(seedAssetLoaderProvider),
     normalizeName: normalizeName,
     frequentId: frequentId,

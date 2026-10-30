@@ -56,13 +56,18 @@ Future<void> showAddSheet(BuildContext context) async {
   }
 }
 
-/// Panneau + : Champ de recherche focalisé, puis les fréquents groupés par
-/// rayon dans l'ordre du parcours, ou les résultats dès qu'une recherche est
-/// saisie. Un tap ajoute l'article, ou le retire s'il est déjà dans la liste
-/// (avec Annuler). Reste ouvert après un tap pour enchaîner.
+/// Panneau + : Champ d'ajout focalisé, puis les fréquents groupés par rayon
+/// dans l'ordre du parcours, ou les résultats dès qu'un texte est saisi. Un
+/// tap ajoute l'article, ou le retire s'il est déjà dans la liste (avec
+/// Annuler). Reste ouvert après un ajout pour enchaîner.
 ///
-/// Sans correspondance exacte, « Créer « … » » termine les résultats : il
-/// crée l'article et l'ajoute (R8). La ligne du dernier ajout se déplie :
+/// Entrée ajoute le texte tapé (R25) : l'article de ce nom, sinon un article
+/// hors catalogue (Divers, sans unité) ; déjà dans la liste, rien ne change.
+/// Le champ se vide, le clavier reste ouvert et la Ligne saisie (le dernier
+/// article d'Entrée) s'affiche sous le champ tant qu'il est dans la liste.
+/// Sans résultat, une seule ligne « Ajouter « … » » fait comme Entrée.
+///
+/// La ligne du dernier ajout par un tap se déplie :
 /// Champ quantité (unité par défaut de l'article, absent sans unité) et
 /// Choix de rayon (R3, R9). La quantité s'écrit à la validation du clavier,
 /// au repli (autre ajout, retrait de l'article) et à la fermeture, une seule
@@ -87,12 +92,12 @@ class _AddSheetState extends ConsumerState<AddSheet> {
   /// Articles dont l'écriture est en cours : un second tap est ignoré.
   final _pending = <String>{};
 
-  /// Une création est en cours : un second tap sur « Créer » est ignoré.
-  bool _creating = false;
+  /// Un ajout par Entrée est en cours : une seconde Entrée est ignorée.
+  bool _submitting = false;
 
-  /// Articles créés dans ce panneau : leur Choix de rayon change aussi le
-  /// rayon de l'article, même après un retrait et un nouvel ajout.
-  final _created = <String>{};
+  /// Ligne saisie : le dernier article ajouté par Entrée, affiché sous le
+  /// champ tant qu'il est dans la liste.
+  CatalogueArticle? _saisie;
 
   /// Messager propre au panneau.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -191,14 +196,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     final previous = _rayonDeplie;
     setState(() => _rayonDeplie = rayon);
     try {
-      await ref
-          .read(placerLigneAjouteeProvider)
-          .call(
-            deplie.lineId,
-            deplie.article.id,
-            rayon,
-            articleCree: deplie.articleCree,
-          );
+      await ref.read(placerLigneAjouteeProvider).call(deplie.lineId, rayon);
     } catch (_) {
       if (mounted && identical(_deplie, deplie) && _rayonDeplie == rayon) {
         setState(() => _rayonDeplie = previous);
@@ -207,20 +205,26 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     }
   }
 
-  /// « Créer « … » » : crée l'article de nom [name] et l'ajoute, puis
-  /// déplie sa ligne ; la saisie reste.
-  Future<void> _create(String name) async {
-    if (_creating) return;
-    _creating = true;
+  /// Entrée ou « Ajouter « … » » : ajoute le texte tapé (R25), sauf s'il
+  /// est déjà dans la liste, puis vide le champ et montre la Ligne saisie.
+  /// Un texte vide ne fait rien ; un échec garde la saisie.
+  Future<void> _addTyped() async {
+    final text = _controller.text;
+    if (text.trim().isEmpty || _submitting) return;
+    _submitting = true;
     _fold();
     try {
-      final ajout = await ref.read(creerEtAjouterProvider).call(name);
-      if (ajout.articleCree) _created.add(ajout.article.id);
-      _unfold(ajout);
+      final result = await ref.read(ajouterTexteProvider).call(text);
+      if (!mounted) return;
+      setState(() {
+        _saisie = result.article;
+        // Une frappe pendant l'écriture est gardée.
+        if (_controller.text == text) _controller.clear();
+      });
     } catch (_) {
       _showMessage(StringsFr.ajoutImpossible);
     } finally {
-      _creating = false;
+      _submitting = false;
     }
   }
 
@@ -254,7 +258,6 @@ class _AddSheetState extends ConsumerState<AddSheet> {
           article: article,
           lineId: added.lineId,
           contributionId: added.contributionId,
-          articleCree: _created.contains(article.id),
         ),
       );
     } catch (_) {
@@ -308,12 +311,12 @@ class _AddSheetState extends ConsumerState<AddSheet> {
         ? fresh ?? _lastResults
         : const <CatalogueArticle>[];
     _lastResults = results;
-    // « Créer » attend les résultats de cette saisie : jamais proposé sur
-    // des résultats périmés.
-    final showCreate =
-        fresh != null && !CatalogueRepository.hasExactMatch(fresh, query);
+    // « Ajouter « … » » attend les résultats de cette saisie : jamais
+    // proposé sur des résultats périmés.
+    final showAddTyped = fresh != null && fresh.isEmpty;
     final groups = searching ? null : ref.watch(frequentGroupsProvider).value;
     final inList = ref.watch(inListProvider).value ?? const <String>{};
+    final saisie = _saisie;
 
     // La ligne de [article], dépliée sous elle si c'est le dernier ajout.
     Widget withEditor(CatalogueArticle article, Widget row) {
@@ -346,21 +349,20 @@ class _AddSheetState extends ConsumerState<AddSheet> {
       );
     }
 
-    // Contenu sous le Champ de recherche ; [context] est sous le messager du
+    // Contenu sous le Champ d'ajout ; [context] est sous le messager du
     // panneau.
     Widget content(BuildContext context) {
       if (searching) {
         return ListView.builder(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
-          itemCount: results.length + (showCreate ? 1 : 0),
+          itemCount: results.length + (showAddTyped ? 1 : 0),
           itemBuilder: (_, i) {
             if (i == results.length) {
-              final name = query.trim();
-              return CreateArticleRow(
-                key: const ValueKey(CreateArticleRow),
-                name: name,
-                onTap: () => _create(name),
+              return AddTypedRow(
+                key: const ValueKey(AddTypedRow),
+                name: query.trim(),
+                onTap: _addTyped,
               );
             }
             final article = results[i];
@@ -426,15 +428,18 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                     child: TextField(
                       controller: _controller,
                       autofocus: true,
-                      textInputAction: TextInputAction.search,
+                      textInputAction: TextInputAction.done,
                       onChanged: (_) => setState(() {}),
+                      onSubmitted: (_) => _addTyped(),
+                      // Le clavier reste ouvert après Entrée.
+                      onEditingComplete: () {},
                       decoration: InputDecoration(
-                        hintText: StringsFr.rechercherUnArticle,
-                        prefixIcon: const Icon(Icons.search),
+                        hintText: StringsFr.ajouterUnArticle,
+                        prefixIcon: const Icon(Icons.add),
                         suffixIcon: query.isEmpty
                             ? null
                             : IconButton(
-                                tooltip: StringsFr.effacerLaRecherche,
+                                tooltip: StringsFr.effacerLeTexte,
                                 icon: const Icon(Icons.close),
                                 onPressed: () => setState(_controller.clear),
                               ),
@@ -443,6 +448,13 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                   ),
                 ),
                 const SizedBox(height: KadiSpacing.s2),
+                if (saisie != null && inList.contains(saisie.id))
+                  FrequentRow(
+                    key: const ValueKey('saisie'),
+                    article: saisie,
+                    inList: true,
+                    onTap: () => _toggle(context, saisie),
+                  ),
                 Expanded(child: content(context)),
               ],
             ),

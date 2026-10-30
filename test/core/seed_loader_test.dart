@@ -324,6 +324,108 @@ void main() {
     },
   );
 
+  test('article fourni nommé comme un article hors catalogue : inséré, les '
+      'lignes lui sont reportées, l’article hors catalogue supprimé', () async {
+    await seedLoader(db).run();
+    const typedId = '33333333-3333-4333-8333-333333333333';
+    const kumquatsId = '7d1c2f0e-3b8a-4c5d-9e6f-0a1b2c3d4e5f';
+    await db
+        .into(db.articles)
+        .insert(
+          ArticlesCompanion.insert(
+            id: typedId,
+            updatedAt: 100,
+            name: 'Kumquats',
+            normalizedName: 'kumquats',
+            rayon: 'divers',
+            pictoKey: 'kumquats',
+            inCatalogue: const Value(false),
+          ),
+        );
+    for (final (id, checkedAt) in [('l1', null), ('l2', 150)]) {
+      await db
+          .into(db.listLines)
+          .insert(
+            ListLinesCompanion.insert(
+              id: id,
+              updatedAt: 200,
+              articleId: typedId,
+              rayon: 'entretien',
+              addedAt: 120,
+              checkedAt: Value(checkedAt),
+            ),
+          );
+    }
+
+    final v3 = jsonEncode({
+      'seed_version': 3,
+      'articles': [_article(kumquatsId, ' KUMQUATS', 'fruits-legumes')],
+    });
+    await seedLoader(
+      db,
+      clock: Clock(now: () => 5000),
+      loadAsset: assetLoaderWith({
+        SeedLoader.articlesPath: v3,
+        SeedLoader.frequentsPath: _frequentsFile(3, [kumquatsId]),
+      }),
+    ).run();
+
+    final kumquats = await (db.select(
+      db.articles,
+    )..where((a) => a.id.equals(kumquatsId))).getSingle();
+    expect(kumquats.inCatalogue, isTrue);
+    expect(kumquats.updatedAt, 0);
+    expect(kumquats.rayon, 'fruits-legumes');
+    final typed = await (db.select(
+      db.articles,
+    )..where((a) => a.id.equals(typedId))).getSingle();
+    expect(typed.deletedAt, greaterThanOrEqualTo(5000));
+    expect(typed.updatedAt, typed.deletedAt);
+
+    final lines = await (db.select(
+      db.listLines,
+    )..orderBy([(l) => OrderingTerm.asc(l.id)])).get();
+    expect([for (final l in lines) l.articleId], [kumquatsId, kumquatsId]);
+    expect(lines.every((l) => l.updatedAt >= 5000), isTrue);
+    // Rien d'autre ne change sur les lignes.
+    expect([for (final l in lines) l.rayon], ['entretien', 'entretien']);
+    expect([for (final l in lines) l.checkedAt], [null, 150]);
+    expect(lines.every((l) => l.deletedAt == null), isTrue);
+
+    // Le fréquent de l'article fourni est inséré.
+    final frequents = await (db.select(
+      db.frequents,
+    )..where((f) => f.articleId.equals(kumquatsId))).get();
+    expect(frequents, hasLength(1));
+    // Un seul article actif de ce nom.
+    final active =
+        await (db.select(db.articles)..where(
+              (a) => a.normalizedName.equals('kumquats') & a.deletedAt.isNull(),
+            ))
+            .get();
+    expect(active.single.id, kumquatsId);
+  });
+
+  test('article fourni nommé comme un article du catalogue : sauté', () async {
+    await seedLoader(db).run();
+    const otherId = '44444444-4444-4444-8444-444444444444';
+    final before = await db.select(db.articles).get();
+
+    final v3 = jsonEncode({
+      'seed_version': 3,
+      'articles': [_article(otherId, 'LAIT', 'cremerie')],
+    });
+    await seedLoader(
+      db,
+      loadAsset: assetLoaderWith({
+        SeedLoader.articlesPath: v3,
+        SeedLoader.frequentsPath: _frequentsFile(1, []),
+      }),
+    ).run();
+
+    expect(await db.select(db.articles).get(), before);
+  });
+
   test('fichier d’articles invalide : erreur et rien d’écrit', () async {
     final bad = jsonEncode({
       'seed_version': 1,

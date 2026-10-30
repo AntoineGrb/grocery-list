@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:drift/drift.dart';
 
+import '../../clock/clock.dart';
 import '../../rayons/rayon.dart';
 import '../../settings/settings_repository.dart';
 import '../../units/unit.dart';
@@ -17,10 +18,16 @@ typedef SeedAssetLoader = Future<String> Function(String path);
 /// met jamais à jour une ligne existante. Lignes fournies et réglages par
 /// défaut ont `updated_at = 0`. Tout se fait en une transaction : un échec
 /// n'écrit rien.
+///
+/// Un article fourni dont le nom normalisé est porté par un article actif
+/// hors catalogue (AD-17) est inséré, les lignes de liste de l'article hors
+/// catalogue lui sont reportées et celui-ci est supprimé logiquement, par
+/// l'horloge (AD-8, AD-9).
 class SeedLoader {
   SeedLoader({
     required this._db,
     required this._settings,
+    required this._clock,
     required this._loadAsset,
     required this._normalizeName,
     required this._frequentId,
@@ -33,6 +40,7 @@ class SeedLoader {
 
   final AppDatabase _db;
   final SettingsRepository _settings;
+  final Clock _clock;
   final SeedAssetLoader _loadAsset;
   final String Function(String name) _normalizeName;
 
@@ -77,18 +85,51 @@ class SeedLoader {
     final existingIds = (await _db.select(_db.articles).get())
         .map((a) => a.id)
         .toSet();
-    final activeNames =
-        (await (_db.select(
-              _db.articles,
-            )..where((a) => a.deletedAt.isNull())).get())
-            .map((a) => a.normalizedName)
-            .toSet();
+    // Un nom normalisé reste unique parmi les articles actifs (AD-17).
+    final takenNames = <String>{};
+    final offCatalogue = <String, Article>{};
+    for (final a in await (_db.select(
+      _db.articles,
+    )..where((a) => a.deletedAt.isNull())).get()) {
+      if (a.inCatalogue) {
+        takenNames.add(a.normalizedName);
+      } else {
+        offCatalogue[a.normalizedName] = a;
+      }
+    }
     for (final row in rows) {
       if (existingIds.contains(row.id.value)) continue;
-      // Un nom normalisé reste unique parmi les articles actifs (AD-17).
-      if (!activeNames.add(row.normalizedName.value)) continue;
+      final name = row.normalizedName.value;
+      // Nom pris par un article du catalogue : l'article fourni est sauté.
+      if (!takenNames.add(name)) continue;
       await _db.into(_db.articles).insert(row);
+      final replaced = offCatalogue.remove(name);
+      if (replaced != null) await _replace(replaced, row.id.value);
     }
+  }
+
+  /// Reporte les lignes de liste de l'article hors catalogue [replaced] sur
+  /// l'article fourni [articleId], puis supprime logiquement [replaced].
+  Future<void> _replace(Article replaced, String articleId) async {
+    final lines = await (_db.select(
+      _db.listLines,
+    )..where((l) => l.articleId.equals(replaced.id))).get();
+    for (final line in lines) {
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.equals(line.id))).write(
+        ListLinesCompanion(
+          articleId: Value(articleId),
+          updatedAt: Value(_clock.stamp(line.updatedAt)),
+        ),
+      );
+    }
+    final stamp = _clock.stamp(replaced.updatedAt);
+    await (_db.update(
+      _db.articles,
+    )..where((a) => a.id.equals(replaced.id))).write(
+      ArticlesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+    );
   }
 
   Future<void> _insertFrequents(List<FrequentsCompanion> rows) async {
