@@ -60,4 +60,55 @@ void main() {
     expect(unitKey(Unit.piece), 'piece');
     expect(unitKey(null), '-');
   });
+
+  group('storedQuantity : saisie → quantité stockée (AD-6)', () {
+    final cases = <(String, InputUnit, StoredQuantity?)>[
+      ('300', InputUnit.g, (quantity: 300, unit: Unit.g)),
+      ('1500', InputUnit.g, (quantity: 1500, unit: Unit.g)),
+      ('1,5', InputUnit.kg, (quantity: 1500, unit: Unit.g)),
+      ('1.5', InputUnit.kg, (quantity: 1500, unit: Unit.g)),
+      ('0,25', InputUnit.kg, (quantity: 250, unit: Unit.g)),
+      ('1,234', InputUnit.kg, (quantity: 1234, unit: Unit.g)),
+      ('2', InputUnit.kg, (quantity: 2000, unit: Unit.g)),
+      ('3,', InputUnit.kg, (quantity: 3000, unit: Unit.g)),
+      // Virgule en tête : « ,5 » vaut « 0,5 ».
+      (',5', InputUnit.kg, (quantity: 500, unit: Unit.g)),
+      ('.5', InputUnit.l, (quantity: 500, unit: Unit.ml)),
+      ('250', InputUnit.ml, (quantity: 250, unit: Unit.ml)),
+      ('2', InputUnit.l, (quantity: 2000, unit: Unit.ml)),
+      ('0,5', InputUnit.l, (quantity: 500, unit: Unit.ml)),
+      ('3', InputUnit.piece, (quantity: 3000, unit: Unit.piece)),
+      (' 6 ', InputUnit.piece, (quantity: 6000, unit: Unit.piece)),
+      // Sans quantité.
+      ('', InputUnit.g, null),
+      ('0', InputUnit.kg, null),
+      ('0,000', InputUnit.l, null),
+      (',', InputUnit.kg, null),
+      // Illisible : décimales refusées ou en trop, signe, lettres.
+      ('1,5', InputUnit.g, null),
+      ('1,5', InputUnit.piece, null),
+      ('1,2345', InputUnit.kg, null),
+      ('-1', InputUnit.g, null),
+      ('a', InputUnit.g, null),
+    ];
+    for (final (text, unit, expected) in cases) {
+      test('« $text » ${unit.name} → $expected', () {
+        expect(storedQuantity(text, unit), expected);
+      });
+    }
+
+    test('aucune unité de saisie n’entre en base : g, ml, piece seulement', () {
+      expect(InputUnit.values.map((u) => u.stored).toSet(), {
+        Unit.g,
+        Unit.ml,
+        Unit.piece,
+      });
+    });
+
+    test('unité de saisie d’une unité stockée : jamais kg ni L', () {
+      expect(InputUnit.of(Unit.g), InputUnit.g);
+      expect(InputUnit.of(Unit.ml), InputUnit.ml);
+      expect(InputUnit.of(Unit.piece), InputUnit.piece);
+    });
+  });
 }

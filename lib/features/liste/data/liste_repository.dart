@@ -182,82 +182,6 @@ class ListeRepository {
     return (lineId: lineId, contributionId: contributionId);
   }
 
-  /// Précise la quantité d'un ajout du Panneau + : la contribution `ajout`
-  /// [contributionId] prend [quantity] dans l'unité par défaut de l'article,
-  /// et sa ligne prend cette unité (AD-4, AD-6). Jamais `edition` : la ligne
-  /// ne devient pas manuelle (AD-5).
-  ///
-  /// [quantity] est déjà stockée (pièces ×1000) ; nulle ou 0 : « sans
-  /// quantité », contribution et ligne sans unité. Une valeur inchangée
-  /// n'écrit rien ; une contribution absente, supprimée ou d'une autre
-  /// source non plus, ni une contribution dont la ligne ou l'article est
-  /// supprimé. Lève une [ArgumentError] pour une quantité négative, ou
-  /// chiffrée quand l'article n'a pas d'unité ; une [StateError], sans rien
-  /// écrire, si la ligne porte d'autres contributions actives.
-  Future<void> setAddedQuantity(String contributionId, int? quantity) async {
-    if (quantity != null && quantity < 0) {
-      throw ArgumentError.value(quantity, 'quantity', 'Quantité négative');
-    }
-    if (quantity == 0) quantity = null;
-
-    await _db.transaction(() async {
-      final contribution =
-          await (_db.select(_db.listContributions)..where(
-                (c) =>
-                    c.id.equals(contributionId) &
-                    c.deletedAt.isNull() &
-                    c.source.equals(ContributionSource.ajout),
-              ))
-              .getSingleOrNull();
-      if (contribution == null) return;
-      final line = await _activeLine(contribution.lineId);
-      if (line == null) return;
-      final article =
-          await (_db.select(_db.articles)..where(
-                (a) => a.id.equals(line.articleId) & a.deletedAt.isNull(),
-              ))
-              .getSingleOrNull();
-      // Une ligne dont l'article est supprimé compte comme supprimée (AD-7).
-      if (article == null) return;
-
-      final code = quantity == null ? null : article.unit;
-      if (quantity != null && code == null) {
-        throw ArgumentError('L’article n’a pas d’unité : quantity = $quantity');
-      }
-      if (contribution.quantity == quantity && contribution.unit == code) {
-        return;
-      }
-
-      final others = (await _activeContributions(line.id))
-          .where((c) => c.id != contributionId);
-      if (others.isNotEmpty) {
-        throw StateError(
-          'La ligne ${line.id} porte d’autres contributions actives',
-        );
-      }
-
-      final stamp = _clock.stamp(
-        line.updatedAt > contribution.updatedAt
-            ? line.updatedAt
-            : contribution.updatedAt,
-      );
-      await (_db.update(
-        _db.listContributions,
-      )..where((c) => c.id.equals(contributionId))).write(
-        ListContributionsCompanion(
-          quantity: Value(quantity),
-          unit: Value(code),
-          updatedAt: Value(stamp),
-        ),
-      );
-      await (_db.update(
-        _db.listLines,
-      )..where((l) => l.id.equals(line.id))).write(
-        ListLinesCompanion(unit: Value(code), updatedAt: Value(stamp)),
-      );
-    });
-  }
-
   /// Coche la ligne [lineId] : `checked_at` et `updated_at` fixés. Rien
   /// n'est écrit si la ligne est absente, supprimée ou déjà cochée.
   Future<void> check(String lineId) {
@@ -442,23 +366,30 @@ class ListeRepository {
     });
   }
 
-  /// Corrige la quantité de la ligne [lineId] depuis la Feuille d'édition
-  /// (AD-5) : dans une transaction, ses contributions actives sont supprimées
-  /// logiquement, une contribution `edition` de [quantity] est insérée et
-  /// `manual_at` est fixé.
+  /// Corrige la quantité et l'unité de la ligne [lineId] depuis la Feuille
+  /// d'édition (AD-5) : dans une transaction, ses contributions actives
+  /// sont supprimées logiquement, une contribution `edition` de [quantity]
+  /// en [unit] est insérée, la ligne prend [unit] et `manual_at` est fixé.
   ///
-  /// [quantity] est dans l'unité de la ligne, sinon (ligne sans quantité)
-  /// dans [unit] (l'unité du Champ quantité), sinon dans l'unité par défaut
-  /// de l'article, que la ligne prend ; jamais une autre : une [unit]
-  /// différente de celle de la ligne lève une [ArgumentError]. Nulle ou 0 : « sans quantité », la ligne perd son unité (AD-6).
-  /// Une quantité égale à celle affichée n'écrit rien ; une ligne absente ou
-  /// supprimée non plus. Lève une [ArgumentError] pour une quantité négative,
-  /// ou chiffrée quand ni la ligne ni l'article n'ont d'unité.
+  /// [quantity] est déjà stockée (AD-6 : g, ml, millièmes de pièce) ; nulle
+  /// ou 0 : « sans quantité » quelle que soit [unit], la ligne perd son
+  /// unité. Une ligne non cochée qui prend le `unit_key` d'une autre ligne
+  /// active non cochée du même article absorbe ses contributions actives et
+  /// garde son `added_at`, l'autre est supprimée logiquement (AD-4) ; une
+  /// ligne cochée ne fusionne jamais. Une quantité et une unité égales à
+  /// celles affichées n'écrivent rien ; une ligne absente ou supprimée, ou
+  /// dont l'article est supprimé, non plus. Lève une [ArgumentError] pour
+  /// une quantité négative, ou chiffrée sans unité.
   Future<void> setQuantity(String lineId, int? quantity, {Unit? unit}) async {
     if (quantity != null && quantity < 0) {
       throw ArgumentError.value(quantity, 'quantity', 'Quantité négative');
     }
     if (quantity == 0) quantity = null;
+    if (quantity == null) unit = null;
+    if (quantity != null && unit == null) {
+      throw ArgumentError('Quantité sans unité (AD-6) : quantity = $quantity');
+    }
+    final code = unit?.code;
 
     await _db.transaction(() async {
       final line = await _activeLine(lineId);
@@ -471,32 +402,61 @@ class ListeRepository {
       // Une ligne dont l'article est supprimé compte comme supprimée (AD-7).
       if (article == null) return;
 
-      if (line.unit != null && unit != null && unit.code != line.unit) {
-        throw ArgumentError(
-          'Unité ${unit.code} différente de celle de la ligne (${line.unit})',
-        );
-      }
-      final code = quantity == null
-          ? null
-          : (line.unit ?? unit?.code ?? article.unit);
-      if (quantity != null && code == null) {
-        throw ArgumentError(
-          'Ni la ligne ni l’article n’ont d’unité : quantity = $quantity',
-        );
-      }
-
       final contributions = await _activeContributions(lineId);
-      // Quantité affichée : somme des contributions, nulle sans unité.
+      // Quantité affichée : somme des contributions, nulle sans unité ; une
+      // ligne sans quantité affichée compte comme sans unité.
       final shown = line.unit == null
           ? null
           : contributions
                 .map((c) => c.quantity)
                 .nonNulls
                 .fold<int?>(null, (sum, q) => (sum ?? 0) + q);
-      if (shown == quantity) return;
+      final shownCode = shown == null ? null : line.unit;
+      if (shown == quantity && shownCode == code) return;
 
-      final stamp = _clock.stamp(_latest(line, contributions));
+      // Jumeaux : lignes non cochées du même article dans le nouveau
+      // `unit_key`, fusionnées dans la ligne éditée (AD-5).
+      final twins = line.checkedAt != null
+          ? const <ListLine>[]
+          : await (_db.select(_db.listLines)..where(
+                  (l) =>
+                      l.articleId.equals(line.articleId) &
+                      l.id.equals(line.id).not() &
+                      l.deletedAt.isNull() &
+                      l.checkedAt.isNull() &
+                      (code == null ? l.unit.isNull() : l.unit.equals(code)),
+                ))
+                .get();
+      final twinContributions = [
+        for (final twin in twins) ...await _activeContributions(twin.id),
+      ];
+
+      final stamp = _clock.stamp(
+        [
+          _latest(line, contributions),
+          for (final twin in twins) twin.updatedAt,
+          for (final c in twinContributions) c.updatedAt,
+        ].reduce((a, b) => a > b ? a : b),
+      );
       await _deleteContributions(contributions, stamp);
+      if (twinContributions.isNotEmpty) {
+        await (_db.update(_db.listContributions)..where(
+              (c) => c.id.isIn([for (final c in twinContributions) c.id]),
+            ))
+            .write(
+              ListContributionsCompanion(
+                lineId: Value(lineId),
+                updatedAt: Value(stamp),
+              ),
+            );
+      }
+      if (twins.isNotEmpty) {
+        await (_db.update(
+          _db.listLines,
+        )..where((l) => l.id.isIn([for (final t in twins) t.id]))).write(
+          ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+        );
+      }
       await _db
           .into(_db.listContributions)
           .insert(
@@ -612,20 +572,42 @@ class ListeRepository {
   Stream<List<ListeItem>> watchChecked() => _watch(checked: true);
 
   Stream<List<ListeItem>> _watch({required bool checked}) {
+    final (:query, :items) = _items(checked: checked);
+    return query.watch().map(items);
+  }
+
+  /// Plus ancienne ligne active non cochée de [articleId] (`added_at`, puis
+  /// `id`), celle qu'ouvre le crayon du Panneau + ; `null` s'il n'est pas
+  /// dans la liste.
+  Future<ListeItem?> firstUnchecked(String articleId) async {
+    final (:query, :items) = _items(checked: false, articleId: articleId);
+    query.limit(1);
+    return items(await query.get()).firstOrNull;
+  }
+
+  /// Requête des lignes actives, cochées ou non (de [articleId] seul s'il
+  /// est donné), avec leur quantité, et sa lecture en [ListeItem].
+  ({
+    JoinedSelectStatement<HasResultSet, dynamic> query,
+    List<ListeItem> Function(List<TypedResult>) items,
+  })
+  _items({required bool checked, String? articleId}) {
     final l = _db.listLines;
     final a = _db.articles;
     final c = _db.listContributions;
     final quantity = c.quantity.sum();
+
+    var filter =
+        l.deletedAt.isNull() &
+        (checked ? l.checkedAt.isNotNull() : l.checkedAt.isNull());
+    if (articleId != null) filter = filter & l.articleId.equals(articleId);
 
     final query =
         _db.select(l).join([
             innerJoin(a, a.id.equalsExp(l.articleId) & a.deletedAt.isNull()),
             leftOuterJoin(c, c.lineId.equalsExp(l.id) & c.deletedAt.isNull()),
           ])
-          ..where(
-            l.deletedAt.isNull() &
-                (checked ? l.checkedAt.isNotNull() : l.checkedAt.isNull()),
-          )
+          ..where(filter)
           ..addColumns([quantity])
           ..groupBy([l.id])
           ..orderBy(
@@ -634,8 +616,9 @@ class ListeRepository {
                 : [OrderingTerm.asc(l.addedAt), OrderingTerm.asc(l.id)],
           );
 
-    return query.watch().map(
-      (rows) => [
+    return (
+      query: query,
+      items: (rows) => [
         for (final row in rows)
           _toItem(row.readTable(l), row.readTable(a), row.read(quantity)),
       ],

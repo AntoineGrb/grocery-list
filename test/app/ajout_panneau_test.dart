@@ -18,7 +18,6 @@ void main() {
   late CatalogueRepository catalogue;
   late ListeRepository liste;
   late AjouterTexte ajouter;
-  late PlacerLigneAjoutee placer;
   var now = 1000;
 
   setUp(() async {
@@ -28,7 +27,6 @@ void main() {
     catalogue = CatalogueRepository(db, clock);
     liste = ListeRepository(db, clock);
     ajouter = AjouterTexte(db, catalogue, liste);
-    placer = PlacerLigneAjoutee(liste);
     await (db.update(
       db.articles,
     )..where((a) => a.id.equals(_pilesFourni))).write(
@@ -155,22 +153,4 @@ void main() {
       expect(await db.select(db.listContributions).get(), isEmpty);
     },
   );
-
-  test('rayon d’une ligne ajoutée : Lait, Épicerie salée → seule la ligne '
-      'change, l’article reste en Crèmerie', () async {
-    final added = await liste.addArticle(SeedIds.lait);
-    final articleBefore = await (db.select(
-      db.articles,
-    )..where((a) => a.id.equals(SeedIds.lait))).getSingle();
-
-    now = 2000;
-    await placer(added.lineId, Rayon.epicerieSalee);
-
-    final item = (await liste.watchUnchecked().first).single;
-    expect(item.rayon, Rayon.epicerieSalee);
-    final articleAfter = await (db.select(
-      db.articles,
-    )..where((a) => a.id.equals(SeedIds.lait))).getSingle();
-    expect(articleAfter, articleBefore);
-  });
 }

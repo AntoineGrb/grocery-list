@@ -12,6 +12,7 @@ import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
+import 'package:kadi/features/liste/ui/item_edit_sheet.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:material_ui/material_ui.dart';
@@ -67,8 +68,27 @@ Future<void> _letSnackBarClose(WidgetTester tester) async {
 /// le suivre).
 Finder get _search => _inSheet(find.byType(TextField)).first;
 
-/// Le Champ quantité de la ligne dépliée.
-final _quantity = _inSheet(find.byType(QuantityField));
+/// La Feuille d'édition, empilée sur le panneau.
+final _editSheet = find.byType(ItemEditSheet);
+Finder _inEditSheet(Finder finder) =>
+    find.descendant(of: _editSheet, matching: finder);
+
+/// Le crayon de la ligne [row].
+Finder _pencil(Finder row) =>
+    find.descendant(of: row, matching: find.byIcon(Icons.edit_outlined));
+
+/// Ouvre la Feuille d'édition par le crayon de [row].
+Future<void> _tapPencil(WidgetTester tester, Finder row) async {
+  await tester.tap(_pencil(row));
+  await tester.pumpAndSettle();
+}
+
+/// Ferme la Feuille d'édition par un tap sur sa barrière : le panneau
+/// reste ouvert dessous.
+Future<void> _closeEditSheet(WidgetTester tester) async {
+  await tester.tapAt(const Offset(20, 20));
+  await tester.pumpAndSettle();
+}
 
 /// La ligne « Ajouter « … » ».
 final _addTyped = find.byType(AddTypedRow);
@@ -94,9 +114,9 @@ bool _fieldFocused(WidgetTester tester) => tester
     .focusNode
     .hasFocus;
 
-/// La pastille [rayon] du Choix de rayon de la ligne dépliée.
+/// La pastille [rayon] du Choix de rayon de la Feuille d'édition.
 Finder _pastille(Rayon rayon) => find.descendant(
-  of: _inSheet(find.byType(RayonPicker)),
+  of: _inEditSheet(find.byType(RayonPicker)),
   matching: find.byKey(ValueKey(rayon)),
 );
 
@@ -494,7 +514,8 @@ void main() {
       expect(_indicator(_saisie, Icons.check), findsOneWidget);
       // Rien ne se déplie après Entrée ; les fréquents reviennent, sous la
       // Ligne saisie.
-      expect(find.byType(AddedLineEditor), findsNothing);
+      expect(_inSheet(find.byType(QuantityField)), findsNothing);
+      expect(_inSheet(find.byType(RayonPicker)), findsNothing);
       expect(_frequent('Lait'), findsOneWidget);
       expect(
         tester.getTopLeft(_saisie).dy,
@@ -761,95 +782,79 @@ void main() {
     });
   });
 
-  group('quantité et rayon à l’ajout', () {
-    testWidgets('Œufs dans les fréquents : dépliée avec le Champ quantité '
-        '(pièces, vide) et Crèmerie entouré ; 6 validé : « 6 pièces » dans la '
-        'Liste, ligne non manuelle', (tester) async {
-      final db = await _pumpApp(tester);
+  group('crayon et Feuille d’édition (R14, AD-13)', () {
+    testWidgets('tap sur Lait : le + devient une coche et un crayon apparaît '
+        'à sa gauche, rien ne se déplie ; hors liste, pas de crayon', (
+      tester,
+    ) async {
+      await _pumpApp(tester);
       await _openSheet(tester);
-      expect(find.byType(AddedLineEditor), findsNothing);
-
-      await _tap(tester, _frequent('Œufs'));
-
-      final editor = find.byType(AddedLineEditor);
-      expect(editor, findsOneWidget);
-      // Sous la ligne d'Œufs.
-      expect(
-        tester.getTopLeft(editor).dy,
-        greaterThanOrEqualTo(tester.getBottomLeft(_frequent('Œufs')).dy),
-      );
-      final field = tester.widget<QuantityField>(_quantity);
-      expect(field.unit, Unit.piece);
-      expect(field.controller.text, isEmpty);
-      expect(
-        find.descendant(of: _quantity, matching: find.text('pièces')),
-        findsOneWidget,
-      );
-      expect(
-        tester.widget<RayonPicker>(find.byType(RayonPicker)).selected,
-        Rayon.cremerie,
-      );
-      expect(tester.getSize(_quantity).height, greaterThanOrEqualTo(48));
-
-      await tester.enterText(_quantity, '6');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-
-      final line = (await _activeLines(db, SeedIds.oeufs)).single;
-      expect(line.unit, 'piece');
-      expect(line.manualAt, isNull);
-      final contribution = (await db.select(db.listContributions).get()).single;
-      expect(contribution.source, ContributionSource.ajout);
-      expect(contribution.quantity, 6000);
-      expect(contribution.unit, 'piece');
-
-      await _closeSheet(tester);
-      final row = find.widgetWithText(ItemRow, 'Œufs');
-      expect(row, findsOneWidget);
-      expect(
-        find.descendant(
-          of: row,
-          matching: find.text(formatQuantity(6000, Unit.piece)),
-        ),
-        findsOneWidget,
-      );
-      // Une seule écriture : la fermeture n'a rien réécrit.
-      expect(
-        (await db.select(db.listContributions).get()).single.updatedAt,
-        contribution.updatedAt,
-      );
-    });
-
-    testWidgets('ligne dépliée, autre ajout : la première se replie et sa '
-        'quantité est écrite ; à la fermeture, la quantité en cours est '
-        'écrite', (tester) async {
-      final db = await _pumpApp(tester);
-      await _openSheet(tester);
-
-      await _tap(tester, _frequent('Œufs'));
-      await tester.enterText(_quantity, '6');
-      await tester.pump();
+      expect(_pencil(_frequent('Lait')), findsNothing);
 
       await _tap(tester, _frequent('Lait'));
 
-      final editor = find.byType(AddedLineEditor);
-      expect(editor, findsOneWidget);
+      final pencil = _pencil(_frequent('Lait'));
+      expect(pencil, findsOneWidget);
+      expect(_indicator(_frequent('Lait'), Icons.check), findsOneWidget);
+      expect(_pencil(_frequent('Beurre')), findsNothing);
       expect(
-        tester.getTopLeft(editor).dy,
-        greaterThanOrEqualTo(tester.getBottomLeft(_frequent('Lait')).dy),
+        tester.getCenter(pencil).dx,
+        lessThan(
+          tester.getCenter(_indicator(_frequent('Lait'), Icons.check)).dx,
+        ),
       );
-      expect(tester.widget<QuantityField>(_quantity).controller.text, isEmpty);
-      final oeufs = (await _activeLines(db, SeedIds.oeufs)).single;
-      expect(oeufs.unit, 'piece');
+      final button = find.ancestor(
+        of: pencil,
+        matching: find.byType(IconButton),
+      );
+      expect(tester.getSize(button).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(button).height, greaterThanOrEqualTo(48));
+      expect(
+        tester.widget<Icon>(pencil).color,
+        Theme.of(tester.element(pencil)).colorScheme.onSurfaceVariant,
+      );
+      expect(find.byTooltip(StringsFr.modifierNom('Lait')), findsOneWidget);
+      // La ligne garde la hauteur d'une ligne sans crayon.
+      expect(
+        tester.getSize(_frequent('Lait')).height,
+        tester.getSize(_frequent('Beurre')).height,
+      );
+      // Rien ne se déplie, aucune feuille ne s'ouvre.
+      expect(_inSheet(find.byType(QuantityField)), findsNothing);
+      expect(_inSheet(find.byType(RayonPicker)), findsNothing);
+      expect(_editSheet, findsNothing);
+    });
 
-      await tester.enterText(_quantity, '2');
-      await tester.pump();
+    testWidgets('crayon de Lait : feuille empilée sur le panneau ; quantité '
+        'changée puis feuille fermée : le panneau est toujours ouvert, la '
+        'Liste montre la nouvelle quantité', (tester) async {
+      final db = await _pumpApp(tester);
+      await _openSheet(tester);
+      await _tap(tester, _frequent('Lait'));
+
+      await _tapPencil(tester, _frequent('Lait'));
+
+      expect(_editSheet, findsOneWidget);
+      expect(_sheet, findsOneWidget);
+      expect(_inEditSheet(find.text('Lait')), findsOneWidget);
+      // Lait est en pièces : la puce pièce est préchoisie.
+      expect(
+        tester
+            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
+            .selected,
+        isTrue,
+      );
+      await tester.enterText(_inEditSheet(find.byType(TextField)), '2');
+      await _closeEditSheet(tester);
+
+      expect(_editSheet, findsNothing);
+      expect(_sheet, findsOneWidget);
+      expect(_indicator(_frequent('Lait'), Icons.check), findsOneWidget);
+      final line = (await _activeLines(db, SeedIds.lait)).single;
+      expect(line.unit, 'piece');
+      expect(line.manualAt, isNotNull);
+
       await _closeSheet(tester);
-
-      final lait = (await _activeLines(db, SeedIds.lait)).single;
-      expect(lait.unit, 'piece');
-      expect(lait.manualAt, isNull);
-      await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.widgetWithText(ItemRow, 'Lait'),
@@ -857,81 +862,19 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        find.descendant(
-          of: find.widgetWithText(ItemRow, 'Œufs'),
-          matching: find.text(formatQuantity(6000, Unit.piece)),
-        ),
-        findsOneWidget,
-      );
     });
 
-    testWidgets('quantité vidée : la ligne redevient sans quantité ; retirer '
-        'l’article déplié replie sa ligne', (tester) async {
+    testWidgets('rayon depuis le panneau : crayon de Lait, Épicerie salée → '
+        'la ligne change de groupe, l’article garde son rayon', (tester) async {
       final db = await _pumpApp(tester);
       await _openSheet(tester);
-
-      await _tap(tester, _frequent('Œufs'));
-      await tester.enterText(_quantity, '6');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect((await _activeLines(db, SeedIds.oeufs)).single.unit, 'piece');
-
-      await tester.enterText(_quantity, '');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      final contribution = (await db.select(db.listContributions).get()).single;
-      expect(contribution.quantity, isNull);
-      expect(contribution.unit, isNull);
-      expect((await _activeLines(db, SeedIds.oeufs)).single.unit, isNull);
-
-      await _tap(tester, _frequent('Œufs'));
-      expect(find.byType(AddedLineEditor), findsNothing);
-      expect(await _activeLines(db, SeedIds.oeufs), isEmpty);
-      await _letSnackBarClose(tester);
-    });
-
-    testWidgets('quantité saisie sans valider, retrait d’un autre article puis '
-        'fermeture : Annuler sur la Liste remet Lait, Œufs lit « 6 pièces »', (
-      tester,
-    ) async {
-      final db = await _pumpApp(tester);
-      await ListeRepository(db, Clock()).addArticle(SeedIds.lait);
-      await tester.pumpAndSettle();
-      await _openSheet(tester);
-
-      await _tap(tester, _frequent('Œufs'));
-      await tester.enterText(_quantity, '6');
-      await tester.pump();
       await _tap(tester, _frequent('Lait'));
+      await _tapPencil(tester, _frequent('Lait'));
 
-      expect(await _activeLines(db, SeedIds.lait), isEmpty);
-      expect(find.byType(AddedLineEditor), findsNothing);
-      expect((await _activeLines(db, SeedIds.oeufs)).single.unit, 'piece');
-
-      await _closeSheet(tester);
-      expect(find.text(StringsFr.retireDeLaListe('Lait')), findsOneWidget);
-      await _tap(tester, _undoAction);
-
-      expect(await _activeLines(db, SeedIds.lait), hasLength(1));
-      expect(find.widgetWithText(ItemRow, 'Lait'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.widgetWithText(ItemRow, 'Œufs'),
-          matching: find.text(formatQuantity(6000, Unit.piece)),
-        ),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('rayon d’un article existant : seule la ligne change', (
-      tester,
-    ) async {
-      final db = await _pumpApp(tester);
-      await _openSheet(tester);
-
-      await _tap(tester, _frequent('Lait'));
       await _tap(tester, _pastille(Rayon.epicerieSalee));
+      // La feuille reste ouverte.
+      expect(_editSheet, findsOneWidget);
+      await _closeEditSheet(tester);
 
       expect(
         (await _activeLines(db, SeedIds.lait)).single.rayon,
@@ -941,49 +884,205 @@ void main() {
         db.articles,
       )..where((a) => a.id.equals(SeedIds.lait))).getSingle();
       expect(lait.rayon, 'cremerie');
-    });
-
-    testWidgets('TalkBack : Champ quantité lu « Quantité », pastilles lues '
-        'par leur nom', (tester) async {
-      final handle = tester.ensureSemantics();
-      await _pumpApp(tester);
-      await _openSheet(tester);
-
-      await _tap(tester, _frequent('Œufs'));
+      await _closeSheet(tester);
       expect(
-        tester.getSemantics(find.bySemanticsLabel(RegExp(r'^Quantité'))),
-        matchesSemantics(
-          label: StringsFr.quantite,
-          isTextField: true,
-          hasTapAction: true,
-          hasFocusAction: true,
-          isFocusable: true,
-          hasEnabledState: true,
-          isEnabled: true,
+        tester.getTopLeft(find.widgetWithText(ItemRow, 'Lait')).dy,
+        greaterThan(
+          tester
+              .getTopLeft(find.widgetWithText(RayonHeader, 'Épicerie salée'))
+              .dy,
         ),
       );
+      expect(find.widgetWithText(RayonHeader, 'Crèmerie'), findsNothing);
+    });
+
+    testWidgets('« Supprimer » depuis le panneau : ligne retirée, snackbar '
+        'Annuler dans le panneau ; Annuler la remet', (tester) async {
+      final db = await _pumpApp(tester);
+      await _openSheet(tester);
+      await _tap(tester, _frequent('Lait'));
+      await _tapPencil(tester, _frequent('Lait'));
+
+      await _tap(tester, _inEditSheet(find.text(StringsFr.supprimer)));
+
+      expect(_editSheet, findsNothing);
+      expect(_sheet, findsOneWidget);
+      expect(await _activeLines(db, SeedIds.lait), isEmpty);
+      expect(_indicator(_frequent('Lait'), Icons.add), findsOneWidget);
+      expect(_pencil(_frequent('Lait')), findsNothing);
       expect(
-        tester.getSemantics(
-          find.descendant(
-            of: find.byType(RayonPicker),
-            matching: find.bySemanticsLabel('Fruits et légumes'),
-          ),
-        ),
+        _inSheet(find.text(StringsFr.retireDeLaListe('Lait'))),
+        findsOneWidget,
+      );
+
+      await _tap(tester, _inSheet(_undoAction));
+
+      expect(await _activeLines(db, SeedIds.lait), hasLength(1));
+      expect(_indicator(_frequent('Lait'), Icons.check), findsOneWidget);
+    });
+
+    testWidgets('« Supprimer » depuis le panneau puis panneau fermé : '
+        'l’Annuler passe sur la Liste', (tester) async {
+      final db = await _pumpApp(tester);
+      await _openSheet(tester);
+      await _tap(tester, _frequent('Lait'));
+      await _tapPencil(tester, _frequent('Lait'));
+      await _tap(tester, _inEditSheet(find.text(StringsFr.supprimer)));
+      await _closeSheet(tester);
+
+      expect(find.text(StringsFr.retireDeLaListe('Lait')), findsOneWidget);
+      await _tap(tester, _undoAction);
+      expect(await _activeLines(db, SeedIds.lait), hasLength(1));
+      expect(find.widgetWithText(ItemRow, 'Lait'), findsOneWidget);
+    });
+
+    testWidgets('échec de « Supprimer » : snackbar d’erreur dans le panneau, '
+        'Lait reste', (tester) async {
+      final db = await _pumpApp(tester);
+      await ListeRepository(db, Clock()).addArticle(SeedIds.lait);
+      await db.customStatement(
+        'CREATE TRIGGER no_remove BEFORE UPDATE OF deleted_at ON list_lines '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+      await tester.pumpAndSettle();
+      await _openSheet(tester);
+      await _tapPencil(tester, _frequent('Lait'));
+
+      await _tap(tester, _inEditSheet(find.text(StringsFr.supprimer)));
+
+      expect(
+        _inSheet(find.text(StringsFr.suppressionImpossible)),
+        findsOneWidget,
+      );
+      expect(await _activeLines(db, SeedIds.lait), hasLength(1));
+      expect(_indicator(_frequent('Lait'), Icons.check), findsOneWidget);
+      await _letSnackBarClose(tester);
+    });
+
+    testWidgets('échec d’une modification : snackbar d’erreur dans le '
+        'messager du panneau', (tester) async {
+      final db = await _pumpApp(tester);
+      await ListeRepository(db, Clock()).addArticle(SeedIds.lait);
+      await db.customStatement(
+        'CREATE TRIGGER no_rayon BEFORE UPDATE OF rayon ON list_lines '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+      await tester.pumpAndSettle();
+      await _openSheet(tester);
+      await _tapPencil(tester, _frequent('Lait'));
+
+      await _tap(tester, _pastille(Rayon.epicerieSalee));
+
+      expect(
+        _inSheet(find.text(StringsFr.modificationImpossible)),
+        findsOneWidget,
+      );
+      await _closeEditSheet(tester);
+      expect(
+        (await _activeLines(db, SeedIds.lait)).single.rayon,
+        Rayon.cremerie.code,
+      );
+      await _letSnackBarClose(tester);
+    });
+
+    testWidgets('article sur deux lignes : la feuille ouvre la plus ancienne '
+        'ligne non cochée', (tester) async {
+      final db = await _pumpApp(tester);
+      final repo = ListeRepository(db, Clock());
+      await repo.addArticle(SeedIds.lait, quantity: 500, unit: Unit.ml);
+      await repo.addArticle(SeedIds.lait, quantity: 2000, unit: Unit.piece);
+      await tester.pumpAndSettle();
+      await _openSheet(tester);
+
+      await _tapPencil(tester, _frequent('Lait'));
+
+      expect(
+        tester
+            .widget<TextField>(_inEditSheet(find.byType(TextField)))
+            .controller!
+            .text,
+        '500',
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.ml)))
+            .selected,
+        isTrue,
+      );
+    });
+
+    testWidgets('résultat et Ligne saisie dans la liste : crayon ; « piles » '
+        '+ Entrée, crayon, Entretien : Piles sous Entretien', (tester) async {
+      final db = await _pumpApp(tester);
+      await _withoutPiles(tester, db);
+      await _openSheet(tester);
+
+      await _type(tester, 'lai');
+      expect(_pencil(_result('Lait')), findsNothing);
+      await _tap(tester, _result('Lait'));
+      expect(_pencil(_result('Lait')), findsOneWidget);
+
+      await _type(tester, 'piles');
+      await _enter(tester);
+      expect(_pencil(_saisie), findsOneWidget);
+      await _tapPencil(tester, _saisie);
+
+      expect(_inEditSheet(find.text('Piles')), findsOneWidget);
+      // Article sans unité : pièce préchoisie.
+      expect(
+        tester
+            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
+            .selected,
+        isTrue,
+      );
+      await _tap(tester, _pastille(Rayon.entretien));
+      await _closeEditSheet(tester);
+      expect(_sheet, findsOneWidget);
+
+      final piles = (await _activeArticles(db, 'piles')).single;
+      expect(
+        (await _activeLines(db, piles.id)).single.rayon,
+        Rayon.entretien.code,
+      );
+      expect(piles.rayon, 'divers');
+    });
+
+    testWidgets('TalkBack : la ligne reste lue « Lait, dans la liste », le '
+        'crayon est un bouton à part lu « Modifier Lait »', (tester) async {
+      final handle = tester.ensureSemantics();
+      final db = await _pumpApp(tester);
+      await ListeRepository(db, Clock()).addArticle(SeedIds.lait);
+      await tester.pumpAndSettle();
+      await _openSheet(tester);
+
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Lait, dans la liste')),
         isSemantics(
-          label: 'Fruits et légumes',
+          label: 'Lait, dans la liste',
           isButton: true,
           hasTapAction: true,
         ),
       );
-      expect(
-        tester.getSemantics(
-          find.descendant(
-            of: find.byType(RayonPicker),
-            matching: find.bySemanticsLabel('Crèmerie'),
-          ),
-        ),
-        isSemantics(label: 'Crèmerie', isButton: true, isSelected: true),
+      final pencil = find.descendant(
+        of: _frequent('Lait'),
+        matching: find.byType(IconButton),
       );
+      expect(
+        tester.getSemantics(pencil),
+        isSemantics(
+          tooltip: StringsFr.modifierNom('Lait'),
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+
+      tester.semantics.tap(
+        find.semantics.byPredicate(
+          (node) => node.tooltip == StringsFr.modifierNom('Lait'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(_editSheet, findsOneWidget);
       handle.dispose();
     });
   });

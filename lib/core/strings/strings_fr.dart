@@ -47,7 +47,11 @@ abstract final class StringsFr {
   static String retireDeLaListe(String name) => 'Retiré de la liste : $name';
   static const supprimer = 'Supprimer';
   static const modifier = 'Modifier';
+
+  /// Crayon d'une ligne du Panneau + dans la liste : « Modifier Lait ».
+  static String modifierNom(String name) => 'Modifier $name';
   static const quantite = 'Quantité';
+  static const unite = 'Unité';
   static const rayon = 'Rayon';
   static const suppressionImpossible = 'Suppression impossible. Réessaie.';
   static const modificationImpossible = 'Modification impossible. Réessaie.';
@@ -85,11 +89,20 @@ abstract final class StringsFr {
   static const unitePiece = 'pièce';
   static const unitePieces = 'pièces';
 
-  // Suffixes d'unité du Champ quantité (unité de saisie : g, ml, pièces
-  // entières).
+  // Suffixes d'unité du Champ quantité (unité de saisie : pièces
+  // entières, g, kg, ml, l).
   static const champUniteG = uniteG;
+  static const champUniteKg = uniteKg;
   static const champUniteMl = uniteMl;
+  static const champUniteL = uniteL;
   static const champUnitePieces = unitePieces;
+
+  // Puces du Choix d'unité de la Feuille d'édition.
+  static const puceUnitePiece = unitePiece;
+  static const puceUniteG = uniteG;
+  static const puceUniteKg = uniteKg;
+  static const puceUniteMl = uniteMl;
+  static const puceUniteL = 'L';
 
   // Noms affichés des 13 rayons (AD-11).
   static const rayonFruitsLegumes = 'Fruits & légumes';

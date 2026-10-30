@@ -1,25 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
-import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
-
-/// Dernier ajout du Panneau + : l'article, sa ligne et la contribution
-/// `ajout` écrite.
-class ArticleAjoute {
-  const ArticleAjoute({
-    required this.article,
-    required this.lineId,
-    required this.contributionId,
-  });
-
-  final CatalogueArticle article;
-  final String lineId;
-  final String contributionId;
-}
 
 /// Résultat d'Entrée dans le Panneau + : l'article du texte tapé et s'il
 /// vient d'être ajouté (faux : il était déjà dans la liste).
@@ -51,26 +36,10 @@ class AjouterTexte {
   }
 }
 
-/// Choix de rayon d'une ligne ajoutée depuis le Panneau + (R9, AD-3,
-/// AD-15) : seule la ligne change de rayon, jamais l'article.
-class PlacerLigneAjoutee {
-  PlacerLigneAjoutee(this._liste);
-
-  final ListeRepository _liste;
-
-  /// Place la ligne [lineId] dans [rayon]. Un échec lève et n'écrit rien.
-  Future<void> call(String lineId, Rayon rayon) =>
-      _liste.setRayon(lineId, rayon);
-}
-
 final ajouterTexteProvider = Provider<AjouterTexte>(
   (ref) => AjouterTexte(
     ref.watch(databaseProvider),
     ref.watch(catalogueRepositoryProvider),
     ref.watch(listeRepositoryProvider),
   ),
-);
-
-final placerLigneAjouteeProvider = Provider<PlacerLigneAjoutee>(
-  (ref) => PlacerLigneAjoutee(ref.watch(listeRepositoryProvider)),
 );

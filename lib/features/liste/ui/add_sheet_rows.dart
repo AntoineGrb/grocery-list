@@ -3,88 +3,8 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
-import 'package:kadi/core/ui/quantity_field.dart';
-import 'package:kadi/core/ui/rayon_picker.dart';
-import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:material_ui/material_ui.dart';
-
-/// Largeur du Champ quantité sous une ligne dépliée.
-const _quantityFieldWidth = 160.0;
-
-/// Ligne dépliée du dernier ajout du Panneau + : Champ quantité dans
-/// [unit] (absent sans unité), lu « Quantité », puis Choix de rayon, le
-/// rayon [rayon] de la ligne entouré. Facultatifs tous les deux.
-class AddedLineEditor extends StatelessWidget {
-  const AddedLineEditor({
-    super.key,
-    required this.unit,
-    required this.quantityController,
-    required this.rayon,
-    required this.onRayonSelected,
-    this.onQuantityChanged,
-    this.onQuantitySubmitted,
-  });
-
-  final Unit? unit;
-  final TextEditingController quantityController;
-  final ValueChanged<String>? onQuantityChanged;
-  final ValueChanged<String>? onQuantitySubmitted;
-  final Rayon rayon;
-  final ValueChanged<Rayon> onRayonSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final labelStyle = theme.textTheme.titleSmall?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-    );
-    final unit = this.unit;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        KadiSpacing.margin,
-        0,
-        KadiSpacing.margin,
-        KadiSpacing.s3,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (unit != null) ...[
-            Row(
-              children: [
-                Expanded(
-                  // Le champ porte lui-même le nom lu « Quantité ».
-                  child: ExcludeSemantics(
-                    child: Text(StringsFr.quantite, style: labelStyle),
-                  ),
-                ),
-                SizedBox(
-                  width: _quantityFieldWidth,
-                  child: Semantics(
-                    label: StringsFr.quantite,
-                    child: QuantityField(
-                      controller: quantityController,
-                      unit: unit,
-                      onChanged: onQuantityChanged,
-                      onSubmitted: onQuantitySubmitted,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: KadiSpacing.s3),
-          ],
-          Text(StringsFr.rayon, style: labelStyle),
-          const SizedBox(height: KadiSpacing.s2),
-          RayonPicker(selected: rayon, onSelected: onRayonSelected),
-        ],
-      ),
-    );
-  }
-}
 
 /// Seule ligne des résultats quand la saisie ne trouve rien : signe +
 /// neutre et « Ajouter « piles » », qui fait comme Entrée. Un bouton, lu
@@ -161,56 +81,99 @@ class InListIndicator extends StatelessWidget {
   }
 }
 
-/// Ligne de fréquent : Picto, nom et indicateur d'état. Annoncée « Lait »
-/// hors liste, « Lait, dans la liste » dans la liste.
-class FrequentRow extends StatelessWidget {
-  const FrequentRow({
-    super.key,
+/// Ligne du Panneau + : Picto, nom, [meta] facultatif et indicateur d'état ;
+/// dans la liste, le crayon [onEdit] à gauche de la coche.
+///
+/// La ligne est un bouton lu [label] ; le crayon, cible de 48 dp, est un
+/// bouton à part, lu « Modifier Lait ».
+class _PanelRow extends StatelessWidget {
+  const _PanelRow({
     required this.article,
+    required this.label,
     required this.inList,
     required this.onTap,
+    this.onEdit,
+    this.meta,
   });
 
   final CatalogueArticle article;
+  final String label;
   final bool inList;
   final VoidCallback onTap;
+  final VoidCallback? onEdit;
+  final String? meta;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final onEdit = this.onEdit;
+    final meta = this.meta;
 
     return Semantics(
+      container: true,
       button: true,
-      label: inList
-          ? '${article.name}, ${StringsFr.dansLaListe}'
-          : article.name,
-      excludeSemantics: true,
+      label: label,
       onTap: onTap,
       child: InkWell(
         onTap: onTap,
+        excludeFromSemantics: true,
         child: ConstrainedBox(
           constraints: const BoxConstraints(
             minHeight: KadiSpacing.rowMinHeight,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: KadiSpacing.margin,
-              vertical: KadiSpacing.s2,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.margin),
             child: Row(
               children: [
-                Picto(pictoKey: article.pictoKey, rayon: article.rayon),
+                ExcludeSemantics(
+                  child: Picto(
+                    pictoKey: article.pictoKey,
+                    rayon: article.rayon,
+                  ),
+                ),
                 const SizedBox(width: KadiSpacing.s4),
                 Expanded(
-                  child: Text(
-                    article.name,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: theme.colorScheme.onSurface,
+                  child: ExcludeSemantics(
+                    child: Padding(
+                      // Le crayon fait 48 dp : la ligne garde sa hauteur.
+                      padding: const EdgeInsets.symmetric(
+                        vertical: KadiSpacing.s2,
+                      ),
+                      child: Text(
+                        article.name,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurface,
+                        ),
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: KadiSpacing.s3),
-                InListIndicator(rayon: article.rayon, inList: inList),
+                if (meta != null) ...[
+                  const SizedBox(width: KadiSpacing.s3),
+                  ExcludeSemantics(
+                    child: Text(
+                      meta,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+                if (inList && onEdit != null)
+                  IconButton(
+                    onPressed: onEdit,
+                    tooltip: StringsFr.modifierNom(article.name),
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  )
+                else
+                  const SizedBox(width: KadiSpacing.s3),
+                ExcludeSemantics(
+                  child: InListIndicator(rayon: article.rayon, inList: inList),
+                ),
               ],
             ),
           ),
@@ -220,71 +183,66 @@ class FrequentRow extends StatelessWidget {
   }
 }
 
-/// Ligne de résultat : Picto, nom, rayon et indicateur d'état. Annoncée
-/// « Lait, Crèmerie », avec « dans la liste » s'il y est.
-class SearchResultRow extends StatelessWidget {
-  const SearchResultRow({
+/// Ligne de fréquent : Picto, nom et indicateur d'état ; dans la liste, le
+/// crayon [onEdit] ouvre la Feuille d'édition. Annoncée « Lait » hors
+/// liste, « Lait, dans la liste » dans la liste. Sert aussi à la Ligne
+/// saisie.
+class FrequentRow extends StatelessWidget {
+  const FrequentRow({
     super.key,
     required this.article,
+    required this.inList,
     required this.onTap,
-    this.inList = false,
+    this.onEdit,
   });
 
   final CatalogueArticle article;
   final bool inList;
   final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
+  /// Crayon, montré seulement dans la liste.
+  final VoidCallback? onEdit;
 
-    return Semantics(
-      button: true,
-      label: [
-        article.name,
-        article.rayon.spokenLabel,
-        if (inList) StringsFr.dansLaListe,
-      ].join(', '),
-      excludeSemantics: true,
-      onTap: onTap,
-      child: InkWell(
-        onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: KadiSpacing.rowMinHeight,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: KadiSpacing.margin,
-              vertical: KadiSpacing.s2,
-            ),
-            child: Row(
-              children: [
-                Picto(pictoKey: article.pictoKey, rayon: article.rayon),
-                const SizedBox(width: KadiSpacing.s4),
-                Expanded(
-                  child: Text(
-                    article.name,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: KadiSpacing.s3),
-                Text(
-                  article.rayon.label,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: scheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: KadiSpacing.s3),
-                InListIndicator(rayon: article.rayon, inList: inList),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  @override
+  Widget build(BuildContext context) => _PanelRow(
+    article: article,
+    label: inList ? '${article.name}, ${StringsFr.dansLaListe}' : article.name,
+    inList: inList,
+    onTap: onTap,
+    onEdit: onEdit,
+  );
+}
+
+/// Ligne de résultat : Picto, nom, rayon et indicateur d'état ; dans la
+/// liste, le crayon [onEdit]. Annoncée « Lait, Crèmerie », avec « dans la
+/// liste » s'il y est.
+class SearchResultRow extends StatelessWidget {
+  const SearchResultRow({
+    super.key,
+    required this.article,
+    required this.onTap,
+    this.inList = false,
+    this.onEdit,
+  });
+
+  final CatalogueArticle article;
+  final bool inList;
+  final VoidCallback onTap;
+
+  /// Crayon, montré seulement dans la liste.
+  final VoidCallback? onEdit;
+
+  @override
+  Widget build(BuildContext context) => _PanelRow(
+    article: article,
+    label: [
+      article.name,
+      article.rayon.spokenLabel,
+      if (inList) StringsFr.dansLaListe,
+    ].join(', '),
+    inList: inList,
+    onTap: onTap,
+    onEdit: onEdit,
+    meta: article.rayon.label,
+  );
 }

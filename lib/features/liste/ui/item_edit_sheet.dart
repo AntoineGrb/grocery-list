@@ -11,18 +11,20 @@ import 'package:material_ui/material_ui.dart';
 import '../data/liste_repository.dart';
 import '../state/liste_providers.dart';
 
-/// Résultat de la Feuille d'édition d'article rendu à la Liste.
+/// Résultat de la Feuille d'édition d'article rendu à son ouvreur.
 enum ItemEditResult {
-  /// « Supprimer » touché : la Liste supprime la ligne et montre le
-  /// snackbar Annuler sous son propre messager.
+  /// « Supprimer » touché : la Liste ou le Panneau + supprime la ligne et
+  /// montre le snackbar Annuler sous son propre messager.
   delete,
 }
 
-/// Ouvre la Feuille d'édition d'article de [item] (appui long, « Modifier »).
+/// Ouvre la Feuille d'édition d'article de [item] : appui long ou
+/// « Modifier » de la Liste, crayon du Panneau +.
 ///
-/// La feuille écrit elle-même la quantité et le rayon ; elle rend
+/// La feuille écrit elle-même la quantité, l'unité et le rayon ; elle rend
 /// [ItemEditResult.delete] au lieu de supprimer. Ses erreurs d'écriture
-/// s'affichent sous le messager de [context] (celui de la Liste).
+/// s'affichent sous le messager de [context] (celui de la Liste, ou du
+/// Panneau + sur lequel elle s'empile, AD-13).
 Future<ItemEditResult?> showItemEditSheet(
   BuildContext context,
   ListeItem item,
@@ -30,7 +32,8 @@ Future<ItemEditResult?> showItemEditSheet(
   final messenger = ScaffoldMessenger.of(context);
   return showModalBottomSheet<ItemEditResult>(
     context: context,
-    // La barrière couvre toute l'app, Barre de navigation comprise.
+    // La barrière couvre toute l'app, Barre de navigation comprise ; depuis
+    // le Panneau +, la feuille s'empile sur lui, qui reste ouvert dessous.
     useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
@@ -39,20 +42,39 @@ Future<ItemEditResult?> showItemEditSheet(
   );
 }
 
+/// Unité préchoisie du Choix d'unité : celle de la ligne, sinon celle de
+/// l'article, sinon pièce. Une ligne en g s'ouvre en g, même au-delà de
+/// 1000 (kg seulement si choisi).
+InputUnit initialInputUnit(ListeItem item) {
+  final unit = item.unit ?? item.articleUnit;
+  return unit == null ? InputUnit.piece : InputUnit.of(unit);
+}
+
+/// Libellé d'une puce du Choix d'unité : pièce, g, kg, ml, L.
+String _chipLabel(InputUnit unit) => switch (unit) {
+  InputUnit.piece => StringsFr.puceUnitePiece,
+  InputUnit.g => StringsFr.puceUniteG,
+  InputUnit.kg => StringsFr.puceUniteKg,
+  InputUnit.ml => StringsFr.puceUniteMl,
+  InputUnit.l => StringsFr.puceUniteL,
+};
+
 /// Feuille d'édition d'article (DESIGN `item-edit-sheet`) : nom en titre,
-/// Champ quantité prérempli, Choix de rayon, « Supprimer » en `error`.
+/// Champ quantité prérempli, Choix d'unité, Choix de rayon, « Supprimer »
+/// en `error`. Hauteur au contenu.
 ///
-/// Le rayon s'écrit au tap, la feuille reste ouverte. La quantité s'écrit
-/// à la validation du clavier et à la fermeture, si la valeur a changé, une
-/// seule fois ; jamais après « Supprimer ». Le Champ quantité saisit dans
-/// l'unité de la ligne, sinon dans celle de l'article ; sans l'une ni
-/// l'autre, il est absent.
+/// Le rayon s'écrit au tap, la feuille reste ouverte. Quantité et unité
+/// s'écrivent ensemble (AD-5) à la validation du clavier et à la
+/// fermeture, une seule fois, si le champ a été saisi ou la puce changée et
+/// que le résultat diffère de la ligne ; jamais après « Supprimer ».
+/// Changer de puce garde le nombre tapé : la puce dit seulement dans quelle
+/// unité il est lu (sans les décimales qu'elle n'admet pas).
 class ItemEditSheet extends ConsumerStatefulWidget {
   const ItemEditSheet({super.key, required this.item, required this.messenger});
 
   final ListeItem item;
 
-  /// Messager de la Liste, pour les erreurs d'écriture.
+  /// Messager de la Liste ou du Panneau +, pour les erreurs d'écriture.
   final ScaffoldMessengerState messenger;
 
   @override
@@ -62,28 +84,34 @@ class ItemEditSheet extends ConsumerStatefulWidget {
 class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   // Lu une fois : l'écriture de fermeture se fait aussi dans dispose.
   late final ListeRepository _repository;
-  late final Unit? _unit = widget.item.unit ?? widget.item.articleUnit;
+  late final InputUnit _initialUnit = initialInputUnit(widget.item);
+  late InputUnit _unit = _initialUnit;
   late final TextEditingController _controller;
 
   /// Quantité stockée de la ligne, ou dernière écrite (pas le texte
   /// prérempli, arrondi pour les pièces).
-  late int? _written = widget.item.quantity;
+  late StoredQuantity? _written = _stored(widget.item);
 
-  /// Le champ a été saisi ou validé : sans cela, rien n'est écrit (un
-  /// préremplissage arrondi ne réécrit pas la ligne).
+  /// Le champ a été saisi ou validé : sans cela, ni la puce changée, rien
+  /// n'est écrit (un préremplissage arrondi ne réécrit pas la ligne).
   bool _edited = false;
   late Rayon _rayon = widget.item.rayon;
   bool _deleted = false;
+
+  static StoredQuantity? _stored(ListeItem item) {
+    final (quantity, unit) = (item.quantity, item.unit);
+    return quantity == null || unit == null
+        ? null
+        : (quantity: quantity, unit: unit);
+  }
 
   @override
   void initState() {
     super.initState();
     _repository = ref.read(listeRepositoryProvider);
-    final unit = _unit;
-    final text = unit == null
-        ? ''
-        : quantityFieldText(widget.item.quantity, unit);
-    _controller = TextEditingController(text: text);
+    _controller = TextEditingController(
+      text: quantityFieldText(widget.item.quantity, _initialUnit),
+    );
   }
 
   @override
@@ -97,21 +125,34 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   void _showError() =>
       showErrorSnackBar(widget.messenger, StringsFr.modificationImpossible);
 
-  /// Écrit la quantité saisie si le champ a été saisi et qu'elle diffère
-  /// de la quantité stockée ou dernière écrite.
+  /// Écrit la quantité et l'unité saisies si le champ a été saisi ou la
+  /// puce changée, et qu'elles diffèrent des stockées ou dernières écrites.
   void _commitQuantity() {
-    final unit = _unit;
-    if (unit == null || _deleted || !_edited) return;
-    final value = quantityFromFieldText(_controller.text, unit);
+    if (_deleted || (!_edited && _unit == _initialUnit)) return;
+    final value = quantityFromFieldText(_controller.text, _unit);
     final previous = _written;
     if (value == previous) return;
     _written = value;
-    _repository.setQuantity(widget.item.lineId, value, unit: unit).catchError((
-      Object _,
-    ) {
-      // Un nouvel essai reste possible (validation ou fermeture).
-      if (_written == value) _written = previous;
-      _showError();
+    _repository
+        .setQuantity(widget.item.lineId, value?.quantity, unit: value?.unit)
+        .catchError((Object _) {
+          // Un nouvel essai reste possible (validation ou fermeture).
+          if (_written == value) _written = previous;
+          _showError();
+        });
+  }
+
+  void _selectUnit(InputUnit unit) {
+    if (unit == _unit) return;
+    setState(() {
+      _unit = unit;
+      final text = quantityTextForUnit(_controller.text, unit);
+      if (text != _controller.text) {
+        _controller.value = TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: text.length),
+        );
+      }
     });
   }
 
@@ -136,7 +177,6 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final unit = _unit;
     final labelStyle = theme.textTheme.titleSmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -165,23 +205,27 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
                 header: true,
                 child: Text(
                   widget.item.name,
-                  style: theme.textTheme.titleLarge?.copyWith(
+                  style: theme.textTheme.titleMedium?.copyWith(
                     color: scheme.onSurface,
                   ),
                 ),
               ),
-              if (unit != null) ...[
-                const SizedBox(height: KadiSpacing.s5),
-                Row(
-                  children: [
-                    Expanded(
+              const SizedBox(height: KadiSpacing.s4),
+              Row(
+                children: [
+                  Expanded(
+                    // Le champ porte lui-même le nom lu « Quantité ».
+                    child: ExcludeSemantics(
                       child: Text(StringsFr.quantite, style: labelStyle),
                     ),
-                    SizedBox(
-                      width: _quantityFieldWidth,
+                  ),
+                  SizedBox(
+                    width: _quantityFieldWidth,
+                    child: Semantics(
+                      label: StringsFr.quantite,
                       child: QuantityField(
                         controller: _controller,
-                        unit: unit,
+                        unit: _unit,
                         onChanged: (_) => _edited = true,
                         onSubmitted: (_) {
                           _edited = true;
@@ -189,10 +233,14 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
                         },
                       ),
                     ),
-                  ],
-                ),
-              ],
-              const SizedBox(height: KadiSpacing.s5),
+                  ),
+                ],
+              ),
+              const SizedBox(height: KadiSpacing.s4),
+              Text(StringsFr.unite, style: labelStyle),
+              const SizedBox(height: KadiSpacing.s2),
+              UnitChoice(selected: _unit, onSelected: _selectUnit),
+              const SizedBox(height: KadiSpacing.s4),
               Text(StringsFr.rayon, style: labelStyle),
               const SizedBox(height: KadiSpacing.s2),
               RayonPicker(selected: _rayon, onSelected: _selectRayon),
@@ -216,6 +264,47 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Choix d'unité (DESIGN `item-edit-sheet`) : puces de choix M3 pièce · g ·
+/// kg · ml · L, cible de 48 dp ; la puce [selected] en contour `on-surface`
+/// avec sa coche, jamais en argile. Chaque puce est lue par son libellé,
+/// choisie ou non.
+class UnitChoice extends StatelessWidget {
+  const UnitChoice({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final InputUnit selected;
+  final ValueChanged<InputUnit> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Wrap(
+      spacing: KadiSpacing.s2,
+      children: [
+        for (final unit in InputUnit.values)
+          ChoiceChip(
+            key: ValueKey(unit),
+            label: Text(_chipLabel(unit)),
+            selected: unit == selected,
+            onSelected: (_) => onSelected(unit),
+            showCheckmark: true,
+            checkmarkColor: scheme.onSurface,
+            // Fond de la feuille : seul le contour marque le choix.
+            color: const WidgetStatePropertyAll(Colors.transparent),
+            labelStyle: TextStyle(color: scheme.onSurface),
+            side: BorderSide(
+              color: unit == selected ? scheme.onSurface : scheme.outline,
+            ),
+            materialTapTargetSize: MaterialTapTargetSize.padded,
+          ),
+      ],
     );
   }
 }
