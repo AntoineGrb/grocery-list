@@ -62,6 +62,53 @@ class AddTypedRow extends StatelessWidget {
   }
 }
 
+/// Titre de la section des fréquents du Panneau + : « Ajouts fréquents »,
+/// annoncé comme titre, et un crayon à droite, lu « Modifier les ajouts
+/// fréquents ». Le crayon mènera à Paramètres › Fréquents (epic 3) ; d'ici
+/// là, il ne fait rien.
+class FrequentsTitle extends StatelessWidget {
+  const FrequentsTitle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Padding(
+      // Le crayon de 48 dp s'aligne sur les indicateurs des lignes.
+      padding: const EdgeInsetsDirectional.only(
+        start: KadiSpacing.margin,
+        end:
+            KadiSpacing.margin -
+            (KadiSpacing.touchTarget - KadiSpacing.picto) / 2,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Semantics(
+              header: true,
+              label: StringsFr.ajoutsFrequents,
+              excludeSemantics: true,
+              child: Text(
+                StringsFr.ajoutsFrequents,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            // Sans action avant l'epic 3, mais un bouton actif.
+            onPressed: () {},
+            tooltip: StringsFr.modifierLesAjoutsFrequents,
+            icon: Icon(Icons.edit_outlined, color: scheme.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Indicateur d'état à droite d'une ligne du Panneau + : coche à l'accent du
 /// rayon dans la liste, signe + en `on-surface-variant` hors liste.
 class InListIndicator extends StatelessWidget {

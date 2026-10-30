@@ -4,6 +4,7 @@ import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/ui/quantity_field.dart';
@@ -32,6 +33,9 @@ Future<AppDatabase> _pumpApp(WidgetTester tester) async {
 final _sheet = find.byType(AddSheet);
 Finder _inSheet(Finder finder) => find.descendant(of: _sheet, matching: finder);
 final _undoAction = find.widgetWithText(SnackBarAction, StringsFr.annuler);
+
+/// Le titre « Ajouts fréquents » du panneau.
+final _title = _inSheet(find.byType(FrequentsTitle));
 
 /// La Ligne de fréquent de [name].
 Finder _frequent(String name) => find.widgetWithText(FrequentRow, name);
@@ -151,8 +155,9 @@ Future<List<ListLine>> _activeLines(AppDatabase db, String articleId) =>
 
 void main() {
   testWidgets(
-    'Panneau + ouvert : champ focalisé, fréquents groupés sous des '
-    'en-têtes sans compteur, dans l’ordre du parcours, avec Picto, nom et +',
+    'Panneau + ouvert : champ focalisé, « Ajouts fréquents » et son crayon, '
+    'puis les fréquents en liste plate dans l’ordre du parcours, sans '
+    'en-tête ni libellé de rayon, avec Picto, nom et +',
     (tester) async {
       await _pumpApp(tester);
       await _openSheet(tester);
@@ -160,36 +165,58 @@ void main() {
       final editable = tester.widget<EditableText>(find.byType(EditableText));
       expect(editable.focusNode.hasFocus, isTrue);
 
-      final headers = tester
-          .widgetList<RayonHeader>(_inSheet(find.byType(RayonHeader)))
-          .toList();
-      expect(headers.every((h) => h.count == null), isTrue);
-      expect(
-        [for (final h in headers) h.rayon],
-        [
-          Rayon.fruitsLegumes,
-          Rayon.boulangerie,
-          Rayon.viandePoisson,
-          Rayon.cremerie,
-          Rayon.epicerieSalee,
-          Rayon.epicerieSucree,
-          Rayon.surgeles,
-          Rayon.boissons,
-          Rayon.hygiene,
-          Rayon.entretien,
-        ],
+      // Titre « Ajouts fréquents » en title-small on-surface-variant, crayon
+      // à droite, cible de 48 dp.
+      expect(_title, findsOneWidget);
+      final titleText = find.descendant(
+        of: _title,
+        matching: find.text(StringsFr.ajoutsFrequents),
       );
-      final fruits = find.widgetWithText(RayonHeader, 'Fruits & légumes');
-      final cremerie = _inSheet(find.widgetWithText(RayonHeader, 'Crèmerie'));
+      expect(titleText, findsOneWidget);
+      final theme = Theme.of(tester.element(_title));
+      final style = tester.widget<Text>(titleText).style!;
+      expect(style.fontSize, theme.textTheme.titleSmall!.fontSize);
+      expect(style.fontWeight, theme.textTheme.titleSmall!.fontWeight);
+      expect(style.color, theme.colorScheme.onSurfaceVariant);
+      final pencil = _pencil(_title);
+      expect(pencil, findsOneWidget);
       expect(
-        tester.getTopLeft(fruits).dy,
-        lessThan(tester.getTopLeft(cremerie).dy),
+        tester.widget<Icon>(pencil).color,
+        theme.colorScheme.onSurfaceVariant,
       );
-      // Lait sous Crèmerie, avant Œufs (position).
+      final pencilButton = find.descendant(
+        of: _title,
+        matching: find.byType(IconButton),
+      );
+      expect(tester.getSize(pencilButton).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(pencilButton).height, greaterThanOrEqualTo(48));
       expect(
-        tester.getTopLeft(_frequent('Lait')).dy,
-        greaterThan(tester.getTopLeft(cremerie).dy),
+        tester.getCenter(pencilButton).dx,
+        greaterThan(tester.getCenter(titleText).dx),
       );
+
+      // Aucun En-tête ni libellé de rayon.
+      expect(_inSheet(find.byType(RayonHeader)), findsNothing);
+      for (final rayon in Rayon.values) {
+        expect(_inSheet(find.text(rayon.label)), findsNothing);
+      }
+
+      // Liste plate : rayons dans l'ordre du parcours (par défaut, celui des
+      // 13 rayons), puis `position` dans un rayon.
+      final rows = tester.widgetList<FrequentRow>(find.byType(FrequentRow));
+      final routeIndexes = [
+        for (final row in rows) Rayon.values.indexOf(row.article.rayon),
+      ];
+      expect(routeIndexes, [...routeIndexes]..sort());
+      expect(
+        tester.getTopLeft(_title).dy,
+        lessThan(tester.getTopLeft(_frequent('Tomates')).dy),
+      );
+      expect(
+        tester.getTopLeft(_frequent('Tomates')).dy,
+        lessThan(tester.getTopLeft(_frequent('Lait')).dy),
+      );
+      // Lait avant Œufs (position).
       expect(
         tester.getTopLeft(_frequent('Lait')).dy,
         lessThan(tester.getTopLeft(_frequent('Œufs')).dy),
@@ -209,6 +236,46 @@ void main() {
     },
   );
 
+  testWidgets('parcours avec Crèmerie avant Fruits & légumes : Lait avant '
+      'Tomates', (tester) async {
+    final db = await _pumpApp(tester);
+    await db
+        .update(db.settings)
+        .write(
+          SettingsCompanion(
+            routeOrder: Value(
+              SettingsRepository.encodeRouteOrder([
+                Rayon.cremerie,
+                ...Rayon.values.where((r) => r != Rayon.cremerie),
+              ]),
+            ),
+          ),
+        );
+    await tester.pumpAndSettle();
+    await _openSheet(tester);
+
+    expect(
+      tester.getTopLeft(_frequent('Lait')).dy,
+      lessThan(tester.getTopLeft(_frequent('Tomates')).dy),
+    );
+    expect(_inSheet(find.byType(RayonHeader)), findsNothing);
+  });
+
+  testWidgets('crayon du titre : rien ne se passe, le panneau reste ouvert', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    await _openSheet(tester);
+
+    await _tapPencil(tester, _title);
+
+    expect(_sheet, findsOneWidget);
+    expect(_editSheet, findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(_title, findsOneWidget);
+    expect(find.byType(FrequentRow), findsNWidgets(31));
+  });
+
   testWidgets('aucun fréquent : message d’état vide, sans action', (
     tester,
   ) async {
@@ -223,6 +290,7 @@ void main() {
     expect(find.text(StringsFr.pasDeFrequents), findsOneWidget);
     expect(find.byType(FrequentRow), findsNothing);
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
+    expect(_title, findsNothing);
     expect(
       find.ancestor(
         of: find.text(StringsFr.pasDeFrequents),
@@ -260,7 +328,11 @@ void main() {
         tester.getTopLeft(find.widgetWithText(RayonHeader, 'Crèmerie')).dy,
       ),
     );
-    expect(tester.widget<RayonHeader>(find.byType(RayonHeader)).count, 1);
+    // En-tête sans compteur.
+    expect(
+      find.descendant(of: find.byType(RayonHeader), matching: find.text('1')),
+      findsNothing,
+    );
   });
 
   testWidgets('Lait dans la liste, tap : retiré, + revient, snackbar dans le '
@@ -367,6 +439,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(FrequentRow), findsNothing);
+    expect(_title, findsNothing);
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
     expect(find.byType(SearchResultRow), findsWidgets);
     expect(_indicator(_result('Lait'), Icons.add), findsOneWidget);
@@ -389,6 +462,7 @@ void main() {
     await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
     await tester.pumpAndSettle();
     expect(find.byType(FrequentRow), findsNWidgets(31));
+    expect(_title, findsOneWidget);
     expect(find.byType(SearchResultRow), findsNothing);
     await _letSnackBarClose(tester);
   });
@@ -413,10 +487,26 @@ void main() {
       tester.getSemantics(find.bySemanticsLabel(RegExp(r'^Beurre$'))),
       isSemantics(label: 'Beurre', isButton: true, hasTapAction: true),
     );
-    // En-tête du panneau : nom du rayon seul.
+    // Titre des fréquents lu comme titre ; son crayon, comme un bouton.
     expect(
-      tester.getSemantics(find.bySemanticsLabel(RegExp(r'^Crèmerie$'))),
-      isSemantics(label: 'Crèmerie', isHeader: true),
+      tester.getSemantics(find.bySemanticsLabel(StringsFr.ajoutsFrequents)),
+      isSemantics(label: StringsFr.ajoutsFrequents, isHeader: true),
+    );
+    expect(
+      tester.getSemantics(
+        find.descendant(of: _title, matching: find.byType(IconButton)),
+      ),
+      isSemantics(
+        tooltip: StringsFr.modifierLesAjoutsFrequents,
+        isButton: true,
+        isEnabled: true,
+        hasTapAction: true,
+      ),
+    );
+    // Aucun rayon lu dans le panneau (la Liste dessous a son En-tête).
+    expect(
+      _inSheet(find.bySemanticsLabel(RegExp(r'^Crèmerie$'))),
+      findsNothing,
     );
 
     await tester.enterText(find.byType(TextField), 'lai');

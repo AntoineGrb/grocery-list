@@ -14,7 +14,6 @@ import '../data/liste_repository.dart';
 import '../state/liste_providers.dart';
 import 'add_sheet_rows.dart';
 import 'item_edit_sheet.dart';
-import 'rayon_header.dart';
 
 /// Dernier Annuler montré dans le Panneau +, repris par la Liste quand le
 /// panneau se ferme avant la fin de son snackbar (AD-10).
@@ -55,10 +54,11 @@ Future<void> showAddSheet(BuildContext context) async {
   }
 }
 
-/// Panneau + : Champ d'ajout focalisé, puis les fréquents groupés par rayon
-/// dans l'ordre du parcours, ou les résultats dès qu'un texte est saisi. Un
-/// tap ajoute l'article, ou le retire s'il est déjà dans la liste (avec
-/// Annuler). Reste ouvert après un ajout pour enchaîner.
+/// Panneau + : Champ d'ajout focalisé, puis le titre « Ajouts fréquents » et
+/// les fréquents en liste plate dans l'ordre du parcours, sans En-tête de
+/// rayon, ou les résultats dès qu'un texte est saisi. Un tap ajoute
+/// l'article, ou le retire s'il est déjà dans la liste (avec Annuler). Reste
+/// ouvert après un ajout pour enchaîner.
 ///
 /// Entrée ajoute le texte tapé (R25) : l'article de ce nom, sinon un article
 /// hors catalogue (Divers, sans unité) ; déjà dans la liste, rien ne change.
@@ -262,7 +262,9 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     // « Ajouter « … » » attend les résultats de cette saisie : jamais
     // proposé sur des résultats périmés.
     final showAddTyped = fresh != null && fresh.isEmpty;
-    final groups = searching ? null : ref.watch(frequentGroupsProvider).value;
+    final frequents = searching
+        ? null
+        : ref.watch(frequentsInRouteProvider).value;
     final inList = ref.watch(inListProvider).value ?? const <String>{};
     final saisie = _saisie;
 
@@ -293,24 +295,22 @@ class _AddSheetState extends ConsumerState<AddSheet> {
           },
         );
       }
-      return switch (groups) {
+      return switch (frequents) {
         null => const SizedBox.shrink(),
         [] => const EmptyState(message: StringsFr.pasDeFrequents),
         _ => ListView(
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
           children: [
-            for (final group in groups) ...[
-              RayonHeader(rayon: group.rayon),
-              for (final article in group.articles)
-                FrequentRow(
-                  key: ValueKey(article.id),
-                  article: article,
-                  inList: inList.contains(article.id),
-                  onTap: () => _toggle(context, article),
-                  onEdit: () => _edit(context, article),
-                ),
-            ],
+            const FrequentsTitle(),
+            for (final article in frequents)
+              FrequentRow(
+                key: ValueKey(article.id),
+                article: article,
+                inList: inList.contains(article.id),
+                onTap: () => _toggle(context, article),
+                onEdit: () => _edit(context, article),
+              ),
           ],
         ),
       };

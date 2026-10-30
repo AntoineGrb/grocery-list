@@ -105,7 +105,6 @@ void main() {
       ]);
       expect(groups.map((g) => g.rayon), [Rayon.cremerie, Rayon.fruitsLegumes]);
       expect(groups.first.items.map((i) => i.name), ['Lait', 'Œufs']);
-      expect(groups.first.count, 2);
     },
   );
 
@@ -1080,8 +1079,8 @@ void main() {
     });
   });
 
-  test('fréquents groupés par rayon dans l’ordre du parcours, par position '
-      'dans un rayon, rayons vides absents', () {
+  test('fréquents en liste plate : rayons dans l’ordre du parcours, puis '
+      'position dans un rayon', () {
     CatalogueArticle article(String id, Rayon rayon) => CatalogueArticle(
       id: id,
       name: id,
@@ -1089,26 +1088,38 @@ void main() {
       unit: null,
       pictoKey: id,
     );
-    final groups = groupFrequentsByRoute(
-      [
-        article('lait', Rayon.cremerie),
-        article('tomates', Rayon.fruitsLegumes),
-        article('beurre', Rayon.cremerie),
-        article('pain', Rayon.boulangerie),
-      ],
-      [Rayon.cremerie, Rayon.surgeles, Rayon.fruitsLegumes, Rayon.boulangerie],
-    );
+    final frequents = [
+      article('lait', Rayon.cremerie),
+      article('pommes', Rayon.fruitsLegumes),
+      article('beurre', Rayon.cremerie),
+      article('pain', Rayon.boulangerie),
+    ];
+    String ids(List<CatalogueArticle> articles) =>
+        articles.map((a) => a.id).join(' ');
+
     expect(
-      [
-        for (final g in groups)
-          (g.rayon, g.articles.map((a) => a.id).join(' ')),
-      ],
-      [
-        (Rayon.cremerie, 'lait beurre'),
-        (Rayon.fruitsLegumes, 'tomates'),
-        (Rayon.boulangerie, 'pain'),
-      ],
+      ids(
+        frequentsInRoute(frequents, [
+          Rayon.fruitsLegumes,
+          Rayon.boulangerie,
+          Rayon.cremerie,
+        ]),
+      ),
+      'pommes pain lait beurre',
     );
+    // Parcours modifié : Crèmerie avant Fruits & légumes.
+    expect(
+      ids(
+        frequentsInRoute(frequents, [
+          Rayon.cremerie,
+          Rayon.surgeles,
+          Rayon.fruitsLegumes,
+          Rayon.boulangerie,
+        ]),
+      ),
+      'lait beurre pommes pain',
+    );
+    expect(frequentsInRoute(const [], Rayon.values), isEmpty);
   });
 
   group('ajout et crayon du Panneau + (AD-4)', () {

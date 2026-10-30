@@ -27,6 +27,12 @@ abstract final class StringsFr {
   /// insécables).
   static String ajouterNom(String saisie) => 'Ajouter « $saisie »';
 
+  /// Titre de la section des fréquents du Panneau +.
+  static const ajoutsFrequents = 'Ajouts fréquents';
+
+  /// Crayon du titre « Ajouts fréquents », lu par TalkBack.
+  static const modifierLesAjoutsFrequents = 'Modifier les ajouts fréquents';
+
   /// État vide des fréquents du Panneau +.
   static const pasDeFrequents =
       'Pas encore de fréquents. Ajoute-les dans les paramètres.';
@@ -61,7 +67,7 @@ abstract final class StringsFr {
   static const erreurOuvertureCorps =
       'Ferme Kadi et relance-la. Ta liste n’a pas été modifiée.';
 
-  /// Compteur d'un En-tête de rayon : « 1 article », « 3 articles ».
+  /// Nombre d'articles lu : « 1 article », « 3 articles ».
   static String articles(int n) => n == 1 ? '1 article' : '$n articles';
 
   // Section Cochés.

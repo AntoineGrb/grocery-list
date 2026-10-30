@@ -35,7 +35,7 @@ void main() {
   });
 
   testWidgets(
-    'FAB +, « lait », tap sur Lait : Lait sous Crèmerie, compteur 1',
+    'FAB +, « lait », tap sur Lait : Lait sous Crèmerie, sans compteur',
     (tester) async {
       final handle = tester.ensureSemantics();
       final db = await _pumpApp(tester);
@@ -73,9 +73,9 @@ void main() {
 
       expect(find.text(StringsFr.listeVide), findsNothing);
       expect(find.text('Crèmerie'), findsOneWidget);
-      expect(find.text('1'), findsOneWidget);
+      expect(find.text('1'), findsNothing);
       expect(find.text('Lait'), findsOneWidget);
-      expect(find.bySemanticsLabel('Crèmerie, 1 article'), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'^Crèmerie$')), findsOneWidget);
       expect(find.bySemanticsLabel('Lait, Crèmerie'), findsOneWidget);
       handle.dispose();
     },

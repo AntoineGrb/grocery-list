@@ -18,9 +18,6 @@ class RayonGroup {
 
   final Rayon rayon;
   final List<ListeItem> items;
-
-  /// Compteur de l'En-tête : lignes actives non cochées du rayon.
-  int get count => items.length;
 }
 
 /// Groupes non vides de la Liste, dans l'ordre du parcours de `settings`.
@@ -72,33 +69,27 @@ final inListProvider = StreamProvider<Set<String>>(
   (ref) => ref.watch(listeRepositoryProvider).watchInListArticleIds(),
 );
 
-/// Groupe de fréquents du Panneau + : un rayon et ses articles.
-class FrequentGroup {
-  const FrequentGroup(this.rayon, this.articles);
-
-  final Rayon rayon;
-  final List<CatalogueArticle> articles;
-}
-
-/// Fréquents groupés par le rayon par défaut de leur article, dans l'ordre
-/// du parcours de `settings` ; rayons vides absents (R6).
-final frequentGroupsProvider = FutureProvider<List<FrequentGroup>>((ref) async {
+/// Fréquents du Panneau + en liste plate : rayons (par défaut de l'article)
+/// dans l'ordre du parcours de `settings`, puis `position` dans un rayon
+/// (R6).
+final frequentsInRouteProvider = FutureProvider<List<CatalogueArticle>>((
+  ref,
+) async {
   final settings = await ref.watch(settingsProvider.future);
   final frequents = await ref.watch(frequentsProvider.future);
-  return groupFrequentsByRoute(frequents, settings.routeOrder);
+  return frequentsInRoute(frequents, settings.routeOrder);
 });
 
-/// Regroupe [articles] par rayon dans l'ordre [routeOrder] ; seuls les
-/// rayons non vides restent. Dans un rayon, l'ordre reçu (`position`) est
-/// conservé.
-List<FrequentGroup> groupFrequentsByRoute(
+/// Range [articles] par rayon dans l'ordre [routeOrder], en une seule liste
+/// sans groupe. Dans un rayon, l'ordre reçu (`position`) est conservé.
+List<CatalogueArticle> frequentsInRoute(
   List<CatalogueArticle> articles,
   List<Rayon> routeOrder,
 ) => [
-  for (final (rayon, group) in groupByRayon(
+  for (final (_, group) in groupByRayon(
     articles,
     (article) => article.rayon,
     routeOrder,
   ))
-    FrequentGroup(rayon, group),
+    ...group,
 ];

@@ -104,7 +104,7 @@ class ListeScreen extends ConsumerWidget {
               ),
               children: [
                 for (final group in groups) ...[
-                  RayonHeader(rayon: group.rayon, count: group.count),
+                  RayonHeader(rayon: group.rayon),
                   for (final item in group.items)
                     ItemRow(
                       key: ValueKey(item.lineId),

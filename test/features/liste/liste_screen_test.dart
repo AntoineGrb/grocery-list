@@ -125,9 +125,16 @@ void main() {
       find.widgetWithText(RayonHeader, 'Fruits & légumes'),
       findsOneWidget,
     );
+    // En-tête de rayon sans compteur, lu comme titre par son seul nom.
     expect(
-      find.bySemanticsLabel('Fruits et légumes, 1 article'),
-      findsOneWidget,
+      find.descendant(of: find.byType(RayonHeader), matching: find.text('1')),
+      findsNothing,
+    );
+    expect(
+      tester.getSemantics(
+        find.bySemanticsLabel(RegExp(r'^Fruits et légumes$')),
+      ),
+      isSemantics(label: 'Fruits et légumes', isHeader: true),
     );
     expect(
       find.bySemanticsLabel('Tomates, 500 g, Fruits et légumes'),
@@ -141,7 +148,11 @@ void main() {
     expect(find.text('500 g'), findsOneWidget);
     expect(find.text('2 pièces'), findsOneWidget);
     expect(
-      find.bySemanticsLabel('Fruits et légumes, 2 articles'),
+      find.descendant(of: find.byType(RayonHeader), matching: find.text('2')),
+      findsNothing,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp(r'^Fruits et légumes$')),
       findsOneWidget,
     );
     expect(
@@ -220,7 +231,7 @@ void main() {
       expect(tester.widget<Checkbox>(_box('Tomates')).value, isFalse);
       expect(find.text('Fruits & légumes'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Fruits et légumes, 1 article'),
+        find.bySemanticsLabel(RegExp(r'^Fruits et légumes$')),
         findsOneWidget,
       );
       expect(find.text(StringsFr.cochesTitre(1)), findsOneWidget);
