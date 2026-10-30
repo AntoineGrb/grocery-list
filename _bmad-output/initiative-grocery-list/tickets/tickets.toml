@@ -6,7 +6,7 @@ id = 1
 slug = "epic-liste-de-courses"
 title = "La liste de courses au magasin"
 description = "L'app, installée sur le téléphone d'Antoine, tient une liste en cours groupée par rayon dans l'ordre par défaut des 13 rayons, alimentée à la main par le Panneau + (recherche, création à la volée avec quantité et rayon facultatifs, fréquents fournis) et cochée d'une main jusqu'à Terminer les courses, qui vide la liste avec Annuler. Livre aussi le socle réutilisé par les epics 2 et 3 : projet Flutter et build release installable, thèmes clair et sombre aux tokens de DESIGN.md, stockage local prêt pour la synchro (UUID, date de modification, suppression logique), modèle d'unités et fusion dans la liste avec la provenance de chaque quantité (pour que l'epic 2 retire celles d'une recette), recherche et création d'article réutilisables, catalogue d'environ 200 articles et 30 fréquents générés par IA. Parts : R9 groupement, R11 unités, arrondi et fusion de liste, R18 catalogue fourni et création à la volée, R19 ordre par défaut, R20 fréquents fournis, R23 états vides de la Liste et du Panneau +, R24 sur ses surfaces."
-covers = ["R9", "R10", "R11", "R12", "R13", "R15", "R16", "R17", "R18", "R19", "R20", "R23", "R24"]
+covers = ["R9", "R10", "R11", "R12", "R13", "R15", "R16", "R17", "R18", "R19", "R20", "R23", "R24", "R25", "R26"]
 
 [[epic]]
 id = 2

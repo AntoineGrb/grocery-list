@@ -44,3 +44,4 @@ Le dimanche soir, Antoine et sa femme obtiennent la liste de la semaine fusionn�
 ## Notes
 
 - Waits on epic-liste-de-courses because: il ajoute à la liste en cours (avec provenance des quantités) et réutilise la recherche, la création d'article, le catalogue et le socle.
+- Open question: 2026-10-30 — depuis la revue de l'epic 1, la liste accepte des lignes libres hors catalogue ; un ingrédient de recette peut-il aussi être un texte libre, ou seulement un article du catalogue ? (initiative R1, R25) ; la « création d'article » réutilisée de l'epic 1 n'existe plus au Panneau +.

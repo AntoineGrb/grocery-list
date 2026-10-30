@@ -2,7 +2,7 @@
 type: epic
 title: "La liste de courses au magasin"
 parent: initiative-grocery-list
-covers: [R9, R10, R11, R12, R13, R15, R16, R17, R18, R19, R20, R23, R24]
+covers: [R9, R10, R11, R12, R13, R15, R16, R17, R18, R19, R20, R23, R24, R25, R26]
 sources: []
 companions: []
 after: []
@@ -22,18 +22,20 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 
 ## Requirements
 
-- R1 (parent R9) : la Liste montre une seule liste en cours, groupée sous des en-têtes de rayon dans l'ordre du parcours (par défaut, l'ordre des 13 rayons) ; chaque en-tête compte ses articles non cochés ; seuls les rayons non vides s'affichent.
+- R1 (parent R9) : la Liste montre une seule liste en cours, groupée sous des en-têtes de rayon dans l'ordre du parcours (par défaut, l'ordre des 13 rayons), sans compteur ; seuls les rayons non vides s'affichent.
 - R2 (parent R10) : seul un tap sur la case coche un article ; l'article coché rejoint la section « Cochés (n) », repliée par défaut en bas de la liste ; décoché depuis cette section, il retourne dans son rayon ; un rayon entièrement coché disparaît.
-- R3 (parent R11) : une quantité est en g, en ml, en pièces ou absente, sans conversion ; l'unité par défaut de l'article est préremplie ; un même article dans la même unité s'additionne, dans deux unités il donne deux lignes ; la Liste affiche les quantités arrondies pour la lecture (1,5 kg, 20 cl).
+- R3 (parent R11) : une quantité se saisit en pièces, g, kg, ml ou L, ou reste absente ; l'unité se choisit librement, celle de l'article est préchoisie, sinon la pièce ; kg et L ne sont que des saisies de g et de ml, sans conversion ; un même article dans la même unité s'additionne, dans deux unités il donne deux lignes ; la Liste affiche les quantités arrondies pour la lecture (1,5 kg, 20 cl).
 - R4 (parent R12) : la liste ne se vide jamais seule ; quand tout est coché, « Terminer les courses » apparaît et vide la liste, et le Snackbar Annuler la restaure.
-- R5 (parent R13) : glisser un article vers la gauche le supprime, avec Snackbar Annuler ; un appui long ouvre une feuille pour changer la quantité (la ligne passe alors en mode manuel), changer le rayon ou supprimer l'article.
-- R6 (parent R15) : le FAB + de la Liste ouvre le Panneau + avec le champ de recherche focalisé, clavier ouvert, et les fréquents en liste compacte groupée par rayon dans l'ordre du parcours ; le panneau reste ouvert après un ajout.
-- R7 (parent R16) : un tap sur un fréquent l'ajoute à la liste, ou retire l'article de la liste s'il y est déjà, avec Annuler ; son état suit la Liste dans les deux sens.
-- R8 (parent R17) : chaque frappe filtre tout le catalogue et un tap sur un résultat l'ajoute, ou retire l'article s'il est déjà dans la liste, avec Annuler ; sans correspondance exacte, « Créer « … » » crée l'article (Divers, sans unité si rien n'est choisi) et l'ajoute ; après un ajout, la ligne propose une quantité et un rayon, facultatifs.
-- R9 (parent R18) : un catalogue unique d'environ 200 articles (nom, picto, rayon par défaut, unité par défaut) est fourni à l'installation ; un article créé à la volée rejoint ce catalogue.
+- R5 (parent R13) : glisser un article vers la gauche le supprime, avec Snackbar Annuler ; un appui long ouvre la Feuille d'édition, une feuille courte qui monte du bas de l'écran, pour changer la quantité (la ligne passe alors en mode manuel), l'unité, le rayon, ou supprimer l'article ; changer l'unité fusionne la ligne avec la ligne non cochée du même article dans cette unité, s'il y en a une.
+- R6 (parent R15) : le FAB + de la Liste ouvre le Panneau + : champ « Ajouter un article » focalisé, clavier ouvert, puis la section « Ajouts fréquents », titrée, avec une icône de modification à droite du titre (sans action dans cet epic) ; les fréquents y forment une liste plate dans l'ordre du parcours, sans en-tête ni libellé de rayon ; le panneau reste ouvert après un ajout.
+- R7 (parent R16) : un tap sur un fréquent l'ajoute à la liste, son + devenant une coche, ou retire l'article de la liste s'il y est déjà, avec Annuler ; son état suit la Liste dans les deux sens.
+- R8 (parent R17) : chaque frappe dans « Ajouter un article » filtre aussi tout le catalogue ; un tap sur un résultat l'ajoute, ou retire l'article s'il est déjà dans la liste, avec Annuler ; le Panneau + ne crée jamais d'article au catalogue.
+- R9 (parent R18) : un catalogue unique d'environ 200 articles (nom, picto, rayon par défaut, unité par défaut) est fourni à l'installation et sert à la recherche ; un ajout à la liste ne le modifie jamais.
 - R10 (parent R20) : environ 30 fréquents sont fournis, dans un ordre stable par rayon ; l'app n'en ajoute jamais d'elle-même.
 - R11 (parent R23) : la Liste vide, le Panneau + sans fréquent et le Panneau + sans résultat affichent leur message et au plus une action, avec la microcopie de Voice and Tone.
 - R12 (parent R24) : la Liste et le Panneau + sont utilisables avec TalkBack (libellés annoncés, actions « Supprimer » et « Modifier » à la place des gestes), avec la taille de police système et sans animation quand elles sont désactivées.
+- R13 (parent R25) : Entrée dans « Ajouter un article » ajoute le texte saisi, qu'un résultat s'affiche ou non : l'article du catalogue qui porte exactement ce nom (casse et accents ignorés), sinon une ligne libre, dans Divers, sans quantité, qui n'entre pas au catalogue ; un article déjà dans la liste n'est ni ajouté une seconde fois ni retiré ; après Entrée, le champ se vide, le clavier reste ouvert et l'article apparaît sous le champ avec sa coche et son icône de modification.
+- R14 (parent R26) : dans le Panneau +, tout article déjà dans la liste (fréquent, résultat ou saisi) montre sa coche et une icône de modification qui ouvre la Feuille d'édition de R5 ; quantité, unité et rayon y restent facultatifs ; pour une ligne libre, le rayon choisi ne change que cette ligne.
 
 ## Constraints
 
@@ -64,6 +66,8 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 
 ## Notes
 
+- Decision: 2026-10-30 — revue de l'app par Antoine après la story 9 : l'ajout au Panneau + doit être le plus rapide possible. R1, R3, R5 à R9 sont re-rendus depuis l'initiative, R13 et R14 ajoutés (R25, R26) ; la création à la volée au catalogue et le dépliage de ligne après ajout (story 8) sont remplacés. L'epic rouvre pour de nouvelles stories ; les stories 1 à 9 restent faites.
+- Decision: 2026-10-30 — l'architecture (AD-4, AD-17) et EXPERIENCE.md ne suivent plus ces exigences : bmad-architecture et bmad-ux les remettent à jour avant le nouveau découpage.
 - Decision: 2026-10-26 — identifiant Android `fr.antoinegrb.kadi`, définitif dès la première installation.
 
 - Decision: 2026-10-25 — les décisions partagées sont tranchées dans l'architecture (AD-1 à AD-18) ; cet epic pose le noyau : base, tables, réglages et parcours par défaut, contenu fourni, horloge, Annuler, thème, routeur.

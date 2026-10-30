@@ -45,3 +45,4 @@ Antoine adapte l'app à son magasin et ne perd plus ses recettes en changeant de
 
 - Waits on epic-liste-de-courses because: il gère le catalogue, les fréquents, l'ordre par défaut du parcours et le stockage que l'epic 1 pose.
 - Waits on epic-recettes-et-revue because: l'export et l'import portent aussi les recettes.
+- Open question: 2026-10-30 — depuis la revue de l'epic 1, la liste n'alimente plus le catalogue ; Paramètres › Articles garde-t-il sa place, et un fréquent peut-il être un nom libre ? (initiative R18, R20) ; l'icône de modification d'« Ajouts fréquents » (posée sans action par l'epic 1) doit mener à la gestion des fréquents.
