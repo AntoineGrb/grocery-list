@@ -121,12 +121,12 @@ Pour Antoine et son foyer, préparer la liste de la semaine à partir des recett
 - Decision: 2026-10-25 — l'app s'appelle « Kadi ».
 - Decision: 2026-10-30 — revue de l'app par Antoine après l'epic 1 : l'ajout au Panneau + doit être le plus rapide possible. Un ajout se fait en un geste et se précise ensuite (Feuille d'édition courte, unité au choix parmi pièce, g, kg, ml, L) ; Entrée ajoute le texte saisi, en ligne libre hors catalogue s'il ne correspond à aucun article (jamais de création au catalogue : doublons d'orthographe) ; en-têtes sans compteur ; « Ajouts fréquents » en liste plate avec icône de modification, sans action pour l'instant ; picto de repli inchangé. Remplace la création à la volée du 2026-10-25 (R17, R18).
 - Decision: 2026-10-30 — l'architecture (AD-4, AD-17 : une ligne de liste référence toujours un article) et EXPERIENCE.md (Panneau +, ligne de fréquent, champ quantité, en-tête de rayon, feuille ouverte sur le Panneau +) ne suivent plus ces exigences : à remettre à jour avec bmad-architecture et bmad-ux avant de découper.
+- Decision: 2026-10-30 — Panneau + sans résultat : une ligne « Ajouter « … » » qui fait comme Entrée (bmad-ux) ; architecture et EXPERIENCE.md remis à jour le jour même (AD-4 à AD-6, AD-8, AD-13, AD-14, AD-17).
 - Assumption: l'ingrédient principal est le premier ingrédient de la recette.
 - Assumption: une nouvelle recette sans nom ou sans ingrédient n'est pas créée ; une recette existante garde sa dernière version valide.
 - Assumption: l'import fusionne par UUID ; la date de modification la plus récente l'emporte, suppressions logiques comprises.
 - Assumption: dans les Paramètres, Articles, Fréquents et Parcours sont des sous-écrans ; la Fiche article est une feuille modale, et le picto se choisit dans une grille du pack avec recherche.
 - Assumption: les rôles M3 dérivés viennent de ColorScheme.fromSeed, surchargés par DESIGN.md ; le Snackbar a un fond on-surface, un texte surface et une action en argile du thème opposé (inverse-primary) ; contrastes vérifiés au build.
 - Open question: source et licence du pack de pictos, et faisabilité du complément en SVG générés : Antoine attend des propositions. C7 attend.
-- Open question: Panneau + sans résultat : quoi afficher maintenant que « Créer « … » » disparaît, une ligne qui fait comme Entrée ou rien ? R23, à trancher avec bmad-ux.
 - Open question: ingrédients de recette en texte libre comme la liste, ou catalogue seul ? R1, epic 2.
 - Open question: Paramètres › Articles a-t-il encore lieu si la liste n'alimente plus le catalogue, et un fréquent peut-il être un nom libre ? R18, R20, epic 3.

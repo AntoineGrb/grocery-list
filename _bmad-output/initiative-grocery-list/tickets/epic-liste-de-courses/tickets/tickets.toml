@@ -104,3 +104,38 @@ covers = []
 after = [1, 2, 3, 4, 5, 6, 7, 8]
 hitl = false
 risk = "low"
+
+# Replan du 2026-10-30, après la revue de l'app par Antoine : l'ajout éclair.
+
+[[entry]]
+id = 10
+type = "story"
+title = "Entrée ajoute l'article tapé, même hors catalogue"
+description = "Migration Drift v2 : colonne articles.in_catalogue (AD-14, AD-17) ; resolveTypedArticle(nom) rend l'article actif de ce nom normalisé ou crée un article hors catalogue (Divers, sans unité) ; la recherche ne montre plus que les articles du catalogue ; le chargeur de contenu réconcilie un article fourni avec un article hors catalogue de même nom (AD-8). Panneau + : Champ d'ajout « Ajouter un article » (icône +), Entrée ajoute le texte tapé sans jamais retirer ni doubler, vide le champ et garde le clavier ; la Ligne saisie (nom + coche, la coche retire avec Annuler) apparaît sous le champ ; sans résultat, une ligne « Ajouter « … » » fait comme Entrée ; « Créer « … » » et la création au catalogue depuis le panneau disparaissent. La story 11 ajoute le crayon à la Ligne saisie. TalkBack et taille de police système sur ces éléments."
+verify = "Les tests montrent : « piles » + Entrée met Piles sous Divers dans la Liste sans qu'une recherche « pil » le trouve ; « LAIT » + Entrée ajoute le Lait du catalogue sous Crèmerie ; une seconde Entrée sur « piles » ne crée ni ne retire rien ; le test de migration v1 → v2 passe."
+covers = ["R8", "R9", "R11", "R12", "R13"]
+after = [9]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 11
+type = "story"
+title = "La Feuille d'édition : quantité, unité et rayon, depuis la Liste et le Panneau +"
+description = "Une seule Feuille d'édition courte, qui monte du bas, ouverte par l'appui long de la Liste et par un crayon à côté de la coche de toute ligne du Panneau + déjà dans la liste (résultat, fréquent, et la Ligne saisie de la story 10), empilée sur le panneau (AD-13). Titre = nom ; Champ quantité ; Choix d'unité pièce, g, kg, ml, L (unité de la ligne, sinon de l'article, sinon pièce ; kg et L enregistrés en g et ml, AD-6) ; Choix de rayon ; Supprimer. Changer quantité ou unité passe la ligne en mode manuel et la fusionne avec la ligne non cochée du même article dans la nouvelle unité (AD-5). Le dépliage quantité et rayon sous la ligne du panneau et l'écriture de quantité « ajout » disparaissent. TalkBack : « Modifier Lait »."
+verify = "Les tests montrent : Tomates 300 g et Tomates 2 pièces, passer la ligne en pièces à 200 g donne une seule ligne « Tomates 500 g » ; saisir 1,5 en kg affiche « 1,5 kg » ; toucher le crayon de Lait dans le Panneau + ouvre la feuille, changer le rayon déplace la ligne et le panneau reste ouvert."
+covers = ["R3", "R5", "R12", "R14"]
+after = [10]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Ajouts fréquents en liste plate, en-têtes de rayon sans compteur"
+description = "Panneau + : titre « Ajouts fréquents » avec un crayon à droite, sans action jusqu'à l'epic 3 ; fréquents en liste plate dans l'ordre du parcours, sans En-tête ni libellé de rayon, chaque ligne gardant son +, sa coche et le crayon de la story 11. Liste : En-têtes de rayon sans compteur, annoncés par leur seul nom ; « Cochés (n) » garde le sien. Microcopie dans strings_fr.dart, TalkBack et taille de police système."
+verify = "Les tests de widgets montrent le titre « Ajouts fréquents » et son crayon, aucun En-tête de rayon dans le Panneau +, les fréquents dans l'ordre du parcours, et des En-têtes de la Liste sans chiffre, annoncés « Crèmerie »."
+covers = ["R1", "R6", "R7", "R12"]
+after = [11]
+hitl = false
+risk = "low"

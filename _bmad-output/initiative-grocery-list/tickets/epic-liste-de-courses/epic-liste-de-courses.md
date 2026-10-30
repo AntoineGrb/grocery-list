@@ -14,7 +14,7 @@ risk: high
 
 ## Description
 
-Installée sur le téléphone d'Antoine, l'app tient une seule liste en cours, groupée par rayon dans l'ordre par défaut des 13 rayons. On la remplit à la main par le Panneau + (recherche, création à la volée avec quantité et rayon facultatifs, fréquents fournis) et on la coche d'une main jusqu'à Terminer les courses. L'epic livre aussi le socle que les epics 2 et 3 réutilisent : le projet Flutter et un build release installable, les thèmes clair et sombre, le stockage local prêt pour la synchro, le modèle d'unités et la fusion dans la liste (avec la provenance de chaque quantité), la recherche et la création d'article, le catalogue et les fréquents générés par IA.
+Installée sur le téléphone d'Antoine, l'app tient une seule liste en cours, groupée par rayon dans l'ordre par défaut des 13 rayons. On la remplit à la main par le Panneau + : Entrée ajoute le texte tapé, même hors catalogue, un tap ajoute un résultat ou un fréquent, et la Feuille d'édition précise ensuite quantité, unité et rayon, en facultatif et on la coche d'une main jusqu'à Terminer les courses. L'epic livre aussi le socle que les epics 2 et 3 réutilisent : le projet Flutter et un build release installable, les thèmes clair et sombre, le stockage local prêt pour la synchro, le modèle d'unités et la fusion dans la liste (avec la provenance de chaque quantité), la recherche d'article, le catalogue et les fréquents générés par IA.
 
 ## Outcome
 
@@ -66,6 +66,9 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 
 ## Notes
 
+- Decision: 2026-10-30 — re-slice après la revue : trois stories ajoutées dans une seule voie (même code du Panneau +), la plus risquée d'abord : 10 Entrée et articles hors catalogue (traceur du replan : migration v2 jusqu'au Champ d'ajout), 11 Feuille d'édition avec unité et crayon, 12 Ajouts fréquents et en-têtes sans compteur.
+- Decision: 2026-10-30 — pas de second « Refactor sweep » : les trois stories remplacent du code récent et nettoient ce qu'elles remplacent ; la story 9 reste le sweep de l'epic.
+- Decision: 2026-10-30 — construction enchaînée sans arrêt ni relecture de plan (demande d'Antoine) ; il teste l'epic entier sur le téléphone à la fin.
 - Decision: 2026-10-30 — revue de l'app par Antoine après la story 9 : l'ajout au Panneau + doit être le plus rapide possible. R1, R3, R5 à R9 sont re-rendus depuis l'initiative, R13 et R14 ajoutés (R25, R26) ; la création à la volée au catalogue et le dépliage de ligne après ajout (story 8) sont remplacés. L'epic rouvre pour de nouvelles stories ; les stories 1 à 9 restent faites.
 - Decision: 2026-10-30 — l'architecture (AD-4, AD-17) et EXPERIENCE.md ne suivent plus ces exigences : bmad-architecture et bmad-ux les remettent à jour avant le nouveau découpage.
 - Decision: 2026-10-26 — identifiant Android `fr.antoinegrb.kadi`, définitif dès la première installation.
