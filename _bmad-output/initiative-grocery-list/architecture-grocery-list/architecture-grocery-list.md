@@ -7,8 +7,8 @@ paradigm: 'Couches par fonctionnalité (feature-first layered) sur une base loca
 scope: 'App Flutter Android grocery-list V1 : les epics epic-liste-de-courses, epic-recettes-et-revue, epic-reglages-et-sauvegarde'
 status: final
 created: '2026-10-25'
-updated: '2026-10-25'
-binds: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21, R22, R23, R24, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10]
+updated: '2026-10-30'
+binds: [R1, R2, R3, R4, R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15, R16, R17, R18, R19, R20, R21, R22, R23, R24, R25, R26, C1, C2, C3, C4, C5, C6, C7, C8, C9, C10]
 sources:
   - _bmad-output/initiative-grocery-list/initiative-grocery-list.md
   - _bmad-output/initiative-grocery-list/tickets/tickets.toml
@@ -69,7 +69,7 @@ Flèches pleines : sens de dépendance entre couches ; `core` ne dépend d'aucun
 
 ### AD-4 — Ligne de liste et contributions (provenance) [ADOPTED]
 
-- **Binds:** R4, R5, R6, R9, R10, R11, R13, R16, R17
+- **Binds:** R4, R5, R6, R9, R10, R11, R13, R16, R17, R25, R26
 - **Prevents:** une liste qui ne stocke que le total et que l'epic 2 doit refaire ; deux epics qui ajoutent différemment à une ligne cochée ou retirent différemment un article.
 - **Rule:**
   - Une ligne active non cochée est unique pour (`article_id`, `unit_key`), où `unit_key` vaut l'unité ou `-` sans quantité. Une ligne cochée n'est jamais complétée : une contribution dont la seule ligne correspondante est cochée crée une nouvelle ligne non cochée. Décocher une ligne qui a un jumeau non coché la fusionne dans ce jumeau.
@@ -81,15 +81,15 @@ Flèches pleines : sens de dépendance entre couches ; `core` ne dépend d'aucun
 
 ### AD-5 — Ligne manuelle [ADOPTED]
 
-- **Binds:** R6, R13
-- **Prevents:** deux façons de stocker le mode manuel ; une désélection qui modifie une ligne corrigée à la main.
-- **Rule:** corriger la quantité d'une ligne dans la Feuille d'édition d'article supprime, dans une transaction, toutes ses contributions actives, insère une contribution `edition` de la valeur saisie et fixe `list_lines.manual_at`. La feuille change la quantité dans l'unité de la ligne, jamais l'unité. Une recette validée ensuite ajoute encore sa contribution. Désélectionner une recette retire ses contributions des seules lignes non cochées et sans `manual_at`. Une ligne qui n'a plus de contribution active est supprimée (logiquement). Une contribution `ajout` ne rend pas la ligne manuelle.
+- **Binds:** R6, R13, R26
+- **Prevents:** deux façons de stocker le mode manuel ; une désélection qui modifie une ligne corrigée à la main ; deux lignes non cochées du même article dans la même unité après un changement d'unité.
+- **Rule:** la Feuille d'édition d'article est le seul éditeur de quantité d'une ligne, depuis la Liste comme depuis le Panneau +. Corriger la quantité ou l'unité supprime, dans une transaction, toutes les contributions actives de la ligne, insère une contribution `edition` de la valeur et de l'unité saisies (vide = sans quantité) et fixe `list_lines.manual_at`. Si une autre ligne non cochée du même article a déjà ce `unit_key`, ses contributions actives passent sur la ligne éditée, qui garde son `added_at`, et elle est supprimée logiquement. Une recette validée ensuite ajoute encore sa contribution. Désélectionner une recette retire ses contributions des seules lignes non cochées et sans `manual_at`. Une ligne qui n'a plus de contribution active est supprimée (logiquement). Une contribution `ajout` ne rend pas la ligne manuelle.
 
 ### AD-6 — Unités sans conversion [ADOPTED]
 
 - **Binds:** R11
 - **Prevents:** une fusion différente entre la Liste et la Revue ; deux codages de « sans quantité » ; des erreurs d'arrondi sur les sommes.
-- **Rule:** unités `g`, `ml`, `piece`. Quantité et unité sont nulles ensemble, et seulement ensemble (« sans quantité ») ; une quantité saisie à 0 vaut « sans quantité ». Les quantités sont des entiers : grammes, millilitres, ou millièmes de pièce. Un article dans deux unités donne deux lignes. La conversion pour la lecture (1,5 kg, 20 cl, ½) est faite par une seule fonction de `lib/core/units/`, à l'affichage seulement.
+- **Rule:** unités stockées `g`, `ml`, `piece`. `kg` et `L` sont seulement des unités de saisie, converties ×1000 en `g` et `ml` par une seule fonction de `lib/core/units/` ; aucun autre code d'unité n'entre en base. Quantité et unité sont nulles ensemble, et seulement ensemble (« sans quantité ») ; une quantité saisie à 0 vaut « sans quantité ». Les quantités sont des entiers : grammes, millilitres, ou millièmes de pièce. Un article dans deux unités donne deux lignes. La conversion pour la lecture (1,5 kg, 20 cl, ½) est faite par une seule fonction de `lib/core/units/`, à l'affichage seulement.
 
 ### AD-7 — Données prêtes pour la synchro [ADOPTED]
 
@@ -101,7 +101,7 @@ Flèches pleines : sens de dépendance entre couches ; `core` ne dépend d'aucun
 
 - **Binds:** R18, R20, R22
 - **Prevents:** des doublons ou des modifications perdues après un import ; des recettes exemples jamais insérées sur un téléphone qui tournait déjà l'epic 1.
-- **Rule:** articles, fréquents et recettes exemples sont des assets JSON de `assets/seed/`, chacun avec un `seed_version` et des UUID définitifs : régénérer le contenu garde l'UUID de chaque élément existant. Le chargeur unique de `lib/core/db/seed/` tourne à chaque démarrage : pour chaque fichier dont la version dépasse le `seed_version` des réglages, il insère les UUID absents (une ligne supprimée compte comme présente) et ne met jamais à jour une ligne existante. Lignes fournies et réglages par défaut ont `updated_at = 0`, pour qu'une modification de l'utilisateur l'emporte toujours à l'import. Le chargement se fait en une transaction ; un échec affiche un écran d'erreur bloquant.
+- **Rule:** articles, fréquents et recettes exemples sont des assets JSON de `assets/seed/`, chacun avec un `seed_version` et des UUID définitifs : régénérer le contenu garde l'UUID de chaque élément existant. Le chargeur unique de `lib/core/db/seed/` tourne à chaque démarrage : pour chaque fichier dont la version dépasse le `seed_version` des réglages, il insère les UUID absents (une ligne supprimée compte comme présente) et ne met jamais à jour une ligne existante. Lignes fournies et réglages par défaut ont `updated_at = 0`, pour qu'une modification de l'utilisateur l'emporte toujours à l'import. Le chargement se fait en une transaction ; un échec affiche un écran d'erreur bloquant. Un article fourni dont le nom normalisé est déjà porté par un article hors catalogue (AD-17) est réconcilié comme à l'import (AD-9) : l'article fourni est gardé et les références y sont reportées.
 
 ### AD-9 — Sauvegarde : format et fusion à l'import [ADOPTED]
 
@@ -134,13 +134,13 @@ Flèches pleines : sens de dépendance entre couches ; `core` ne dépend d'aucun
 
 - **Binds:** R3, R4, R9, R22
 - **Prevents:** deux epics qui naviguent différemment, perdent l'état des onglets ou décident chacun de l'onglet d'ouverture.
-- **Rule:** go_router dans `lib/core/router/`. Un `StatefulShellRoute` à deux branches, Recettes et Liste, qui gardent leur état. Revue, Fiche recette, Paramètres et ses sous-écrans sont des routes poussées. L'app s'ouvre sur Liste, sauf au premier démarrage qui suit l'insertion des recettes exemples : le chargeur d'AD-8 lève alors le drapeau de premier lancement de `settings`, l'app s'ouvre sur Recettes et baisse le drapeau.
+- **Rule:** go_router dans `lib/core/router/`. Un `StatefulShellRoute` à deux branches, Recettes et Liste, qui gardent leur état. Revue, Fiche recette, Paramètres et ses sous-écrans sont des routes poussées. L'app s'ouvre sur Liste, sauf au premier démarrage qui suit l'insertion des recettes exemples : le chargeur d'AD-8 lève alors le drapeau de premier lancement de `settings`, l'app s'ouvre sur Recettes et baisse le drapeau. Les feuilles modales s'ouvrent sur le navigateur racine ; seule la Feuille d'édition s'empile sur une autre feuille, le Panneau +, qui reste ouvert dessous et dont le messager affiche ses erreurs.
 
 ### AD-14 — Migrations du schéma [ADOPTED]
 
 - **Binds:** all
 - **Prevents:** un epic qui recrée la base et efface la vraie liste d'Antoine en ajoutant ses tables.
-- **Rule:** un seul `schemaVersion` dans `lib/core/db/`. Chaque story qui change le schéma l'incrémente et ajoute une étape de migration, jamais destructive. Chaque version est figée par `drift_dev` (dump du schéma) et chaque étape a son test de migration.
+- **Rule:** un seul `schemaVersion` dans `lib/core/db/`. Chaque story qui change le schéma l'incrémente et ajoute une étape de migration, jamais destructive. Chaque version est figée par `drift_dev` (dump du schéma) et chaque étape a son test de migration. La version 2 ajoute `articles.in_catalogue` (vrai pour les articles existants, AD-17).
 
 ### AD-15 — Copie à la création [ADOPTED]
 
@@ -156,9 +156,9 @@ Flèches pleines : sens de dépendance entre couches ; `core` ne dépend d'aucun
 
 ### AD-17 — Identité d'un article et des fréquents [ADOPTED]
 
-- **Binds:** R16, R17, R18, R20
-- **Prevents:** « tomate », « Tomate » et « Tomates » créés par trois chemins différents ; des fréquents dupliqués ou réordonnés.
-- **Rule:** `catalogue` expose une seule `normalizeName` (espaces retirés, minuscules, sans accents) et une seule `createArticle(nom, rayon = divers, unité = sans)`, utilisées par le Panneau +, la Fiche recette et Paramètres › Articles. Un nom normalisé est unique parmi les articles actifs. Un fréquent par article, d'id dérivé de l'article (UUID v5) ; il est réactivé s'il est ajouté de nouveau ; `position` ordonne les fréquents d'un rayon, un fréquent ajouté ou déplacé passant en dernier.
+- **Binds:** R16, R17, R18, R20, R25
+- **Prevents:** « tomate », « Tomate » et « Tomates » créés par trois chemins différents ; un texte tapé dans le Panneau + qui grossit le catalogue ; deux identités de ligne de liste (article ou texte libre) ; des fréquents dupliqués ou réordonnés.
+- **Rule:** `catalogue` expose une seule `normalizeName` (espaces retirés, minuscules, sans accents). Un nom normalisé est unique parmi les articles actifs, hors catalogue compris. Un article porte `in_catalogue` : seuls les articles du catalogue sortent dans la recherche et dans Paramètres › Articles. Le texte validé par Entrée dans le Panneau + passe par une seule `resolveTypedArticle(nom)` : l'article actif de ce nom normalisé, sinon un nouvel article hors catalogue (Divers, sans unité) ; une ligne libre est donc une ligne d'un article hors catalogue, et AD-4 s'applique tel quel. `createArticle(nom, rayon = divers, unité = sans)` ne sert qu'à créer au catalogue (Paramètres › Articles, et la Fiche recette selon l'epic 2) ; créer un nom porté par un article hors catalogue le fait entrer au catalogue, même id. Un fréquent par article, d'id dérivé de l'article (UUID v5) ; il est réactivé s'il est ajouté de nouveau ; `position` ordonne les fréquents d'un rayon, un fréquent ajouté ou déplacé passant en dernier.
 
 ### AD-18 — Pictos et photos [ADOPTED]
 
@@ -258,7 +258,8 @@ Environnements : un poste de développement et le téléphone d'Antoine. Pas de 
 | R8 Nouvelle liste ; R12 Terminer les courses | `app/actions` | AD-3, AD-10, AD-16 |
 | R9, R10, R11, R13 Liste, coche, unités, édition | `features/liste` | AD-4, AD-5, AD-6, AD-10, AD-11, AD-15 |
 | R14 Écran allumé ; R19 parcours | `core/settings` + `features/reglages` | AD-2, AD-11 |
-| R15, R16, R17 Panneau +, fréquents, recherche, création | `features/liste` + `features/catalogue` | AD-4, AD-10, AD-17 |
+| R15, R16, R17 Panneau +, fréquents, recherche | `features/liste` + `features/catalogue` | AD-4, AD-10, AD-17 |
+| R25 Entrée ajoute le texte tapé ; R26 coche et modification au Panneau + | `features/liste` + `features/catalogue` + `app/actions` | AD-4, AD-5, AD-13, AD-17 |
 | R18, R20 catalogue et fréquents | `features/catalogue` + `core/db/seed` | AD-2, AD-8, AD-15, AD-17 |
 | R21 export et import | `core/backup` | AD-7, AD-9, AD-14, AD-18 |
 | R22 premier lancement | `core/db/seed` + `core/router` | AD-8, AD-13 |
@@ -275,4 +276,5 @@ Environnements : un poste de développement et le téléphone d'Antoine. Pas de 
 - **Pack de pictos** : choix et licence reportés (ticket) ; AD-18 isole la décision dans le résolveur.
 - **Paquets propres à un seul epic** (photo, maintien de l'écran, partage et sélecteur de fichier) : choisis et versionnés par l'epic propriétaire du touch point, dans le respect de C2.
 - **Générateur de code Riverpod** : au choix de la première story de l'epic 1, puis gardé pour tout le projet ; `build_runner` reste en 2.16.2 tant que `riverpod_generator` n'accepte pas `build` 5.
+- **Articles hors catalogue** : jamais purgés en V1 ; leur affichage ou nettoyage dans Paramètres › Articles se décide avec l'epic 3.
 - **Colonnes non citées** : fixées par le code ; les colonnes nommées dans AD-2, AD-4 à AD-8, AD-16 à AD-18 sont des invariants.
