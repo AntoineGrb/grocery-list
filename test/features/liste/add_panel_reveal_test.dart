@@ -17,7 +17,10 @@ import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
+import 'package:kadi/features/liste/ui/quantity_popup.dart';
+import 'package:kadi/features/liste/ui/quantity_tag.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
+import 'package:kadi/features/liste/ui/rayon_tag.dart';
 import 'package:kadi/features/liste/ui/row_highlight.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -207,7 +210,7 @@ void main() {
       expect(height, closeTo((914 - 300 - 24 - kToolbarHeight) * 2 / 3, 0.01));
     });
 
-    test('jamais moins que la poignée, le champ et une ligne', () {
+    test('jamais moins que la poignée, le champ, les tags et une ligne', () {
       expect(
         addPanelHeight(
           const MediaQueryData(
@@ -217,7 +220,7 @@ void main() {
         ),
         KadiSpacing.panelHandleHeight +
             KadiSpacing.touchTarget +
-            KadiSpacing.s2 +
+            KadiSpacing.touchTarget +
             KadiSpacing.rowMinHeight,
       );
     });
@@ -676,6 +679,54 @@ void main() {
       expect(_background(tester, 'Lait').a, 0);
       expect(announcements, contains(StringsFr.dansLaListeAnnonce('Lait')));
       expect(announcements, contains('Lait, dans la liste'));
+    });
+
+    testWidgets('article présent, tag quantité ou rayon appliqué : annonce '
+        '« Lait modifié », plus « dans la liste »', (tester) async {
+      final announcements = _captureAnnouncements(tester);
+      final db = await _pumpPhone(tester);
+      await ListeRepository(db, Clock()).addArticle(SeedIds.lait);
+      await tester.pumpAndSettle();
+      await _openPanel(tester);
+
+      await tester.enterText(_search, 'lait');
+      await tester.pumpAndSettle();
+      await _tap(
+        tester,
+        find.byWidgetPredicate(
+          (w) => w is QuantityTag && w.emptyLabel == StringsFr.quantite,
+        ),
+      );
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(QuantityPopup),
+          matching: find.byType(TextField),
+        ),
+        '2',
+      );
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(announcements, contains('Lait modifié'));
+      expect(
+        announcements,
+        isNot(contains(StringsFr.dansLaListeAnnonce('Lait'))),
+      );
+
+      announcements.clear();
+      await tester.enterText(_search, 'lait');
+      await tester.pumpAndSettle();
+      await _tap(tester, find.byType(RayonTag));
+      await tester.ensureVisible(find.byKey(const ValueKey(Rayon.boissons)));
+      await tester.pumpAndSettle();
+      await _tap(tester, find.byKey(const ValueKey(Rayon.boissons)));
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pumpAndSettle();
+
+      expect(announcements, ['Lait modifié']);
     });
 
     testWidgets('« piles » : champ vidé, rien sous le champ, ligne dans la '

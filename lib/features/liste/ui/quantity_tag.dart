@@ -1,35 +1,32 @@
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Tag quantité (DESIGN `add-tag`) : puce de 32 dp, cible de 48 dp. Vide : le
-/// texte [emptyLabel] sur un contour `outline`. Plein : [value] en `surface`
-/// sur un fond `on-surface-variant`, jamais d'argile.
+/// Tag du Panneau + (DESIGN `add-tag`) : puce de 32 dp en [color], bordée de
+/// [side], cible de 48 dp.
 ///
 /// Un bouton à part, lu [semanticLabel], même posé sur une ligne elle-même
 /// tappable.
-class QuantityTag extends StatelessWidget {
-  const QuantityTag({
+class AddTag extends StatelessWidget {
+  const AddTag({
     super.key,
-    required this.value,
-    required this.emptyLabel,
+    required this.color,
+    required this.side,
     required this.semanticLabel,
     required this.onTap,
+    required this.child,
   });
 
-  /// Quantité lue (`formatQuantity`) ; vide, le tag est en contour.
-  final String value;
-  final String emptyLabel;
+  final Color color;
+  final BorderSide side;
   final String semanticLabel;
   final VoidCallback onTap;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final filled = value.isNotEmpty;
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(KadiRadius.sm),
-      side: filled ? BorderSide.none : BorderSide(color: scheme.outline),
+      side: side,
     );
 
     return Semantics(
@@ -54,7 +51,7 @@ class QuantityTag extends StatelessWidget {
               vertical: (KadiSpacing.touchTarget - KadiSpacing.tagHeight) / 2,
             ),
             child: Material(
-              color: filled ? scheme.onSurfaceVariant : Colors.transparent,
+              color: color,
               shape: shape,
               child: InkWell(
                 onTap: onTap,
@@ -71,22 +68,54 @@ class QuantityTag extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: KadiSpacing.s2,
                       ),
-                      child: Text(
-                        filled ? value : emptyLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelLarge?.copyWith(
-                          color: filled
-                              ? scheme.surface
-                              : scheme.onSurfaceVariant,
-                        ),
-                      ),
+                      child: child,
                     ),
                   ),
                 ),
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tag quantité (DESIGN `add-tag`). Vide : le texte [emptyLabel] sur un contour
+/// `outline`. Plein : [value] en `surface` sur un fond `on-surface-variant`,
+/// jamais d'argile.
+class QuantityTag extends StatelessWidget {
+  const QuantityTag({
+    super.key,
+    required this.value,
+    required this.emptyLabel,
+    required this.semanticLabel,
+    required this.onTap,
+  });
+
+  /// Quantité lue (`formatQuantity`) ; vide, le tag est en contour.
+  final String value;
+  final String emptyLabel;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final filled = value.isNotEmpty;
+
+    return AddTag(
+      color: filled ? scheme.onSurfaceVariant : Colors.transparent,
+      side: filled ? BorderSide.none : BorderSide(color: scheme.outline),
+      semanticLabel: semanticLabel,
+      onTap: onTap,
+      child: Text(
+        filled ? value : emptyLabel,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: theme.textTheme.labelLarge?.copyWith(
+          color: filled ? scheme.surface : scheme.onSurfaceVariant,
         ),
       ),
     );

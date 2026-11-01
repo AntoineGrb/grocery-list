@@ -47,6 +47,10 @@ abstract final class StringsFr {
   /// Annonce d'Entrée sur un article présent : « Lait, dans la liste ».
   static String dansLaListeAnnonce(String name) => '$name, $dansLaListe';
 
+  /// Annonce d'Entrée qui applique un tag à un article présent :
+  /// « Lait modifié ».
+  static String modifieAnnonce(String name) => '$name modifié';
+
   // Terminer les courses et Annuler.
   static const terminerLesCourses = 'Terminer les courses';
   static const coursesTerminees = 'Courses terminées. Bon appétit !';
@@ -69,6 +73,14 @@ abstract final class StringsFr {
   /// quantité : « Quantité de Lait, 500 g », « Quantité de Lait, aucune ».
   static String quantiteDe(String name, String value) =>
       'Quantité de $name, ${value.isEmpty ? 'aucune' : value}';
+
+  /// Tag Quantité du Champ d'ajout lu par TalkBack, [value] étant la quantité
+  /// lue, vide sans quantité : « Quantité, 500 g », « Quantité, aucune ».
+  static String quantiteTag(String value) =>
+      '$quantite, ${value.isEmpty ? 'aucune' : value}';
+
+  /// Tag Rayon du Champ d'ajout lu par TalkBack : « Rayon, Divers ».
+  static String rayonTag(String spokenLabel) => '$rayon, $spokenLabel';
   static const unite = 'Unité';
   static const rayon = 'Rayon';
   static const suppressionImpossible = 'Suppression impossible. Réessaie.';

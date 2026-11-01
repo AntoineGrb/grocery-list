@@ -183,7 +183,15 @@ void main() {
       // Aucun En-tête ni libellé de rayon.
       expect(_inSheet(find.byType(RayonHeader)), findsNothing);
       for (final rayon in Rayon.values) {
-        expect(_inSheet(find.text(rayon.label)), findsNothing);
+        expect(
+          _inSheet(
+            find.descendant(
+              of: find.byType(ListView),
+              matching: find.text(rayon.label),
+            ),
+          ),
+          findsNothing,
+        );
       }
 
       // Liste plate : rayons dans l'ordre du parcours (par défaut, celui des

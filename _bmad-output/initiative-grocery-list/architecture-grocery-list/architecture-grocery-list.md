@@ -53,7 +53,7 @@ Flèches pleines : sens de dépendance entre couches ; `core` ne dépend d'aucun
 
 - **Binds:** all
 - **Prevents:** un écran ou un epic qui garde son propre état des données et diverge de la base ; deux chemins d'écriture pour une même table.
-- **Rule:** une seule `AppDatabase` Drift dans `lib/core/db/`, et toutes les définitions de tables dans `lib/core/db/tables/`. Chaque table a un seul propriétaire (AD-2) ; seul son repository l'écrit. L'UI lit par des flux `watch` exposés en providers et n'écrit jamais en direct. Seul état d'écran admis : le brouillon de la Revue (cases décochées, quantités corrigées), transitoire, jamais persisté ni exporté.
+- **Rule:** une seule `AppDatabase` Drift dans `lib/core/db/`, et toutes les définitions de tables dans `lib/core/db/tables/`. Chaque table a un seul propriétaire (AD-2) ; seul son repository l'écrit. L'UI lit par des flux `watch` exposés en providers et n'écrit jamais en direct. Seuls états d'écran admis : le brouillon de la Revue (cases décochées, quantités corrigées) et les tags du Panneau + (R28), transitoires, jamais persistés ni exportés.
 
 ### AD-2 — Propriétaire de chaque donnée [ADOPTED]
 

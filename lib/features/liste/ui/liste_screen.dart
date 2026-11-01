@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/app/actions/terminer_les_courses.dart';
+import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -61,6 +62,9 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
   /// Dernière ligne montrée, panneau ouvert : revérifiée quand il bouge.
   String? _lastShown;
 
+  /// Rayon de chaque ligne à la dernière émission.
+  var _lineRayons = <String, Rayon>{};
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +98,17 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
   /// Annuler compte comme une arrivée.
   void _onGroups(List<RayonGroup>? groups) {
     if (groups == null) return;
+    final rayons = {
+      for (final group in groups)
+        for (final item in group.items) item.lineId: group.rayon,
+    };
+    // Entrée a changé le rayon de la ligne qu'elle montre (R28) : la demande
+    // précède souvent cette émission, et la ligne n'est plus là où elle était.
+    final shown = _lastShown;
+    final was = _lineRayons[shown];
+    final now = rayons[shown];
+    if (was != null && now != null && was != now) _target = shown;
+    _lineRayons = rayons;
     final lines = [
       for (final group in groups)
         for (final item in group.items) item.lineId,

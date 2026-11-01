@@ -41,10 +41,13 @@ class RayonPastille extends StatelessWidget {
               ),
             ),
             const SizedBox(width: KadiSpacing.s2),
-            Text(
-              rayon.label,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: theme.colorScheme.onSurface,
+            // En très grande police, le nom passe à la ligne sans déborder.
+            Flexible(
+              child: Text(
+                rayon.label,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
           ],
