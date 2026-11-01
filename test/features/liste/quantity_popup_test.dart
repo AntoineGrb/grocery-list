@@ -253,15 +253,8 @@ void main() {
       expect(text.style!.color, theme.colorScheme.onSurfaceVariant);
       expect(text.style!.fontSize, theme.textTheme.labelLarge!.fontSize);
 
-      // Aucun crayon sur les lignes, celui du titre reste jusqu'à la story 16.
-      expect(_inSheet(find.byIcon(Icons.edit_outlined)), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(FrequentsTitle),
-          matching: find.byIcon(Icons.edit_outlined),
-        ),
-        findsOneWidget,
-      );
+      // Aucun crayon dans le panneau.
+      expect(_inSheet(find.byIcon(Icons.edit_outlined)), findsNothing);
       expect(_inSheet(find.byType(QuantityField)), findsNothing);
     });
 

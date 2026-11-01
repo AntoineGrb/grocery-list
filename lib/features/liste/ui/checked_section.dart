@@ -76,13 +76,6 @@ class _CheckedSectionState extends State<CheckedSection> {
                         color: scheme.onSurfaceVariant,
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      _expanded ? StringsFr.replier : StringsFr.afficher,
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
-                    ),
                   ],
                 ),
               ),

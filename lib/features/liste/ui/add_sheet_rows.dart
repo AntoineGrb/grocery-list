@@ -97,9 +97,9 @@ class AddTypedRow extends StatelessWidget {
 }
 
 /// Titre de la section des fréquents du Panneau + : « Ajouts fréquents »,
-/// annoncé comme titre, et un crayon à droite, lu « Modifier les ajouts
-/// fréquents ». Le crayon mènera à Paramètres › Fréquents (epic 3) ; d'ici
-/// là, il ne fait rien.
+/// annoncé comme titre, et un bouton « Gérer » à droite, lu « Gérer les ajouts
+/// fréquents ». Il mènera à Paramètres › Fréquents (epic 3) ; d'ici là, il ne
+/// fait rien.
 class FrequentsTitle extends StatelessWidget {
   const FrequentsTitle({super.key});
 
@@ -109,12 +109,10 @@ class FrequentsTitle extends StatelessWidget {
     final scheme = theme.colorScheme;
 
     return Padding(
-      // Le crayon de 48 dp s'aligne sur les indicateurs des lignes.
+      // Le texte du bouton s'aligne sur la fin des indicateurs des lignes.
       padding: const EdgeInsetsDirectional.only(
         start: KadiSpacing.margin,
-        end:
-            KadiSpacing.margin -
-            (KadiSpacing.touchTarget - KadiSpacing.picto) / 2,
+        end: KadiSpacing.margin - KadiSpacing.s3,
       ),
       child: Row(
         children: [
@@ -131,11 +129,21 @@ class FrequentsTitle extends StatelessWidget {
               ),
             ),
           ),
-          IconButton(
+          TextButton(
             // Sans action avant l'epic 3, mais un bouton actif.
             onPressed: () {},
-            tooltip: StringsFr.modifierLesAjoutsFrequents,
-            icon: Icon(Icons.edit_outlined, color: scheme.onSurfaceVariant),
+            style: TextButton.styleFrom(
+              foregroundColor: scheme.onSurfaceVariant,
+              padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.s3),
+              minimumSize: const Size(
+                KadiSpacing.touchTarget,
+                KadiSpacing.touchTarget,
+              ),
+            ),
+            child: const Text(
+              StringsFr.gerer,
+              semanticsLabel: StringsFr.gererLesAjoutsFrequents,
+            ),
           ),
         ],
       ),
@@ -143,8 +151,8 @@ class FrequentsTitle extends StatelessWidget {
   }
 }
 
-/// Indicateur d'état à droite d'une ligne du Panneau + : coche à l'accent du
-/// rayon dans la liste, signe + en `on-surface-variant` hors liste.
+/// Indicateur d'état à droite d'une ligne du Panneau + : coche ronde pleine à
+/// l'accent du rayon dans la liste, signe + en `on-surface-variant` hors liste.
 class InListIndicator extends StatelessWidget {
   const InListIndicator({super.key, required this.rayon, required this.inList});
 
@@ -153,12 +161,22 @@ class InListIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return inList
-        ? Icon(Icons.check, color: KadiColors.of(context).rayon(rayon).accent)
-        : Icon(
-            Icons.add,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          );
+        ? Container(
+            width: KadiSpacing.picto,
+            height: KadiSpacing.picto,
+            decoration: BoxDecoration(
+              color: KadiColors.of(context).rayon(rayon).accent,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check,
+              color: scheme.surface,
+              size: KadiSpacing.s4,
+            ),
+          )
+        : Icon(Icons.add, color: scheme.onSurfaceVariant);
   }
 }
 

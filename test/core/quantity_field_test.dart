@@ -180,4 +180,18 @@ void main() {
     await _pump(tester, controller, InputUnit.l);
     expect(find.text(StringsFr.uniteL), findsOneWidget);
   });
+
+  testWidgets('bordure de focus en on-surface, jamais en argile (C6)', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await _pump(tester, controller, InputUnit.piece);
+
+    final border = tester
+        .widget<TextField>(find.byType(TextField))
+        .decoration!
+        .focusedBorder!;
+    expect(border.borderSide.color, KadiTheme.light.colorScheme.onSurface);
+  });
 }

@@ -30,8 +30,9 @@ abstract final class StringsFr {
   /// Titre de la section des fréquents du Panneau +.
   static const ajoutsFrequents = 'Ajouts fréquents';
 
-  /// Crayon du titre « Ajouts fréquents », lu par TalkBack.
-  static const modifierLesAjoutsFrequents = 'Modifier les ajouts fréquents';
+  /// Bouton du titre « Ajouts fréquents » et sa lecture par TalkBack.
+  static const gerer = 'Gérer';
+  static const gererLesAjoutsFrequents = 'Gérer les ajouts fréquents';
 
   /// État vide des fréquents du Panneau +.
   static const pasDeFrequents =
@@ -96,8 +97,6 @@ abstract final class StringsFr {
 
   // Section Cochés.
   static String cochesTitre(int n) => 'Cochés ($n)';
-  static const afficher = 'Afficher';
-  static const replier = 'Replier';
 
   /// En-tête de la Section Cochés lu par TalkBack :
   /// « Cochés, 2 articles, replié ».

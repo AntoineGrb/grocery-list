@@ -7,6 +7,7 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
+import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/quantity_field.dart';
 import 'package:kadi/core/ui/rayon_picker.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -75,16 +76,6 @@ Finder get _search => _inSheet(find.byType(TextField)).first;
 /// La Feuille d'édition : jamais ouverte depuis le panneau.
 final _editSheet = find.byType(ItemEditSheet);
 
-/// Le crayon de la ligne [row].
-Finder _pencil(Finder row) =>
-    find.descendant(of: row, matching: find.byIcon(Icons.edit_outlined));
-
-/// Touche le crayon de [row].
-Future<void> _tapPencil(WidgetTester tester, Finder row) async {
-  await tester.tap(_pencil(row));
-  await tester.pumpAndSettle();
-}
-
 /// La ligne « Ajouter « … » ».
 final _addTyped = find.byType(AddTypedRow);
 
@@ -140,7 +131,7 @@ Future<List<ListLine>> _activeLines(AppDatabase db, String articleId) =>
 
 void main() {
   testWidgets(
-    'Panneau + ouvert : champ focalisé, « Ajouts fréquents » et son crayon, '
+    'Panneau + ouvert : champ focalisé, « Ajouts fréquents » et son bouton, '
     'puis les fréquents en liste plate dans l’ordre du parcours, sans '
     'en-tête ni libellé de rayon, avec Picto, nom et +',
     (tester) async {
@@ -150,8 +141,8 @@ void main() {
       final editable = tester.widget<EditableText>(find.byType(EditableText));
       expect(editable.focusNode.hasFocus, isTrue);
 
-      // Titre « Ajouts fréquents » en title-small on-surface-variant, crayon
-      // à droite, cible de 48 dp.
+      // Titre « Ajouts fréquents » en title-small on-surface-variant, bouton
+      // « Gérer » à droite, cible de 48 dp, sans crayon.
       expect(_title, findsOneWidget);
       final titleText = find.descendant(
         of: _title,
@@ -163,20 +154,19 @@ void main() {
       expect(style.fontSize, theme.textTheme.titleSmall!.fontSize);
       expect(style.fontWeight, theme.textTheme.titleSmall!.fontWeight);
       expect(style.color, theme.colorScheme.onSurfaceVariant);
-      final pencil = _pencil(_title);
-      expect(pencil, findsOneWidget);
       expect(
-        tester.widget<Icon>(pencil).color,
-        theme.colorScheme.onSurfaceVariant,
+        find.descendant(of: _title, matching: find.byIcon(Icons.edit_outlined)),
+        findsNothing,
       );
-      final pencilButton = find.descendant(
+      final manage = find.descendant(
         of: _title,
-        matching: find.byType(IconButton),
+        matching: find.widgetWithText(TextButton, StringsFr.gerer),
       );
-      expect(tester.getSize(pencilButton).width, greaterThanOrEqualTo(48));
-      expect(tester.getSize(pencilButton).height, greaterThanOrEqualTo(48));
+      expect(manage, findsOneWidget);
+      expect(tester.getSize(manage).width, greaterThanOrEqualTo(48));
+      expect(tester.getSize(manage).height, greaterThanOrEqualTo(48));
       expect(
-        tester.getCenter(pencilButton).dx,
+        tester.getCenter(manage).dx,
         greaterThan(tester.getCenter(titleText).dx),
       );
 
@@ -254,13 +244,14 @@ void main() {
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
   });
 
-  testWidgets('crayon du titre : rien ne se passe, le panneau reste ouvert', (
+  testWidgets('bouton Gérer : rien ne se passe, le panneau reste ouvert', (
     tester,
   ) async {
     await _pumpApp(tester);
     await _openSheet(tester);
 
-    await _tapPencil(tester, _title);
+    await tester.tap(find.widgetWithText(TextButton, StringsFr.gerer));
+    await tester.pumpAndSettle();
 
     expect(_sheet, findsOneWidget);
     expect(_editSheet, findsNothing);
@@ -304,8 +295,15 @@ void main() {
     final check = _indicator(_frequent('Lait'), Icons.check);
     expect(check, findsOneWidget);
     expect(_indicator(_frequent('Lait'), Icons.add), findsNothing);
+    // Coche ronde pleine à l'accent du rayon.
+    final circle = tester.widget<Container>(
+      find.ancestor(of: check, matching: find.byType(Container)).first,
+    );
+    final decoration = circle.decoration! as BoxDecoration;
+    expect(decoration.shape, BoxShape.circle);
+    expect(circle.constraints!.maxWidth, KadiSpacing.picto);
     expect(
-      tester.widget<Icon>(check).color,
+      decoration.color,
       KadiColors.of(tester.element(check)).rayon(Rayon.cremerie).accent,
     );
     final line = (await _activeLines(db, SeedIds.lait)).single;
@@ -480,17 +478,17 @@ void main() {
       tester.getSemantics(find.bySemanticsLabel(RegExp(r'^Beurre$'))),
       isSemantics(label: 'Beurre', isButton: true, hasTapAction: true),
     );
-    // Titre des fréquents lu comme titre ; son crayon, comme un bouton.
+    // Titre des fréquents lu comme titre ; « Gérer », comme un bouton.
     expect(
       tester.getSemantics(find.bySemanticsLabel(StringsFr.ajoutsFrequents)),
       isSemantics(label: StringsFr.ajoutsFrequents, isHeader: true),
     );
     expect(
       tester.getSemantics(
-        find.descendant(of: _title, matching: find.byType(IconButton)),
+        find.descendant(of: _title, matching: find.byType(TextButton)),
       ),
       isSemantics(
-        tooltip: StringsFr.modifierLesAjoutsFrequents,
+        label: StringsFr.gererLesAjoutsFrequents,
         isButton: true,
         isEnabled: true,
         hasTapAction: true,

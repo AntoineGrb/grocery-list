@@ -19,6 +19,9 @@ const _checkDelay = Duration(milliseconds: 300);
 const _supprimerAction = CustomSemanticsAction(label: StringsFr.supprimer);
 const _modifierAction = CustomSemanticsAction(label: StringsFr.modifier);
 
+/// Coche ronde de la Ligne d'article, 24 dp au lieu des 18 dp de la case M3.
+const _checkScale = KadiSpacing.picto / Checkbox.width;
+
 /// Ligne d'article de la Liste : case, nom et quantité, sans Picto.
 ///
 /// Seule la case coche ou décoche ; un tap sur le nom ne fait rien. Glisser
@@ -151,12 +154,22 @@ class _ItemRowState extends ConsumerState<ItemRow> {
           children: [
             SizedBox.square(
               dimension: KadiSpacing.touchTarget,
-              child: Checkbox(
-                value: shown,
-                onChanged: (_) => _toggle(),
-                activeColor: accent,
-                checkColor: scheme.surface,
-                side: BorderSide(color: accent, width: 2),
+              child: Transform.scale(
+                scale: _checkScale,
+                child: Checkbox(
+                  value: shown,
+                  onChanged: (_) => _toggle(),
+                  shape: const CircleBorder(),
+                  activeColor: accent,
+                  checkColor: scheme.surface,
+                  // Tailles d'avant l'échelle : contour de 2 dp, halo de 48 dp,
+                  // à l'accent du rayon et jamais en argile (C6).
+                  side: BorderSide(color: accent, width: 2 / _checkScale),
+                  splashRadius: KadiSpacing.touchTarget / 2 / _checkScale,
+                  overlayColor: WidgetStatePropertyAll(
+                    accent.withValues(alpha: 0.12),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: KadiSpacing.s1),

@@ -145,7 +145,8 @@ class QuantityField extends StatelessWidget {
           border: border,
           enabledBorder: border,
           focusedBorder: border.copyWith(
-            borderSide: BorderSide(color: scheme.primary, width: 2),
+            // Jamais d'argile sur un état (C6).
+            borderSide: BorderSide(color: scheme.onSurface, width: 2),
           ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: KadiSpacing.s3,

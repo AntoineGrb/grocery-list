@@ -177,6 +177,10 @@ void main() {
       await _pumpWithTomatesCourgettes(tester);
       expect(find.text('Fruits & légumes'), findsOneWidget);
       expect(find.byType(CheckedSection), findsNothing);
+      expect(
+        tester.widget<Checkbox>(_box('Tomates')).shape,
+        isA<CircleBorder>(),
+      );
 
       await _tapBox(tester, 'Tomates');
       expect(find.text(StringsFr.cochesTitre(1)), findsOneWidget);
@@ -185,12 +189,13 @@ void main() {
       expect(find.byType(RayonHeader), findsNothing);
       expect(find.text('Fruits & légumes'), findsNothing);
       expect(find.text(StringsFr.cochesTitre(2)), findsOneWidget);
-      expect(find.text(StringsFr.afficher), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
+      expect(find.text('Afficher'), findsNothing);
       expect(find.byType(ItemRow), findsNothing);
       expect(find.text(StringsFr.listeVide), findsNothing);
     });
 
-    testWidgets('déplier : lignes barrées, case pleine, « Replier » ; '
+    testWidgets('déplier : lignes barrées, case pleine, chevron ouvert ; '
         'décocher Tomates la renvoie dans son rayon', (tester) async {
       await _pumpWithTomatesCourgettes(tester);
       await _tapBox(tester, 'Tomates');
@@ -199,8 +204,8 @@ void main() {
       await tester.tap(find.text(StringsFr.cochesTitre(2)));
       await tester.pumpAndSettle();
 
-      expect(find.text(StringsFr.replier), findsOneWidget);
-      expect(find.text(StringsFr.afficher), findsNothing);
+      expect(find.byIcon(Icons.expand_more), findsOneWidget);
+      expect(find.text('Replier'), findsNothing);
       for (final name in ['Tomates', 'Courgettes']) {
         expect(_row(name, inSection: true), findsOneWidget);
         expect(
@@ -236,7 +241,7 @@ void main() {
       );
       expect(find.text(StringsFr.cochesTitre(1)), findsOneWidget);
       // La section reste dépliée.
-      expect(find.text(StringsFr.replier), findsOneWidget);
+      expect(find.byIcon(Icons.expand_more), findsOneWidget);
       expect(_row('Courgettes', inSection: true), findsOneWidget);
       handle.dispose();
     });
@@ -438,7 +443,7 @@ void main() {
       expect(find.text(StringsFr.listeVide), findsNothing);
       expect(find.text(StringsFr.coursesTerminees), findsNothing);
       expect(find.text(StringsFr.cochesTitre(2)), findsOneWidget);
-      expect(find.text(StringsFr.afficher), findsOneWidget);
+      expect(find.byIcon(Icons.chevron_right), findsOneWidget);
       expect(terminer, findsOneWidget);
 
       await tester.tap(find.text(StringsFr.cochesTitre(2)));
