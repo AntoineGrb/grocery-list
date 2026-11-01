@@ -2,7 +2,7 @@
 type: epic
 title: "La liste de courses au magasin"
 parent: initiative-grocery-list
-covers: [R9, R10, R11, R12, R13, R15, R16, R17, R18, R19, R20, R23, R24, R25, R26]
+covers: [R9, R10, R11, R12, R13, R15, R16, R17, R18, R19, R20, R23, R24, R25, R26, R27, R28]
 sources: []
 companions: []
 after: []
@@ -14,7 +14,7 @@ risk: high
 
 ## Description
 
-Installée sur le téléphone d'Antoine, l'app tient une seule liste en cours, groupée par rayon dans l'ordre par défaut des 13 rayons. On la remplit à la main par le Panneau + : Entrée ajoute le texte tapé, même hors catalogue, un tap ajoute un résultat ou un fréquent, et la Feuille d'édition précise ensuite quantité, unité et rayon, en facultatif et on la coche d'une main jusqu'à Terminer les courses. L'epic livre aussi le socle que les epics 2 et 3 réutilisent : le projet Flutter et un build release installable, les thèmes clair et sombre, le stockage local prêt pour la synchro, le modèle d'unités et la fusion dans la liste (avec la provenance de chaque quantité), la recherche d'article, le catalogue et les fréquents générés par IA.
+Installée sur le téléphone d'Antoine, l'app tient une seule liste en cours, groupée par rayon dans l'ordre par défaut des 13 rayons. On la remplit à la main par le Panneau +, bas, la Liste restant visible au-dessus : Entrée ajoute le texte tapé, même hors catalogue, avec ses tags Quantité et Rayon facultatifs, un tap ajoute un résultat ou un fréquent, chaque ajout se voit aussitôt dans la Liste, et on la coche d'une main jusqu'à Terminer les courses. L'epic livre aussi le socle que les epics 2 et 3 réutilisent : le projet Flutter et un build release installable, les thèmes clair et sombre, le stockage local prêt pour la synchro, le modèle d'unités et la fusion dans la liste (avec la provenance de chaque quantité), la recherche d'article, le catalogue et les fréquents générés par IA.
 
 ## Outcome
 
@@ -27,15 +27,17 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 - R3 (parent R11) : une quantité se saisit en pièces, g, kg, ml ou L, ou reste absente ; l'unité se choisit librement, celle de l'article est préchoisie, sinon la pièce ; kg et L ne sont que des saisies de g et de ml, sans conversion ; un même article dans la même unité s'additionne, dans deux unités il donne deux lignes ; la Liste affiche les quantités arrondies pour la lecture (1,5 kg, 20 cl).
 - R4 (parent R12) : la liste ne se vide jamais seule ; quand tout est coché, « Terminer les courses » apparaît et vide la liste, et le Snackbar Annuler la restaure.
 - R5 (parent R13) : glisser un article vers la gauche le supprime, avec Snackbar Annuler ; un appui long ouvre la Feuille d'édition, une feuille courte qui monte du bas de l'écran, pour changer la quantité (la ligne passe alors en mode manuel), l'unité, le rayon, ou supprimer l'article ; changer l'unité fusionne la ligne avec la ligne non cochée du même article dans cette unité, s'il y en a une.
-- R6 (parent R15) : le FAB + de la Liste ouvre le Panneau + : champ « Ajouter un article » focalisé, clavier ouvert, puis la section « Ajouts fréquents », titrée, avec une icône de modification à droite du titre (sans action dans cet epic) ; les fréquents y forment une liste plate dans l'ordre du parcours, sans en-tête ni libellé de rayon ; le panneau reste ouvert après un ajout.
+- R6 (parent R15) : le FAB + de la Liste ouvre le Panneau +, un panneau bas qui laisse la Liste visible au-dessus de lui, sans voile : champ « Ajouter un article » focalisé, clavier ouvert, ses deux tags (R16), puis la section « Ajouts fréquents », titrée, avec un bouton « Gérer » à droite du titre (sans action dans cet epic) ; les fréquents y forment une liste plate dans l'ordre du parcours, sans en-tête ni libellé de rayon ; le panneau reste ouvert après un ajout.
 - R7 (parent R16) : un tap sur un fréquent l'ajoute à la liste, son + devenant une coche, ou retire l'article de la liste s'il y est déjà, avec Annuler ; son état suit la Liste dans les deux sens.
-- R8 (parent R17) : chaque frappe dans « Ajouter un article » filtre aussi tout le catalogue ; un tap sur un résultat l'ajoute, ou retire l'article s'il est déjà dans la liste, avec Annuler ; le Panneau + ne crée jamais d'article au catalogue.
+- R8 (parent R17) : chaque frappe dans « Ajouter un article » filtre aussi tout le catalogue ; un tap sur un résultat l'ajoute avec les tags de R16, ou retire l'article s'il est déjà dans la liste, avec Annuler ; le Panneau + ne crée jamais d'article au catalogue.
 - R9 (parent R18) : un catalogue unique d'environ 200 articles (nom, picto, rayon par défaut, unité par défaut) est fourni à l'installation et sert à la recherche ; un ajout à la liste ne le modifie jamais.
 - R10 (parent R20) : environ 30 fréquents sont fournis, dans un ordre stable par rayon ; l'app n'en ajoute jamais d'elle-même.
 - R11 (parent R23) : la Liste vide, le Panneau + sans fréquent et le Panneau + sans résultat affichent leur message et au plus une action, avec la microcopie de Voice and Tone.
 - R12 (parent R24) : la Liste et le Panneau + sont utilisables avec TalkBack (libellés annoncés, actions « Supprimer » et « Modifier » à la place des gestes), avec la taille de police système et sans animation quand elles sont désactivées.
-- R13 (parent R25) : Entrée dans « Ajouter un article » ajoute le texte saisi, qu'un résultat s'affiche ou non : l'article du catalogue qui porte exactement ce nom (casse et accents ignorés), sinon une ligne libre, dans Divers, sans quantité, qui n'entre pas au catalogue ; un article déjà dans la liste n'est ni ajouté une seconde fois ni retiré ; après Entrée, le champ se vide, le clavier reste ouvert et l'article apparaît sous le champ avec sa coche et son icône de modification.
-- R14 (parent R26) : dans le Panneau +, tout article déjà dans la liste (fréquent, résultat ou saisi) montre sa coche et une icône de modification qui ouvre la Feuille d'édition de R5 ; quantité, unité et rayon y restent facultatifs ; pour une ligne libre, le rayon choisi ne change que cette ligne.
+- R13 (parent R25) : Entrée dans « Ajouter un article » ajoute le texte saisi, qu'un résultat s'affiche ou non : l'article du catalogue qui porte exactement ce nom (casse et accents ignorés), sinon une ligne libre, qui n'entre pas au catalogue et dont le rayon n'est jamais mémorisé ; un article déjà dans la liste n'est ni ajouté une seconde fois ni retiré : sans tag, rien ne change ; avec des tags, leur quantité et leur rayon remplacent ceux de sa ligne ; après Entrée, le champ se vide et le clavier reste ouvert.
+- R14 (parent R26) : dans le Panneau +, tout article déjà dans la liste (fréquent ou résultat) montre sa coche et un tag quantité, « Qté » en contour sans quantité, la quantité en plein sinon, qui ouvre la popup quantité au-dessus du panneau : quantité et unité, jamais le rayon ; la Feuille d'édition de R5 ne s'ouvre plus depuis le panneau.
+- R15 (parent R27) : tout ajout depuis le Panneau + se voit aussitôt dans la Liste derrière lui : la ligne arrive animée et brièvement surlignée, juste au-dessus du panneau si elle serait masquée, la Liste défilant alors jusqu'à elle ; sinon rien ne défile ; sans animation quand elles sont désactivées.
+- R16 (parent R28) : sous « Ajouter un article », un tag Quantité ouvre la popup quantité de R14 et un tag Rayon ouvre une liste déroulante des 13 rayons ; Rayon affiche le rayon de l'article au nom exact, sinon Divers ; un tag choisi passe de contour à plein ; le choix ne vaut que pour la ligne ajoutée suivante, par Entrée ou tap sur un résultat, jamais pour le catalogue ; les tags reviennent ensuite à zéro ; un tap sur un fréquent ne les utilise pas.
 
 ## Constraints
 
@@ -62,10 +64,14 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 - experience — _bmad-output/initiative-grocery-list/ux-grocery-list/EXPERIENCE.md, sections Liste, Panneau +, Flux 2 et 3
 - design — _bmad-output/initiative-grocery-list/ux-grocery-list/DESIGN.md
 - mockups — _bmad-output/initiative-grocery-list/ux-grocery-list/.working/key-liste.html, key-panneau-plus.html
-- architecture — _bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md, AD-1 à AD-18 (cet epic pose core/, catalogue, liste et Terminer les courses)
+- architecture — _bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md, AD-1 à AD-19 (cet epic pose core/, catalogue, liste et Terminer les courses)
 
 ## Notes
 
+- Decision: 2026-11-01 — re-slice après la 2e revue : quatre stories ajoutées dans une seule voie (même code du Panneau +), la plus risquée d'abord : 13 Liste visible derrière le panneau (traceur du replan), 14 tag et popup quantité, 15 tags sous le champ, 16 retours mineurs.
+- Decision: 2026-11-01 — pas de second « Refactor sweep » : les stories remplacent du code récent et nettoient ce qu'elles remplacent (Ligne saisie, crayon, feuille empilée) ; la story 9 reste le sweep de l'epic.
+- Decision: 2026-11-01 — tout est livré en un lot, sans essai intermédiaire ; Antoine teste l'ensemble à la fin (demande d'Antoine).
+- Decision: 2026-11-01 — 2e revue de l'app par Antoine après la story 12 : R6, R8, R13, R14 re-rendus depuis l'initiative, R15 et R16 ajoutés (R27, R28) ; l'epic rouvre pour de nouvelles stories, les stories 1 à 12 restent faites.
 - Decision: 2026-10-30 — re-slice après la revue : trois stories ajoutées dans une seule voie (même code du Panneau +), la plus risquée d'abord : 10 Entrée et articles hors catalogue (traceur du replan : migration v2 jusqu'au Champ d'ajout), 11 Feuille d'édition avec unité et crayon, 12 Ajouts fréquents et en-têtes sans compteur.
 - Decision: 2026-10-30 — pas de second « Refactor sweep » : les trois stories remplacent du code récent et nettoient ce qu'elles remplacent ; la story 9 reste le sweep de l'epic.
 - Decision: 2026-10-30 — construction enchaînée sans arrêt ni relecture de plan (demande d'Antoine) ; il teste l'epic entier sur le téléphone à la fin.

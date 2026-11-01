@@ -139,3 +139,49 @@ covers = ["R1", "R6", "R7", "R12"]
 after = [11]
 hitl = false
 risk = "low"
+
+# Replan du 2026-11-01, après la 2e revue de l'app par Antoine : voir l'ajout en direct.
+
+[[entry]]
+id = 13
+type = "story"
+title = "Le Panneau + bas : la Liste visible derrière, l'ajout s'y voit"
+description = "Panneau + bas (environ deux tiers de la zone libre au-dessus du clavier), sans voile, avec filet et ombre, poignée fine ; le bas de la Liste réserve sa hauteur et le message de liste vide se centre dans la zone libre. Objet partagé de features/liste/state (AD-19) : haut du panneau, demande de montrer une ligne. Tant que le panneau est ouvert, toute ligne nouvelle de la Liste arrive animée (hauteur, puis surlignage en fond de pastille qui s'efface) et, si elle serait masquée, la Liste défile jusqu'à la poser juste au-dessus du panneau ; sinon rien ne défile. Toutes les lignes sont bâties, pour pouvoir défiler jusqu'à une ligne hors écran. Entrée sur un article déjà dans la liste le montre et le surligne. La Ligne saisie disparaît. TalkBack annonce « Lait ajouté, Crèmerie » ; animations coupées : ni animation ni surlignage, saut direct."
+verify = "Les tests de widgets montrent : avec 30 lignes, toucher un fréquent d'un rayon hors écran fait défiler la Liste jusqu'à ce que la ligne se termine au-dessus du haut du panneau ; une ligne déjà visible ne fait rien défiler ; Entrée sur un article présent le montre ; aucune Ligne saisie sous le champ ; le panneau laisse la Liste visible sans barrière colorée."
+covers = ["R6", "R12", "R13", "R15"]
+after = [12]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 14
+type = "story"
+title = "Le tag quantité et sa popup, sur les lignes du Panneau +"
+description = "Toute ligne du Panneau + dans la liste (fréquent, résultat) montre, à gauche de sa coche, un tag quantité à la place du crayon : « Qté » en contour sans quantité, la quantité de sa plus ancienne ligne non cochée en plein sinon. Il ouvre la Popup quantité (DESIGN quantity-popup) : route légère du navigateur racine (AD-13), carte flottante juste au-dessus du panneau, fondu et léger zoom, titre = nom, Champ quantité focalisé, Choix d'unité, jamais le rayon ; Entrée, tap hors de la carte et retour ferment en enregistrant par le chemin d'AD-5 (fusion comprise) ; vide = sans quantité. La Feuille d'édition ne s'ouvre plus depuis le panneau : plus de feuille empilée, son crayon et sa suppression disparaissent du panneau, elle reste à l'appui long de la Liste. TalkBack : « Quantité de Lait, 500 g »."
+verify = "Les tests de widgets montrent : Lait dans la liste affiche « Qté » ; toucher le tag ouvre une popup au-dessus du panneau sans Choix de rayon ; 2 et Entrée ferment la popup, le tag affiche « 2 » et la Liste « Lait 2 » ; vider le champ repasse à « Qté » ; aucun crayon dans le panneau ; l'appui long de la Liste ouvre toujours la Feuille d'édition."
+covers = ["R3", "R5", "R12", "R14"]
+after = [13]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 15
+type = "story"
+title = "Les tags Quantité et Rayon sous le Champ d'ajout"
+description = "Sous le Champ d'ajout, un Tag Quantité (ouvre la Popup quantité de la story 14 sur un brouillon, sans écrire ; unité de l'article au nom exact, sinon pièce) et un Tag Rayon (liste déroulante des 13 rayons dans l'ordre du parcours, clavier conservé ; contour avec le rayon de l'article au nom exact, sinon Divers ; plein une fois choisi). Entrée, « Ajouter « … » » et un tap sur un résultat ajoutent avec ces tags : quantité en contribution ajout (AD-5), rayon sur la seule ligne, jamais sur l'article, hors catalogue compris (AD-15). Article déjà dans la liste par Entrée : avec tags, quantité et rayon remplacent ceux de sa plus ancienne ligne non cochée, montrée et surlignée ; sans tag, rien ne change. Après un ajout, les tags reviennent à zéro. Un tap sur un fréquent ne les utilise ni ne les remet à zéro. TalkBack : « Quantité, aucune », « Rayon, Divers »."
+verify = "Les tests montrent : « piles », Entretien et 4 puis Entrée mettent « Piles 4 » sous Entretien, tags à zéro, et une seconde saisie de « piles » repart de Divers ; « lait » affiche Crèmerie dans le tag ; Entrée sur Lait présent avec 2 remplace sa quantité, sans tag rien ne change ; toucher un résultat applique les tags ; toucher un fréquent ne les consomme pas."
+covers = ["R3", "R8", "R12", "R13", "R16"]
+after = [14]
+hitl = false
+risk = "high"
+
+[[entry]]
+id = 16
+type = "story"
+title = "Coche ronde, bouton Gérer, Cochés sans libellé"
+description = "Liste : coche ronde de 24 dp, contour à faire, pleine faite, à l'accent du rayon, animation courte de la case M3 conservée. Panneau + : même coche pleine dans la liste. Titre « Ajouts fréquents » : bouton texte « Gérer » au lieu du crayon, sans action jusqu'à l'epic 3, lu « Gérer les ajouts fréquents ». Section Cochés : « Afficher » et « Replier » retirés, le chevron suffit, TalkBack garde « replié » et « déplié »."
+verify = "Les tests de widgets montrent : la case de la Liste a une forme circulaire ; aucun crayon sous le titre « Ajouts fréquents » et un bouton « Gérer » ; ni « Afficher » ni « Replier » dans la section Cochés, annoncée « Cochés, 2 articles, replié »."
+covers = ["R2", "R6", "R12"]
+after = [15]
+hitl = false
+risk = "low"
