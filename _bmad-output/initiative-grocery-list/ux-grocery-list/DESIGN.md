@@ -3,7 +3,7 @@ title: DESIGN — grocery-list
 name: grocery-list
 description: "Liste de courses du foyer, Android (Flutter, Material 3). Palette « Argile sur fusain » : interface neutre, couleur portée par les 13 rayons, argile réservée au FAB +, à l'onglet actif, aux boutons d'action et à l'action des snackbars."
 status: draft
-updated: 2026-10-30
+updated: 2026-11-01
 sources:
   - ../../forge-grocery-list/forge-grocery-list.md
   - ../../forge-grocery-list/.memlog.md
@@ -206,8 +206,10 @@ components:
     label-color: '{colors.on-surface}'
     quantity: '{typography.body-medium}'
     quantity-color: '{colors.on-surface-variant}'
-    checkbox: 'accent du rayon : colors.rayon-<rayon>'
+    round-check: 'accent du rayon : colors.rayon-<rayon>'
+    round-check-size: 24px
     checkmark: '{colors.surface}'
+    arrival-highlight: 'fond de pastille du rayon : colors.rayon-<rayon>-pastille, en fondu'
   checked-section:
     divider: '{colors.outline}'
     header: '{typography.label-large}'
@@ -217,6 +219,24 @@ components:
   add-sheet:
     background: '{colors.surface-container}'
     radius: '{rounded.xl}'
+    top-border: '{colors.outline}'
+    barrier: transparent
+  add-tag:
+    label: '{typography.label-large}'
+    height: 32px
+    touch-target: '{spacing.touch-target}'
+    radius: '{rounded.sm}'
+    empty-border: '{colors.outline}'
+    empty-label: '{colors.on-surface-variant}'
+    filled-background: '{colors.on-surface-variant}'
+    filled-label: '{colors.surface}'
+    rayon-filled-background: 'fond de pastille du rayon : colors.rayon-<rayon>-pastille'
+    rayon-filled-label: '{colors.on-surface}'
+  quantity-popup:
+    background: '{colors.surface-container}'
+    radius: '{rounded.lg}'
+    title: '{typography.title-medium}'
+    border: '{colors.outline}'
   search-field:
     background: '{colors.surface}'
     foreground: '{colors.on-surface}'
@@ -227,14 +247,14 @@ components:
   frequents-title:
     label: '{typography.title-small}'
     label-color: '{colors.on-surface-variant}'
-    edit-icon: '{colors.on-surface-variant}'
+    action: '{typography.label-large}'
+    action-color: '{colors.on-surface-variant}'
   frequent-row:
     min-height: '{spacing.row-min-height}'
     label: '{typography.body-large}'
     picto: 'accent du rayon : colors.rayon-<rayon>'
     state-on: 'accent du rayon : colors.rayon-<rayon>'
     state-off: '{colors.on-surface-variant}'
-    edit-icon: '{colors.on-surface-variant}'
   search-result-row:
     min-height: '{spacing.row-min-height}'
     label: '{typography.body-large}'
@@ -317,7 +337,7 @@ La règle : **la structure est neutre, la couleur appartient aux rayons, l'argil
 - **Coché (`checked` `#6F625A` / `#A6988E`)** : texte barré des articles cochés et des ingrédients décochés en Revue. Plus discret que l'encre, toujours lisible (≥ 5,5:1).
 - **Argile (`primary` `#9C4A2A` / `#F0A585`)** : **uniquement** le fond du FAB +, le fond des Boutons d'action (Valider, Ajouter à la liste, Terminer les courses) et l'action du Snackbar Annuler. Sa teinte claire **`primary-container` (`#F2D6C8` / `#6E3219`)** : **uniquement** l'indicateur de l'onglet actif. Jamais sur un lien, une sélection, un état ou une surface. Conséquence : le `surfaceTint` M3 est neutralisé (transparent) pour qu'aucune surface élevée ne se teinte d'argile.
 - **Erreur (`#B3261E` / `#FFB4AB`)** : actions destructrices (Supprimer dans la Feuille d'édition d'article, Effacer dans le Dialogue de confirmation) et messages d'erreur d'import.
-- **Rayons** : 13 accents mats issus de Terre cuite, chacun avec un fond de pastille. L'accent colore le point de la pastille, la case à cocher et le picto ; le fond de pastille ne sert qu'à l'En-tête de rayon. La couleur est l'**identité** du rayon : elle est stable, ne change jamais de sens et n'est jamais utilisée hors rayon.
+- **Rayons** : 13 accents mats issus de Terre cuite, chacun avec un fond de pastille. L'accent colore le point de la pastille, la coche ronde et le picto ; le fond de pastille sert à l'En-tête de rayon, au Tag Rayon choisi et au surlignage d'arrivée d'une ligne. La couleur est l'**identité** du rayon : elle est stable, ne change jamais de sens et n'est jamais utilisée hors rayon.
 
 | Rayon | Token | Accent clair / sombre | Pastille clair / sombre |
 |---|---|---|---|
@@ -340,7 +360,7 @@ La règle : **la structure est neutre, la couleur appartient aux rayons, l'argil
 | Paire | Rôle | Mesure | Cible |
 |---|---|---|---|
 | `on-surface` / `surface` | Texte principal | 14,7 / 14,4 | 4,5 |
-| `on-surface-variant` / `surface` | Quantités, compteurs | 7,4 / 10,2 | 4,5 |
+| `on-surface-variant` / `surface` | Quantités, compteurs ; texte d'un tag plein | 7,4 / 10,2 | 4,5 |
 | `checked` / `surface` | Texte coché | 5,5 / 6,4 | 4,5 |
 | `on-primary` / `primary` | Signe + du FAB, libellé du Bouton d'action | 6,1 / 7,0 | 4,5 |
 | `primary-dark` / `on-surface` ; `primary` / `on-surface-dark` | Action du Snackbar Annuler (clair / sombre) | 7,8 / 4,9 | 4,5 |
@@ -350,7 +370,7 @@ La règle : **la structure est neutre, la couleur appartient aux rayons, l'argil
 | `on-surface-variant` / `surface-container` | Libellés de navigation | 6,8 / 9,3 | 4,5 |
 | `error` / `surface` | Texte d'erreur | 6,1 / 10,5 | 4,5 |
 | `outline` / `surface` | Séparateur, bordure de champ | 3,6 / 5,4 | 3 |
-| `rayon-*` / `surface` (minimum des 13) | Case à cocher, picto | 3,4 / 6,4 | 3 |
+| `rayon-*` / `surface` (minimum des 13) | Coche ronde, picto | 3,4 / 6,4 | 3 |
 | `on-surface` / `rayon-*-pastille` (minimum) | Nom du rayon dans la pastille | 11,6 / 8,3 | 4,5 |
 | `rayon-*` / `rayon-*-pastille` (minimum) | Point de la pastille | 2,9 / 4,3 | décoratif |
 | `primary-container` / `surface-container` | Forme de l'indicateur d'onglet | 1,2 / 1,6 | non porteur |
@@ -371,8 +391,8 @@ Les rôles M3 non listés (secondary, tertiary, outline-variant, inverse-*, surf
 | `{typography.title-small}` | Nom du rayon dans l'En-tête de rayon |
 | `{typography.body-large}` | Nom d'article dans toutes les lignes ; Message d'état vide ; saisie |
 | `{typography.body-medium}` | Quantités, texte secondaire, corps de dialogue |
-| `{typography.label-large}` | Libellés de boutons, en-tête « Cochés (n) », action du Snackbar Annuler |
-| `{typography.label-medium}` | Libellés de la Barre de navigation, « Afficher / Replier » |
+| `{typography.label-large}` | Libellés de boutons, en-tête « Cochés (n) », tags du Panneau +, action du Snackbar Annuler |
+| `{typography.label-medium}` | Libellés de la Barre de navigation |
 
 Pas de capitales décoratives (l'en-tête « Carré + capitales » a été écarté au profit de la pastille). La maquette rend le nom de rayon en gras 700 ; le poids normatif est celui de M3 (500).
 
@@ -384,17 +404,18 @@ Grille M3 de 4 dp : `{spacing.1}` à `{spacing.6}` (4 → 32). Marge latérale `
 - **Recettes** : grille de Cartes recette en **2 colonnes**, gouttière `{spacing.gutter}` [ASSUMPTION]. C'est la seule grille de l'app.
 - **Zone du pouce** : FAB + en bas à droite au-dessus de la Barre de navigation (position M3 standard) ; Bouton d'action pleine largeur en bas d'écran, au-dessus de la Barre de navigation, le FAB + remontant alors au-dessus de lui. La Barre d'application ne porte que le titre, l'icône ⚙ et, sur Recettes, l'Action Nouvelle liste.
 - **Revue** : écran poussé plein écran, flèche retour, sans Barre de navigation ; le Bouton d'action « Ajouter à la liste » est en bas d'écran.
-- Le bas de la Liste réserve `{spacing.list-bottom-inset}` pour que le FAB ne masque jamais la dernière ligne.
+- Le bas de la Liste réserve `{spacing.list-bottom-inset}` pour que le FAB ne masque jamais la dernière ligne, et la hauteur du Panneau + tant qu'il est ouvert.
+- **Panneau +** : environ deux tiers de la zone libre sous la Barre d'application et au-dessus du clavier [ASSUMPTION : à régler sur le test d'Antoine] ; le tiers restant montre la Liste. Poignée fine, pour ne pas prendre la place d'une ligne.
 
 ## Elevation & Depth
 
 Élévation M3 tonale, réduite au minimum. Les écrans sont à plat sur `{colors.surface}` ; la Barre de navigation se détache par le ton `{colors.surface-container}`, pas par une ombre. La Barre d'application reste à plat, même au défilement (pas de teinte d'élévation, `surfaceTint` neutralisé).
 
-Ombres réservées aux éléments qui flottent réellement : le FAB (niveau 3 M3), les feuilles modales et le Dialogue de confirmation (valeurs M3). Aucune carte de groupe, aucune ombre de hiérarchie.
+Ombres réservées aux éléments qui flottent réellement : le FAB (niveau 3 M3), les feuilles modales, la Popup quantité et le Dialogue de confirmation (valeurs M3). Sans voile, le Panneau + se détache de la Liste par son ombre et un filet `{colors.outline}` sur son haut, visible aussi en sombre. Aucune carte de groupe, aucune ombre de hiérarchie.
 
 ## Shapes
 
-Échelle M3 : `{rounded.xs}` pour les champs (Champ quantité), `{rounded.md}` pour les Cartes recette, `{rounded.lg}` pour le FAB, `{rounded.xl}` pour le haut des feuilles et les dialogues, `{rounded.full}` pour la pastille de rayon, le Champ de recherche, l'indicateur d'onglet et le Bouton d'action. Les photos de recette suivent exactement le rayon de leur carte. La case à cocher garde la forme M3.
+Échelle M3 : `{rounded.xs}` pour les champs (Champ quantité), `{rounded.md}` pour les Cartes recette, `{rounded.lg}` pour le FAB, `{rounded.xl}` pour le haut des feuilles et les dialogues, `{rounded.full}` pour la pastille de rayon, le Champ de recherche, l'indicateur d'onglet et le Bouton d'action. Les photos de recette suivent exactement le rayon de leur carte. La coche est ronde : contour à faire, pleine faite.
 
 La forme arrondie de la pastille est la signature de l'app : un rayon = un petit galet coloré avec son nom.
 
@@ -410,12 +431,14 @@ Composants M3 standard hérités sans changement hors des lignes ci-dessous (Tex
 | **Bouton d'action** (`action-button`) | Valider, Ajouter à la liste (Revue), Terminer les courses. Bouton plein pleine largeur `{colors.primary}`, texte `{colors.on-primary}`, `{rounded.full}`, hauteur `{spacing.touch-target}`, marges `{spacing.margin}`. État désactivé : M3. |
 | **Carte recette** (`recipe-card`) | Carte M3 remplie `{colors.surface-container}`, `{rounded.md}` [ASSUMPTION]. Photo en haut, ou visuel de repli : Picto de l'ingrédient principal, 44 dp, teinté de son rayon, sur `{colors.surface}` ; nom en `{typography.title-medium}`. Petite icône discrète « modifier » (cible `{spacing.touch-target}`). Sélectionnée : bordure 2 dp `{colors.on-surface}` et pastille ronde 26 dp `{colors.on-surface}` portant une coche `{colors.surface}`, en haut à gauche ; jamais d'argile. |
 | **En-tête de rayon** (`rayon-header`) | Pastille arrondie `{rounded.full}` sur fond `rayon-<rayon>-pastille` : point de 10 dp en accent du rayon + nom en `{typography.title-small}` `{colors.on-surface}`. Sans compteur. Utilisé dans la Liste et la Revue. |
-| **Ligne d'article** (`item-row`) | Hauteur ≥ `{spacing.row-min-height}`, marge `{spacing.margin}`. Sans Picto. Case à cocher M3 dont la bordure et le remplissage cochés prennent l'accent du rayon, coche en `{colors.surface}`. Nom en `{typography.body-large}`, quantité arrondie pour la lecture (« 1,5 kg », « 20 cl ») en `{typography.body-medium}` `{colors.on-surface-variant}`. Pas de fond, pas de carte. |
-| **Section Cochés** (`checked-section`) | Filet `{colors.outline}` au-dessus. En-tête 48 dp : chevron, « Cochés (n) » en `{typography.label-large}` `{colors.on-surface-variant}`, indice « Afficher / Replier » à droite. Lignes cochées : case pleine en accent du rayon, nom et quantité barrés en `{colors.checked}`. |
-| **Panneau +** (`add-sheet`) | Feuille modale M3, fond `{colors.surface-container}` [ASSUMPTION], haut `{rounded.xl}`. Champ d'ajout en tête, Ligne saisie dessous après une Entrée, puis le titre « Ajouts fréquents » et les fréquents en liste plate, sans En-tête de rayon. |
+| **Ligne d'article** (`item-row`) | Hauteur ≥ `{spacing.row-min-height}`, marge `{spacing.margin}`. Sans Picto. Coche ronde de 24 dp (case M3 de forme circulaire, cible `{spacing.touch-target}`) dont le contour et le remplissage prennent l'accent du rayon, coche en `{colors.surface}`. Nom en `{typography.body-large}`, quantité arrondie pour la lecture (« 1,5 kg », « 20 cl ») en `{typography.body-medium}` `{colors.on-surface-variant}`. Pas de fond, pas de carte, sauf le surlignage d'arrivée : fond de pastille du rayon qui s'efface en fondu. |
+| **Section Cochés** (`checked-section`) | Filet `{colors.outline}` au-dessus. En-tête 48 dp : chevron, « Cochés (n) » en `{typography.label-large}` `{colors.on-surface-variant}`. Lignes cochées : coche ronde pleine en accent du rayon, nom et quantité barrés en `{colors.checked}`. |
+| **Panneau +** (`add-sheet`) | Feuille modale M3 basse, sans voile, fond `{colors.surface-container}` [ASSUMPTION], haut `{rounded.xl}`, filet et ombre. Champ d'ajout en tête, les deux tags dessous, puis le titre « Ajouts fréquents » et les fréquents en liste plate, sans En-tête de rayon. |
+| **Tags du panneau** (`add-tag`) | Puce de 32 dp, `{rounded.sm}`, cible `{spacing.touch-target}`, en `{typography.label-large}`. Vide : contour `{colors.outline}`, texte `{colors.on-surface-variant}`. Plein : fond `{colors.on-surface-variant}`, texte `{colors.surface}`, jamais d'argile. Tag Rayon : point de 10 dp en accent du rayon + nom + flèche ; choisi : fond de pastille du rayon, texte `{colors.on-surface}`. Sa liste déroulante montre les 13 pastilles. |
+| **Popup quantité** (`quantity-popup`) | Carte flottante `{colors.surface-container}`, `{rounded.lg}`, contour `{colors.outline}`, ombre, juste au-dessus du panneau, marges `{spacing.margin}`. Nom en `{typography.title-medium}`, Champ quantité, Choix d'unité. Apparaît en fondu et léger zoom depuis son bord bas, jamais du bas de l'écran. |
 | **Champ de recherche** (`search-field`) | Barre M3, `{rounded.full}`, hauteur `{spacing.touch-target}`, fond `{colors.surface}`, texte indicatif `{colors.on-surface-variant}`, icône × d'effacement à droite. Curseur en `{colors.on-surface}`, jamais en argile (le défaut M3 serait `primary`). Champ d'ajout du Panneau + : icône + à gauche, « Ajouter un article » ; Fiche recette et Paramètres › Articles : icône loupe. |
-| **Titre des fréquents** (`frequents-title`) | « Ajouts fréquents » en `{typography.title-small}` `{colors.on-surface-variant}`, marge `{spacing.margin}` ; crayon au trait à droite, `{colors.on-surface-variant}`, cible `{spacing.touch-target}`. |
-| **Ligne de fréquent** (`frequent-row`) | Liste plate : Picto + nom en `{typography.body-large}` + indicateur d'état à droite, sans libellé de rayon. Hors liste : signe + en `{colors.on-surface-variant}` ; dans la liste : coche en accent du rayon, et à sa gauche un crayon au trait `{colors.on-surface-variant}` (cible `{spacing.touch-target}`). La Ligne saisie a le même dessin. Rien ne s'insère sous la ligne. |
+| **Titre des fréquents** (`frequents-title`) | « Ajouts fréquents » en `{typography.title-small}` `{colors.on-surface-variant}`, marge `{spacing.margin}` ; bouton texte « Gérer » à droite, `{typography.label-large}` `{colors.on-surface-variant}`, cible `{spacing.touch-target}`. |
+| **Ligne de fréquent** (`frequent-row`) | Liste plate : Picto + nom en `{typography.body-large}` + indicateur d'état à droite, sans libellé de rayon. Hors liste : signe + en `{colors.on-surface-variant}` ; dans la liste : coche ronde pleine en accent du rayon, et à sa gauche le tag quantité (`add-tag`). Rien ne s'insère sous la ligne. |
 | **Ligne de résultat** (`search-result-row`) | Comme la Ligne de fréquent, avec le rayon en `{typography.body-medium}` `{colors.on-surface-variant}` avant l'indicateur. Sans résultat, une seule ligne « Ajouter « … » » avec un signe + neutre. |
 | **Champ quantité** (`quantity-field`) | Petit champ M3, `{rounded.xs}`, bordure `{colors.outline}`, hauteur `{spacing.touch-target}`. Unité en suffixe `{colors.on-surface-variant}` ; vide = sans quantité. |
 | **Ligne de Revue** (`review-row`) | Comme la Ligne d'article, avec le Champ quantité à droite. Case cochée par défaut (accent du rayon). Décochée : nom en `{colors.checked}`, sans barré (l'article reste en place). |
@@ -435,7 +458,7 @@ Composants M3 standard hérités sans changement hors des lignes ci-dessous (Tex
 
 | Do | Don't |
 |---|---|
-| Laisser la couleur aux rayons : pastille, case à cocher, picto | Barre d'application colorée (thème 2 rejeté) |
+| Laisser la couleur aux rayons : pastille, coche ronde, picto | Barre d'application colorée (thème 2 rejeté) |
 | Fonds neutres, groupes de rayon sans fond | Surcoloration : cartes de groupe teintées (thème 5 rejeté) |
 | Argile sur le FAB +, l'indicateur d'onglet actif, les Boutons d'action et l'action du Snackbar Annuler, nulle part ailleurs | Argile sur liens, sélection, états ou surfaces ; teinte `surfaceTint` sur les surfaces |
 | Pictos au trait d'un pack cohérent, teintés du rayon | Emoji (« ça ne fait pas sérieux ») |

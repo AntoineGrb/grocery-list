@@ -2,7 +2,7 @@
 title: EXPERIENCE — grocery-list
 name: grocery-list
 status: draft
-updated: 2026-10-30
+updated: 2026-11-01
 sources:
   - ../../forge-grocery-list/forge-grocery-list.md
   - ../../forge-grocery-list/.memlog.md
@@ -33,13 +33,13 @@ Principe directeur : épuré, peu de menus et d'options, impression de facilité
 | Fiche recette | Icône « modifier » de la Carte recette ; FAB + de Recettes pour créer | Nom, ingrédients, quantité facultative, lien facultatif, photo facultative. Rien d'autre. |
 | Revue | Bouton d'action « Valider » dans Recettes | Écran poussé plein écran (flèche retour, sans Barre de navigation). Ingrédients des recettes nouvellement validées, groupés par rayon, tout coché par défaut |
 | Liste | Barre de navigation (onglet) ; fin de la Revue | La liste en cours, groupée par rayon dans l'ordre du parcours ; seul endroit où l'on coche |
-| Panneau + | FAB + de la Liste | Ajout éclair : Entrée ou un tap ajoute ; recherche dans tout le catalogue en plus ; Ajouts fréquents |
+| Panneau + | FAB + de la Liste | Ajout éclair, Liste visible au-dessus : Entrée ou un tap ajoute et se voit aussitôt ; tags Quantité et Rayon ; recherche dans tout le catalogue en plus ; Ajouts fréquents |
 | Paramètres | Icône ⚙ de la Barre d'application, sur Liste et sur Recettes | Écran allumé, groupement par rayon, export/import ; lignes de navigation vers Articles, Fréquents, Parcours |
 | Paramètres › Articles | Ligne de paramètre « Articles » | Catalogue d'articles : Champ de recherche + Fiche article |
 | Paramètres › Fréquents | Ligne de paramètre « Fréquents » [ASSUMPTION : sous-écran] | Ajouter ou retirer des fréquents |
 | Paramètres › Parcours | Ligne de paramètre « Parcours » [ASSUMPTION : sous-écran] | Ordonner les 13 rayons (Ligne de parcours) |
 
-Deux onglets, pas de tiroir. Une seule liste en cours. L'app s'ouvre sur Recettes au premier lancement, puis sur la Liste. Les feuilles (Panneau +, Feuille d'édition d'article, Fiche article) s'ouvrent sur une surface, jamais l'une sur l'autre, sauf la Feuille d'édition ouverte par le crayon du Panneau +, qui s'empile sur lui ; le panneau reste ouvert dessous. Le geste retour Android ferme la feuille ou le dialogue ouvert, sinon remonte d'un niveau.
+Deux onglets, pas de tiroir. Une seule liste en cours. L'app s'ouvre sur Recettes au premier lancement, puis sur la Liste. Les feuilles (Panneau +, Feuille d'édition d'article, Fiche article) s'ouvrent sur une surface, jamais l'une sur l'autre. La Popup quantité n'est pas une feuille : elle flotte au-dessus du Panneau +, qui reste ouvert dessous. Le geste retour Android ferme la feuille ou le dialogue ouvert, sinon remonte d'un niveau.
 
 → Référence de composition : `.working/color-themes-2.html`, variation B (écran Liste, clair et sombre, section Cochés dépliée/repliée). Maquettes clés : `.working/key-liste.html`, `.working/key-revue.html`, `.working/key-recettes.html`, `.working/key-panneau-plus.html` ; leurs choix provisoires de mise en page sont retenus (2026-10-25). `imports/` est vide.
 
@@ -55,14 +55,15 @@ Microcopie proposée, à valider sur maquette :
 | Titre et consigne de la Revue | « Revue » · « Décoche ce que tu as déjà. » |
 | Bouton de fin de Revue | « Ajouter à la liste » |
 | Arrivée sur la Liste après la Revue | « Ta liste est prête. » |
-| Section Cochés | « Cochés (5) » · « Afficher » / « Replier » |
+| Section Cochés | « Cochés (5) » |
 | Tout est coché | Bouton « Terminer les courses » |
 | Après Terminer les courses | « Courses terminées. Bon appétit ! » · « Annuler » |
 | Dialogue Nouvelle liste | Titre « Nouvelle liste ? » · « La liste en cours et la sélection de la semaine seront effacées. » · « Garder » / « Effacer et recommencer » |
 | Liste vide | « Ta liste est vide. Choisis tes recettes de la semaine ou ajoute un article avec +. » |
 | Recettes vide | « Pas encore de recette. Ajoute ta première avec +. » |
 | Champ d'ajout (Panneau +) | Texte indicatif « Ajouter un article » |
-| Section des fréquents (Panneau +) | Titre « Ajouts fréquents » |
+| Section des fréquents (Panneau +) | Titre « Ajouts fréquents » · bouton « Gérer » |
+| Tags du Panneau + | « Quantité » · « Qté » sur une ligne · le rayon, « Divers » par défaut |
 | Panneau +, aucun résultat | « Ajouter « piles » » |
 | Panneau +, aucun fréquent | « Pas encore de fréquents. Ajoute-les dans les paramètres. » |
 | Premier lancement (Recettes) | « Voici quelques recettes pour essayer. Supprime-les quand tu veux. » |
@@ -90,26 +91,29 @@ Comportemental. Les spécifications visuelles sont dans `DESIGN.md` (section Com
 | Carte recette | Recettes | Tap sur la carte = sélectionner / désélectionner pour la semaine. Sélectionnée = coche dans le coin + bordure, un seul état (validée ou non). Tap sur l'icône « modifier » = ouvrir la Fiche recette. Appui long : aucun effet. Désélectionner une recette déjà validée retire ses ingrédients non cochés de la liste (quantités fusionnées réduites d'autant) + Snackbar Annuler. |
 | Action Nouvelle liste | Recettes | Action texte de la Barre d'application, à gauche de ⚙. Ouvre le Dialogue de confirmation. Confirmé : efface tous les articles de la liste, cochés ou non, et remet la sélection à zéro. |
 | En-tête de rayon | Liste, Revue | Non interactif. Ordre des groupes = ordre du parcours. Sans compteur. Absent du Panneau +. |
-| Ligne d'article | Liste | Case + nom + quantité, sans Picto. Tap sur la case = cocher (l'article rejoint la Section Cochés) ; tap sur le nom : aucun effet. Glisser vers la gauche = supprimer + Snackbar Annuler. Appui long = Feuille d'édition d'article. |
+| Ligne d'article | Liste | Coche ronde + nom + quantité, sans Picto. Tap sur la coche = cocher (l'article rejoint la Section Cochés) ; tap sur le nom : aucun effet. Glisser vers la gauche = supprimer + Snackbar Annuler. Appui long = Feuille d'édition d'article. Panneau + ouvert : une ligne nouvelle arrive animée et brièvement surlignée ; si elle serait masquée, la Liste défile jusqu'à la poser juste au-dessus du panneau, son En-tête de rayon visible si la place le permet ; sinon rien ne défile. |
 | Section Cochés | Liste | Repliée par défaut, en bas de la liste. Tap sur l'en-tête = déplier / replier. Décocher une ligne la renvoie dans son rayon. |
-| Panneau + | Liste | S'ouvre avec le Champ d'ajout focalisé, clavier ouvert ; la section « Ajouts fréquents » continue sous le clavier. Reste ouvert après un ajout pour enchaîner ; se ferme par glissement vers le bas, tap hors feuille ou retour. Aucun dépliage de ligne après un ajout : quantité, unité et rayon se précisent par le crayon. |
-| Champ d'ajout | Panneau + | Icône × pour effacer dès qu'il y a du texte. Chaque frappe filtre aussi tout le catalogue (Lignes de résultat). Entrée ajoute le texte tapé, qu'un résultat s'affiche ou non : l'article du catalogue de ce nom exact (casse et accents ignorés), sinon une ligne libre dans Divers, sans quantité, qui n'entre pas au catalogue. Un article déjà dans la liste n'est ni ajouté une seconde fois ni retiré. Après Entrée, le champ se vide, le clavier reste ouvert et la Ligne saisie apparaît sous le champ. |
-| Ligne saisie | Panneau + | Le dernier article ajouté par Entrée, sous le Champ d'ajout : nom, coche et crayon. Reste jusqu'à la prochaine Entrée ou la fermeture du panneau, au-dessus des résultats [ASSUMPTION]. Tap sur la coche = retirer + Snackbar Annuler, la ligne disparaît. |
+| Panneau + | Liste | Panneau bas, sans voile : la Liste reste visible et vivante au-dessus de lui. S'ouvre avec le Champ d'ajout focalisé, clavier ouvert ; dessous les deux tags, puis « Ajouts fréquents » qui défile dans le panneau. Faire défiler ses lignes ferme le clavier et redonne de la place. Reste ouvert après un ajout pour enchaîner ; se ferme par glissement vers le bas, tap hors feuille ou retour. Rien ne se déplie après un ajout. |
+| Champ d'ajout | Panneau + | Icône × pour effacer dès qu'il y a du texte. Chaque frappe filtre aussi tout le catalogue (Lignes de résultat). Entrée ajoute le texte tapé, qu'un résultat s'affiche ou non, avec les tags : l'article du catalogue de ce nom exact (casse et accents ignorés), sinon une ligne libre qui n'entre pas au catalogue et dont le rayon n'est jamais mémorisé. Un article déjà dans la liste n'est ni ajouté une seconde fois ni retiré : sans tag, rien ne change ; avec des tags, leur quantité et leur rayon remplacent ceux de sa plus ancienne ligne non cochée, qui est montrée et surlignée. Après Entrée, le champ se vide, le clavier reste ouvert et les tags reviennent à zéro. |
+| Tag Quantité | Panneau +, sous le Champ d'ajout | Ouvre la Popup quantité pour l'ajout suivant. Contour « Quantité » sans valeur ; plein avec la valeur. Revient à zéro après l'ajout. Effacer le texte ne le remet pas à zéro. Sans effet sur un tap sur un fréquent. |
+| Tag Rayon | Panneau +, sous le Champ d'ajout | Liste déroulante des 13 rayons dans l'ordre du parcours, clavier conservé. Contour : rayon de l'article au nom exact tapé, sinon Divers ; plein dès qu'un rayon est choisi, qui prime alors sur celui de l'article. Le choix ne vaut que pour la ligne ajoutée suivante, jamais pour l'article. Revient à zéro après l'ajout. |
+| Tag quantité de ligne | Ligne de fréquent, Ligne de résultat, dans la liste | Ouvre la Popup quantité de la plus ancienne ligne non cochée de l'article. « Qté » en contour sans quantité ; la quantité en plein sinon. Absent hors liste. |
+| Popup quantité | Tag Quantité, Tag quantité de ligne | Carte flottante juste au-dessus du panneau : titre (nom de l'article, sinon « Quantité »), Champ quantité focalisé, Choix d'unité. Jamais le rayon. Entrée, tap hors de la carte et retour la ferment en enregistrant ; vide = sans quantité. La saisie du nom reprend le clavier après sa fermeture. |
 | Champ de recherche | Fiche recette, Paramètres › Articles | Icône × pour effacer dès qu'il y a du texte. Filtre tout le catalogue à chaque frappe. Sans correspondance exacte, propose « Créer « … » » : l'article inconnu rejoint le catalogue. |
-| Ligne de fréquent | Panneau + | Section titrée « Ajouts fréquents », crayon à droite du titre (mènera à Paramètres › Fréquents ; sans action avant l'epic 3). Liste plate dans l'ordre du parcours, sans En-tête ni libellé de rayon. Tap = ajouter (le + devient une coche), ou retirer s'il y est déjà, avec Annuler. Dans la liste : coche + crayon qui ouvre la Feuille d'édition. État synchronisé dans les deux sens avec la Liste (cocher dans la Liste repasse le fréquent à « hors liste »). Pas d'appui long : la gestion se fait dans les Paramètres. |
-| Ligne de résultat | Panneau +, Fiche recette | Panneau + : tap = ajouter (le + devient une coche) ou retirer s'il est déjà dans la liste, même règle et même crayon que les fréquents ; garde le libellé du rayon. Sans résultat, une seule ligne « Ajouter « … » » fait comme Entrée. Fiche recette : tap = ajouter comme ingrédient. |
-| Champ quantité | Revue, Feuille d'édition d'article, Ligne d'ingrédient | Tap = clavier numérique. Vide = sans quantité. Aucune conversion entre pièces, poids et volumes. Dans la Feuille d'édition, l'unité vient du Choix d'unité ; ailleurs, l'unité par défaut de l'article est préremplie. |
-| Choix d'unité | Feuille d'édition d'article | Pièce, g, kg, ml, L, au choix libre [ASSUMPTION : puces de choix sur une ligne]. Préchoisie : l'unité de la ligne, sinon celle de l'article, sinon pièce. kg et L se saisissent en kg et L mais s'enregistrent en g et ml. Changer l'unité d'une ligne la fusionne avec la ligne non cochée du même article dans cette unité. |
+| Ligne de fréquent | Panneau + | Section titrée « Ajouts fréquents », bouton « Gérer » à droite du titre (mènera à Paramètres › Fréquents ; sans action avant l'epic 3). Liste plate dans l'ordre du parcours, sans En-tête ni libellé de rayon. Tap = ajouter (le + devient une coche, le Tag quantité de ligne apparaît), ou retirer s'il y est déjà, avec Annuler. Pas de choix de rayon : il se gère dans Paramètres › Fréquents. État synchronisé dans les deux sens avec la Liste (cocher dans la Liste repasse le fréquent à « hors liste »). Pas d'appui long. |
+| Ligne de résultat | Panneau +, Fiche recette | Panneau + : tap = ajouter avec les tags (le + devient une coche) ou retirer s'il est déjà dans la liste, même règle et même Tag quantité de ligne que les fréquents ; garde le libellé du rayon. Le champ garde son texte. Sans résultat, une seule ligne « Ajouter « … » » fait comme Entrée. Fiche recette : tap = ajouter comme ingrédient. |
+| Champ quantité | Revue, Feuille d'édition d'article, Popup quantité, Ligne d'ingrédient | Tap = clavier numérique. Vide = sans quantité. Aucune conversion entre pièces, poids et volumes. Dans la Feuille d'édition et la Popup quantité, l'unité vient du Choix d'unité ; ailleurs, l'unité par défaut de l'article est préremplie. |
+| Choix d'unité | Feuille d'édition d'article, Popup quantité | Pièce, g, kg, ml, L, au choix libre [ASSUMPTION : puces de choix sur une ligne]. Préchoisie : l'unité de la ligne, sinon celle de l'article, sinon pièce. kg et L se saisissent en kg et L mais s'enregistrent en g et ml. Changer l'unité d'une ligne la fusionne avec la ligne non cochée du même article dans cette unité. |
 | Choix de rayon | Feuille d'édition d'article | Les 13 rayons (point + nom). Tap = placer la ligne dans ce rayon ; l'article du catalogue garde son rayon par défaut. Une ligne libre va dans Divers tant qu'aucun rayon n'est choisi. |
 | Ligne de Revue | Revue | Cochée par défaut. Tap sur la case = décocher ce qu'on a déjà. Champ quantité éditable à droite (« 6 » au lieu de « 8 »), valeur exacte dans l'unité de l'article : l'arrondi de lecture (1 kg, 40 cl) ne vaut que dans la Liste. |
-| Feuille d'édition d'article | Liste (appui long), Panneau + (crayon) | Feuille courte qui monte du bas, hauteur au contenu ; un seul composant pour les deux usages. Titre = nom de l'article ; Champ quantité, Choix d'unité, Choix de rayon, Supprimer. Tout est facultatif. Changer le rayon déplace l'article dans la liste en cours. Supprimer ferme la feuille + Snackbar Annuler. Ouverte depuis le Panneau +, elle s'empile sur lui et le panneau reste ouvert à sa fermeture. |
+| Feuille d'édition d'article | Liste (appui long) | Feuille courte qui monte du bas, hauteur au contenu. Titre = nom de l'article ; Champ quantité, Choix d'unité, Choix de rayon, Supprimer. Tout est facultatif. Changer le rayon déplace l'article dans la liste en cours. Supprimer ferme la feuille + Snackbar Annuler. Jamais ouverte depuis le Panneau +. |
 | Snackbar Annuler | Liste, Recettes | Après suppression d'article, désélection d'une recette validée et Terminer les courses. Durée M3 par défaut ; un nouveau snackbar remplace le précédent (l'action précédente est alors définitive). |
 | Dialogue de confirmation | Recettes (Nouvelle liste) | Seule action confirmée par dialogue. Repli par défaut = « Garder ». |
 | Ligne d'ingrédient | Fiche recette | Ajout par Champ de recherche + tap. Quantité facultative. Icône de retrait. Le premier ingrédient fournit le visuel de repli de la carte [ASSUMPTION]. |
 | Ligne de paramètre | Paramètres | Switch (Écran allumé, groupement par rayon) ou navigation (Articles, Fréquents, Parcours, export, import). |
 | Ligne de parcours | Paramètres | Glisser-déposer pour ordonner les 13 rayons selon le magasin. Seul glisser-déposer de l'app. |
 | Fiche article | Paramètres › Articles | Feuille modale [ASSUMPTION]. Nom, Picto choisi dans une grille du pack avec recherche [ASSUMPTION], rayon par défaut, unité par défaut. Les modifications valent pour les ajouts suivants. |
-| Picto | Ligne de fréquent, Ligne de résultat, Ligne saisie, Ligne de Revue, Ligne d'ingrédient, Fiche article, Carte recette (repli) | Non interactif. Teinté du rayon de l'article ; une ligne libre prend le repli neutre. Absent de la Ligne d'article de la Liste. |
+| Picto | Ligne de fréquent, Ligne de résultat, Ligne de Revue, Ligne d'ingrédient, Fiche article, Carte recette (repli) | Non interactif. Teinté du rayon de l'article ; une ligne libre prend le repli neutre. Absent de la Ligne d'article de la Liste. |
 | Message d'état vide | Recettes, Liste, Panneau + | Une phrase et au plus une action. Disparaît dès qu'un contenu existe. |
 
 ## State Patterns
@@ -137,11 +141,12 @@ Comportemental. Les spécifications visuelles sont dans `DESIGN.md` (section Com
 | Liste | Rayon entièrement coché | Le groupe disparaît, ses articles sont dans la Section Cochés. |
 | Liste | Aucun article coché | Section Cochés absente. |
 | Liste | Tout coché | Pas de vidage automatique. Le Bouton d'action « Terminer les courses » apparaît ; la Section Cochés reste repliée. |
+| Liste | Panneau + ouvert | Liste visible, sans voile, non interactive (un tap hors du panneau le ferme). La zone cachée par le panneau reste atteignable : le bas de la Liste réserve sa hauteur. Le message de liste vide se centre dans la zone libre. |
 | Liste | Après Terminer les courses | Liste vide, sélection de la semaine remise à zéro + Snackbar Annuler, qui restaure les deux. |
 | Liste | Groupement par rayon désactivé | Ordre d'ajout, sans En-tête de rayon ; la case garde la couleur du rayon. |
 | Liste | Écran allumé actif | L'écran ne se met pas en veille tant que l'onglet Liste est affiché. Réglage désactivé par défaut. |
 | Panneau + | Ouverture | Champ d'ajout vide et focalisé, clavier ouvert ; « Ajouts fréquents » en liste plate dans l'ordre du parcours, avec leur état. |
-| Panneau + | Après un ajout | Le + de la ligne devient une coche, le crayon apparaît à côté ; rien ne se déplie. Après Entrée : champ vidé, clavier ouvert, Ligne saisie sous le champ. |
+| Panneau + | Après un ajout | L'article apparaît dans la Liste au-dessus. Le + de la ligne devient une coche, le Tag quantité de ligne apparaît à côté ; rien ne se déplie. Après Entrée : champ vidé, clavier ouvert, tags à zéro. |
 | Panneau + | Saisie | Résultats sur tout le catalogue ; les fréquents laissent la place aux résultats ; Entrée reste possible à tout moment. |
 | Panneau + | Aucun résultat | Une seule ligne « Ajouter « … » », qui fait comme Entrée. |
 | Panneau + | Aucun fréquent | Message d'état vide renvoyant aux Paramètres. |
@@ -163,14 +168,15 @@ Hors ligne : sans objet en V1 (tout est local). Seules permissions système : ga
 | Tap sur l'icône « modifier » | Carte recette | Ouvrir la Fiche recette |
 | Tap | Ligne de fréquent, Ligne de résultat | Ajouter / retirer de la liste |
 | Entrée | Champ d'ajout | Ajouter le texte tapé |
-| Tap sur le crayon | Ligne de fréquent, Ligne de résultat, Ligne saisie (dans la liste) | Feuille d'édition d'article, empilée sur le Panneau + |
+| Tap sur un tag quantité | Ligne de fréquent, Ligne de résultat (dans la liste), Tag Quantité | Popup quantité au-dessus du Panneau + |
+| Tap sur le Tag Rayon | Panneau + | Liste déroulante des 13 rayons |
 | Tap | Champ quantité | Clavier numérique |
 | Glisser vers la gauche | Ligne d'article | Supprimer + Snackbar Annuler |
 | Appui long | Ligne d'article | Feuille d'édition d'article |
 | Glisser-déposer | Ligne de parcours (Paramètres) | Ordonner les rayons |
 
 - **Annuler plutôt que confirmer** : suppression d'article, désélection d'une recette validée et Terminer les courses passent par le Snackbar Annuler. Seule Nouvelle liste demande une confirmation.
-- **Coche** : animation minimale mais satisfaisante (remplissage de la case et tracé de la coche, durée courte M3), puis la ligne rejoint la Section Cochés. Pas de vibration, pas de son.
+- **Coche** : animation minimale mais satisfaisante (remplissage du cercle et tracé de la coche, durée courte M3), puis la ligne rejoint la Section Cochés. Pas de vibration, pas de son.
 - **Écran allumé** : réglage facultatif, limité à l'onglet Liste.
 - **Interdits** : appui long sur un fréquent ; appui long sur une Carte recette ; glisser-déposer hors parcours (pas de planning par jour en V1) ; vidage automatique de la liste ; entrée automatique dans les fréquents ; tri par fréquence ; suggestions dans la Liste ; tuiles.
 
@@ -181,12 +187,12 @@ Comportemental. Les contrastes sont dans `DESIGN.md` (section Colors).
 | Exigence | Règle |
 |---|---|
 | Une main | Actions fréquentes dans la zone du pouce : FAB +, Barre de navigation, Bouton d'action en bas. La Barre d'application ne porte que ⚙, rarement utilisée. |
-| Cibles tactiles | ≥ `{spacing.touch-target}` (48 dp) pour toute zone interactive : case à cocher, icône « modifier » de la Carte recette (même visuellement petite), crayon des lignes du Panneau + et du titre « Ajouts fréquents », puces du Choix d'unité, Champ quantité, en-tête de la Section Cochés, poignée de la Ligne de parcours. |
+| Cibles tactiles | ≥ `{spacing.touch-target}` (48 dp) pour toute zone interactive : coche ronde, icône « modifier » de la Carte recette (même visuellement petite), tags du Panneau + (visuellement petits), bouton « Gérer », puces du Choix d'unité, Champ quantité, en-tête de la Section Cochés, poignée de la Ligne de parcours. |
 | Repères non colorés | Le rayon est identifié par son nom écrit dans l'En-tête de rayon, jamais par la couleur seule. Coché = coche + barré + déplacement dans Cochés. État d'un fréquent = icône, pas teinte. Carte sélectionnée = repère graphique, pas teinte. |
-| TalkBack | Ligne d'article : « Tomates, 500 g, Fruits et légumes, non coché ». En-tête de rayon annoncé comme titre, par son seul nom : « Fruits et légumes ». Ligne du Panneau + dans la liste : « Lait, dans la liste » ; son crayon : « Modifier Lait ». FAB + : « Ajouter un article » (Liste), « Nouvelle recette » (Recettes). Carte recette : « Chili, sélectionnée » ; icône : « Modifier Chili ». Section Cochés : « Cochés, 5 articles, replié ». Changement de quantité ou de coche annoncé. |
+| TalkBack | Ligne d'article : « Tomates, 500 g, Fruits et légumes, non coché ». En-tête de rayon annoncé comme titre, par son seul nom : « Fruits et légumes ». Ligne du Panneau + dans la liste : « Lait, dans la liste » ; son tag : « Quantité de Lait, 500 g » ou « Quantité de Lait, aucune ». Tags du champ : « Quantité, aucune », « Rayon, Divers ». Bouton : « Gérer les ajouts fréquents ». La Liste étant inaccessible sous le panneau, un ajout s'annonce : « Lait ajouté, Crèmerie ». FAB + : « Ajouter un article » (Liste), « Nouvelle recette » (Recettes). Carte recette : « Chili, sélectionnée » ; icône : « Modifier Chili ». Section Cochés : « Cochés, 5 articles, replié ». Changement de quantité ou de coche annoncé. |
 | Gestes alternatifs | Glisser pour supprimer et appui long ont des actions TalkBack équivalentes (« Supprimer », « Modifier ») [ASSUMPTION]. Le glisser-déposer du parcours a des actions « Monter » / « Descendre » [ASSUMPTION]. |
 | Taille du texte | Taille de police système respectée ; les lignes grandissent en hauteur, le nom d'article passe à la ligne plutôt que d'être tronqué. |
-| Animations | Si les animations sont désactivées dans Android, la coche est instantanée. |
+| Animations | Si les animations sont désactivées dans Android, la coche est instantanée ; une ligne nouvelle apparaît sans animation ni surlignage et la Liste saute à sa place sans glisser ; la Popup quantité apparaît d'un coup. |
 | Ordre de lecture | Haut en bas : rayons dans l'ordre du parcours, puis Section Cochés, puis Bouton d'action. |
 
 ## Key Flows
@@ -218,13 +224,13 @@ Comportemental. Les contrastes sont dans `DESIGN.md` (section Colors).
 ### Flux 3 — L'ajout éclair en semaine (Antoine, mardi soir, devant le frigo)
 
 1. Antoine voit qu'il n'y a plus de lait. Il ouvre l'onglet Liste et touche FAB +.
-2. Le Panneau + s'ouvre : Champ d'ajout focalisé, clavier ouvert, « Ajouts fréquents » dessous.
-3. Il touche « Lait » dans les fréquents : le + devient une coche, un crayon apparaît à côté ; rien d'autre ne s'ouvre.
-4. **★ Le lait est dans la liste, dans Crèmerie : un tap a suffi.**
-5. Il tape « piles » et appuie sur Entrée, sans regarder les résultats. Le champ se vide, le clavier reste ouvert, « Piles » s'affiche sous le champ avec sa coche et son crayon ; les piles sont dans Divers, sans entrer au catalogue.
-6. Il touche le crayon de « Piles » : la Feuille d'édition monte du bas ; il touche Entretien et la ferme. Il ferme le Panneau +.
+2. Le Panneau + s'ouvre, bas : Champ d'ajout focalisé, clavier ouvert, tags et « Ajouts fréquents » dessous ; sa liste reste visible au-dessus.
+3. Il touche « Lait » dans les fréquents : le + devient une coche, un tag « Qté » apparaît à côté ; rien d'autre ne s'ouvre.
+4. **★ Il voit le lait arriver dans Crèmerie, juste au-dessus du panneau : un tap a suffi.**
+5. Il tape « piles », touche le Tag Rayon et choisit Entretien, puis le Tag Quantité : 4, Entrée. Il appuie sur Entrée dans le champ. Le champ se vide, le clavier reste ouvert, les tags reviennent à zéro ; la Liste défile jusqu'à Entretien, où « Piles 4 » arrive, sans entrer au catalogue.
+6. Il touche le tag « Qté » du Lait : la Popup quantité apparaît au-dessus du panneau ; il tape 2 et valide, le tag affiche « 2 ». Il ferme le Panneau +.
 
-Échec : il touche un fréquent déjà dans la liste → l'article est retiré, avec Annuler ; un second tap le remet. Il appuie sur Entrée pour un article déjà dans la liste → rien n'est ajouté ni retiré.
+Échec : il touche un fréquent déjà dans la liste → l'article est retiré, avec Annuler ; un second tap le remet. Il appuie sur Entrée pour un article déjà dans la liste → rien n'est ajouté ni retiré ; s'il a choisi une quantité ou un rayon, ils remplacent ceux de sa ligne, qui est montrée.
 
 ### Flux 4 — Saisir une recette en moins d'une minute (Antoine, un soir de mise en route, une vingtaine de recettes à saisir)
 
