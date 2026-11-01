@@ -60,10 +60,15 @@ abstract final class StringsFr {
   static String retireDeLaListe(String name) => 'Retiré de la liste : $name';
   static const supprimer = 'Supprimer';
   static const modifier = 'Modifier';
-
-  /// Crayon d'une ligne du Panneau + dans la liste : « Modifier Lait ».
-  static String modifierNom(String name) => 'Modifier $name';
   static const quantite = 'Quantité';
+
+  /// Tag quantité d'une ligne du Panneau + sans quantité.
+  static const qte = 'Qté';
+
+  /// Tag quantité lu par TalkBack, [value] étant la quantité lue, vide sans
+  /// quantité : « Quantité de Lait, 500 g », « Quantité de Lait, aucune ».
+  static String quantiteDe(String name, String value) =>
+      'Quantité de $name, ${value.isEmpty ? 'aucune' : value}';
   static const unite = 'Unité';
   static const rayon = 'Rayon';
   static const suppressionImpossible = 'Suppression impossible. Réessaie.';
@@ -110,7 +115,7 @@ abstract final class StringsFr {
   static const champUniteL = uniteL;
   static const champUnitePieces = unitePieces;
 
-  // Puces du Choix d'unité de la Feuille d'édition.
+  // Puces du Choix d'unité (Feuille d'édition, Popup quantité).
   static const puceUnitePiece = unitePiece;
   static const puceUniteG = uniteG;
   static const puceUniteKg = uniteKg;

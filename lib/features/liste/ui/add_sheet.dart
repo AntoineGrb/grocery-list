@@ -18,7 +18,8 @@ import '../data/liste_repository.dart';
 import '../state/liste_panel.dart';
 import '../state/liste_providers.dart';
 import 'add_sheet_rows.dart';
-import 'item_edit_sheet.dart';
+import 'quantity_input.dart';
+import 'quantity_popup.dart';
 
 /// Dernier Annuler montré dans le Panneau +, repris par la Liste quand le
 /// panneau se ferme avant la fin de son snackbar (AD-10).
@@ -133,9 +134,10 @@ Future<void> showAddSheet(BuildContext context) async {
 ///
 /// Rien ne se déplie après un ajout : l'article se voit dans la Liste,
 /// au-dessus du panneau (AD-19). Dans la liste, une ligne (fréquent ou
-/// résultat) montre un crayon à gauche de sa coche, qui ouvre la Feuille
-/// d'édition empilée sur le panneau (R14, AD-13) ; le panneau reste ouvert
-/// dessous et son messager montre les erreurs et l'Annuler de « Supprimer ».
+/// résultat) montre un tag quantité à gauche de sa coche, qui ouvre la Popup
+/// quantité de sa plus ancienne ligne non cochée (R26, AD-13) ; le panneau
+/// reste ouvert dessous et son messager montre les erreurs. Aucune feuille ne
+/// s'ouvre depuis le panneau.
 ///
 /// Le panneau se pose au-dessus du clavier et publie sa géométrie à la Liste
 /// dans [ListePanel] à chaque changement.
@@ -166,9 +168,8 @@ class _AddSheetState extends ConsumerState<AddSheet> {
   /// Messager propre au panneau.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  /// Une Feuille d'édition s'ouvre ou est ouverte : un second crayon est
-  /// ignoré.
-  bool _editing = false;
+  /// Une Popup quantité est ouverte : un second tag est ignoré.
+  bool _quantityOpen = false;
 
   @override
   void dispose() {
@@ -269,45 +270,34 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     _showUndo(context, rows, StringsFr.retireDeLaListe(article.name));
   }
 
-  /// Crayon de [article] : ouvre la Feuille d'édition de sa plus ancienne
-  /// ligne non cochée, empilée sur le panneau ; « Supprimer » y retire la
-  /// ligne avec Annuler (AD-10).
-  ///
-  /// [context] est sous le messager du panneau : les erreurs de la feuille
-  /// et l'Annuler s'y affichent (AD-13).
-  Future<void> _edit(BuildContext context, CatalogueArticle article) async {
-    if (_editing) return;
-    _editing = true;
+  /// Tag quantité de [line] : ouvre la Popup quantité et écrit ce qui a changé
+  /// (AD-5) ; une erreur s'affiche dans le panneau.
+  Future<void> _editQuantity(ListeItem line) async {
+    if (_quantityOpen) return;
+    _quantityOpen = true;
+    final repository = ref.read(listeRepositoryProvider);
+    final QuantityEdit? edit;
     try {
-      final repository = ref.read(listeRepositoryProvider);
-      final ListeItem? item;
-      try {
-        item = await repository.firstUnchecked(article.id);
-      } catch (_) {
-        if (context.mounted) {
-          showErrorSnackBar(
-            ScaffoldMessenger.of(context),
-            StringsFr.modificationImpossible,
-          );
-        }
-        return;
-      }
-      if (item == null || !context.mounted) return;
-      final result = await showItemEditSheet(context, item);
-      if (result != ItemEditResult.delete || !context.mounted) return;
-
-      final messenger = ScaffoldMessenger.of(context);
-      final List<UndoRow> rows;
-      try {
-        rows = await repository.removeLine(item.lineId);
-      } catch (_) {
-        showErrorSnackBar(messenger, StringsFr.suppressionImpossible);
-        return;
-      }
-      if (!context.mounted) return;
-      _showUndo(context, rows, StringsFr.retireDeLaListe(item.name));
+      edit = await showQuantityPopup(
+        context,
+        title: line.name,
+        quantity: line.quantity,
+        unit: line.unit,
+        initialUnit: initialInputUnit(line),
+      );
     } finally {
-      _editing = false;
+      _quantityOpen = false;
+    }
+    if (edit == null) return;
+    final value = edit.value;
+    try {
+      await repository.setQuantity(
+        line.lineId,
+        value?.quantity,
+        unit: value?.unit,
+      );
+    } catch (_) {
+      _showMessage(StringsFr.modificationImpossible);
     }
   }
 
@@ -376,6 +366,9 @@ class _AddSheetState extends ConsumerState<AddSheet> {
         ? null
         : ref.watch(frequentsInRouteProvider).value;
     final inList = ref.watch(inListProvider).value ?? const <String>{};
+    final lines =
+        ref.watch(oldestLineByArticleProvider).value ??
+        const <String, ListeItem>{};
 
     // Contenu sous le Champ d'ajout ; [context] est sous le messager du
     // panneau.
@@ -398,8 +391,9 @@ class _AddSheetState extends ConsumerState<AddSheet> {
               key: ValueKey(article.id),
               article: article,
               inList: inList.contains(article.id),
+              line: lines[article.id],
               onTap: () => _toggle(context, article),
-              onEdit: () => _edit(context, article),
+              onQuantityTap: _editQuantity,
             );
           },
         );
@@ -417,8 +411,9 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                 key: ValueKey(article.id),
                 article: article,
                 inList: inList.contains(article.id),
+                line: lines[article.id],
                 onTap: () => _toggle(context, article),
-                onEdit: () => _edit(context, article),
+                onQuantityTap: _editQuantity,
               ),
           ],
         ),

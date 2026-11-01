@@ -153,4 +153,6 @@ abstract final class KadiSpacing {
   static const panelHandleHeight = 20.0;
   static const panelHandleWidth = 32.0;
   static const panelHandleThickness = 4.0;
+  static const tagHeight = 32.0;
+  static const tagMaxWidth = 144.0;
 }

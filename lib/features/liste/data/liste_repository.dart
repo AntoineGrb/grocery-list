@@ -367,9 +367,10 @@ class ListeRepository {
   }
 
   /// Corrige la quantité et l'unité de la ligne [lineId] depuis la Feuille
-  /// d'édition (AD-5) : dans une transaction, ses contributions actives
-  /// sont supprimées logiquement, une contribution `edition` de [quantity]
-  /// en [unit] est insérée, la ligne prend [unit] et `manual_at` est fixé.
+  /// d'édition ou la Popup quantité (AD-5) : dans une transaction, ses
+  /// contributions actives sont supprimées logiquement, une contribution
+  /// `edition` de [quantity] en [unit] est insérée, la ligne prend [unit] et
+  /// `manual_at` est fixé.
   ///
   /// [quantity] est déjà stockée (AD-6 : g, ml, millièmes de pièce) ; nulle
   /// ou 0 : « sans quantité » quelle que soit [unit], la ligne perd son
@@ -561,8 +562,7 @@ class ListeRepository {
   }
 
   /// Plus ancienne ligne active non cochée de [articleId] (`added_at`, puis
-  /// `id`), celle qu'ouvre le crayon du Panneau + ; `null` s'il n'est pas
-  /// dans la liste.
+  /// `id`) ; `null` s'il n'est pas dans la liste.
   Future<ListeItem?> firstUnchecked(String articleId) async {
     final (:query, :items) = _items(checked: false, articleId: articleId);
     query.limit(1);

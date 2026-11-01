@@ -80,8 +80,8 @@ class _DecimalFormatter extends TextInputFormatter {
 /// quantité. Clavier numérique, chiffres seulement, virgule décimale pour
 /// kg et L ; hauteur 48 dp.
 ///
-/// Partagé par la Feuille d'édition d'article, la Revue et la Ligne
-/// d'ingrédient ; [quantityFieldText] et [quantityFromFieldText]
+/// Partagé par la Feuille d'édition d'article, la Popup quantité, la Revue et
+/// la Ligne d'ingrédient ; [quantityFieldText] et [quantityFromFieldText]
 /// convertissent entre le texte et la quantité stockée.
 class QuantityField extends StatelessWidget {
   const QuantityField({
@@ -89,6 +89,7 @@ class QuantityField extends StatelessWidget {
     required this.controller,
     required this.unit,
     this.focusNode,
+    this.autofocus = false,
     this.onChanged,
     this.onSubmitted,
   });
@@ -96,6 +97,9 @@ class QuantityField extends StatelessWidget {
   final TextEditingController controller;
   final InputUnit unit;
   final FocusNode? focusNode;
+
+  /// Prend le focus à son apparition, clavier ouvert.
+  final bool autofocus;
 
   /// Saisie de l'utilisateur.
   final ValueChanged<String>? onChanged;
@@ -118,6 +122,7 @@ class QuantityField extends StatelessWidget {
       child: TextField(
         controller: controller,
         focusNode: focusNode,
+        autofocus: autofocus,
         onChanged: onChanged,
         onSubmitted: onSubmitted,
         // Toujours avec virgule : Android ne change pas de clavier quand la

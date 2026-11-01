@@ -10,21 +10,21 @@ import 'package:material_ui/material_ui.dart';
 
 import '../data/liste_repository.dart';
 import '../state/liste_providers.dart';
+import 'quantity_input.dart';
 
 /// Résultat de la Feuille d'édition d'article rendu à son ouvreur.
 enum ItemEditResult {
-  /// « Supprimer » touché : la Liste ou le Panneau + supprime la ligne et
-  /// montre le snackbar Annuler sous son propre messager.
+  /// « Supprimer » touché : la Liste supprime la ligne et montre le snackbar
+  /// Annuler sous son propre messager.
   delete,
 }
 
 /// Ouvre la Feuille d'édition d'article de [item] : appui long ou
-/// « Modifier » de la Liste, crayon du Panneau +.
+/// « Modifier » de la Liste.
 ///
 /// La feuille écrit elle-même la quantité, l'unité et le rayon ; elle rend
 /// [ItemEditResult.delete] au lieu de supprimer. Ses erreurs d'écriture
-/// s'affichent sous le messager de [context] (celui de la Liste, ou du
-/// Panneau + sur lequel elle s'empile, AD-13).
+/// s'affichent sous le messager de [context], celui de la Liste.
 Future<ItemEditResult?> showItemEditSheet(
   BuildContext context,
   ListeItem item,
@@ -32,8 +32,7 @@ Future<ItemEditResult?> showItemEditSheet(
   final messenger = ScaffoldMessenger.of(context);
   return showModalBottomSheet<ItemEditResult>(
     context: context,
-    // La barrière couvre toute l'app, Barre de navigation comprise ; depuis
-    // le Panneau +, la feuille s'empile sur lui, qui reste ouvert dessous.
+    // La barrière couvre toute l'app, Barre de navigation comprise.
     useRootNavigator: true,
     isScrollControlled: true,
     useSafeArea: true,
@@ -41,23 +40,6 @@ Future<ItemEditResult?> showItemEditSheet(
     builder: (_) => ItemEditSheet(item: item, messenger: messenger),
   );
 }
-
-/// Unité préchoisie du Choix d'unité : celle de la ligne, sinon celle de
-/// l'article, sinon pièce. Une ligne en g s'ouvre en g, même au-delà de
-/// 1000 (kg seulement si choisi).
-InputUnit initialInputUnit(ListeItem item) {
-  final unit = item.unit ?? item.articleUnit;
-  return unit == null ? InputUnit.piece : InputUnit.of(unit);
-}
-
-/// Libellé d'une puce du Choix d'unité : pièce, g, kg, ml, L.
-String _chipLabel(InputUnit unit) => switch (unit) {
-  InputUnit.piece => StringsFr.puceUnitePiece,
-  InputUnit.g => StringsFr.puceUniteG,
-  InputUnit.kg => StringsFr.puceUniteKg,
-  InputUnit.ml => StringsFr.puceUniteMl,
-  InputUnit.l => StringsFr.puceUniteL,
-};
 
 /// Feuille d'édition d'article (DESIGN `item-edit-sheet`) : nom en titre,
 /// Champ quantité prérempli, Choix d'unité, Choix de rayon, « Supprimer »
@@ -74,7 +56,7 @@ class ItemEditSheet extends ConsumerStatefulWidget {
 
   final ListeItem item;
 
-  /// Messager de la Liste ou du Panneau +, pour les erreurs d'écriture.
+  /// Messager de la Liste, pour les erreurs d'écriture.
   final ScaffoldMessengerState messenger;
 
   @override
@@ -84,33 +66,24 @@ class ItemEditSheet extends ConsumerStatefulWidget {
 class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   // Lu une fois : l'écriture de fermeture se fait aussi dans dispose.
   late final ListeRepository _repository;
-  late final InputUnit _initialUnit = initialInputUnit(widget.item);
-  late InputUnit _unit = _initialUnit;
-  late final TextEditingController _controller;
+  late final QuantityInput _input;
 
   /// Quantité stockée de la ligne, ou dernière écrite (pas le texte
   /// prérempli, arrondi pour les pièces).
-  late StoredQuantity? _written = _stored(widget.item);
-
-  /// Le champ a été saisi ou validé : sans cela, ni la puce changée, rien
-  /// n'est écrit (un préremplissage arrondi ne réécrit pas la ligne).
-  bool _edited = false;
+  late StoredQuantity? _written = storedQuantityOf(
+    widget.item.quantity,
+    widget.item.unit,
+  );
   late Rayon _rayon = widget.item.rayon;
   bool _deleted = false;
-
-  static StoredQuantity? _stored(ListeItem item) {
-    final (quantity, unit) = (item.quantity, item.unit);
-    return quantity == null || unit == null
-        ? null
-        : (quantity: quantity, unit: unit);
-  }
 
   @override
   void initState() {
     super.initState();
     _repository = ref.read(listeRepositoryProvider);
-    _controller = TextEditingController(
-      text: quantityFieldText(widget.item.quantity, _initialUnit),
+    _input = QuantityInput(
+      quantity: widget.item.quantity,
+      initialUnit: initialInputUnit(widget.item),
     );
   }
 
@@ -118,7 +91,7 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   void dispose() {
     // Fermeture sans passer par le pop (rare) : la quantité est écrite.
     _commitQuantity();
-    _controller.dispose();
+    _input.dispose();
     super.dispose();
   }
 
@@ -128,8 +101,8 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   /// Écrit la quantité et l'unité saisies si le champ a été saisi ou la
   /// puce changée, et qu'elles diffèrent des stockées ou dernières écrites.
   void _commitQuantity() {
-    if (_deleted || (!_edited && _unit == _initialUnit)) return;
-    final value = quantityFromFieldText(_controller.text, _unit);
+    if (_deleted || !_input.touched) return;
+    final value = _input.value;
     final previous = _written;
     if (value == previous) return;
     _written = value;
@@ -143,17 +116,8 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   }
 
   void _selectUnit(InputUnit unit) {
-    if (unit == _unit) return;
-    setState(() {
-      _unit = unit;
-      final text = quantityTextForUnit(_controller.text, unit);
-      if (text != _controller.text) {
-        _controller.value = TextEditingValue(
-          text: text,
-          selection: TextSelection.collapsed(offset: text.length),
-        );
-      }
-    });
+    if (unit == _input.unit) return;
+    setState(() => _input.selectUnit(unit));
   }
 
   Future<void> _selectRayon(Rayon rayon) async {
@@ -224,11 +188,12 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
                     child: Semantics(
                       label: StringsFr.quantite,
                       child: QuantityField(
-                        controller: _controller,
-                        unit: _unit,
-                        onChanged: (_) => _edited = true,
+                        controller: _input.controller,
+                        unit: _input.unit,
+                        onChanged: (_) => _input.edited = true,
                         onSubmitted: (_) {
-                          _edited = true;
+                          // Valider compte comme une saisie.
+                          _input.edited = true;
                           _commitQuantity();
                         },
                       ),
@@ -239,7 +204,7 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
               const SizedBox(height: KadiSpacing.s4),
               Text(StringsFr.unite, style: labelStyle),
               const SizedBox(height: KadiSpacing.s2),
-              UnitChoice(selected: _unit, onSelected: _selectUnit),
+              UnitChoice(selected: _input.unit, onSelected: _selectUnit),
               const SizedBox(height: KadiSpacing.s4),
               Text(StringsFr.rayon, style: labelStyle),
               const SizedBox(height: KadiSpacing.s2),
@@ -264,47 +229,6 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// Choix d'unité (DESIGN `item-edit-sheet`) : puces de choix M3 pièce · g ·
-/// kg · ml · L, cible de 48 dp ; la puce [selected] en contour `on-surface`
-/// avec sa coche, jamais en argile. Chaque puce est lue par son libellé,
-/// choisie ou non.
-class UnitChoice extends StatelessWidget {
-  const UnitChoice({
-    super.key,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final InputUnit selected;
-  final ValueChanged<InputUnit> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return Wrap(
-      spacing: KadiSpacing.s2,
-      children: [
-        for (final unit in InputUnit.values)
-          ChoiceChip(
-            key: ValueKey(unit),
-            label: Text(_chipLabel(unit)),
-            selected: unit == selected,
-            onSelected: (_) => onSelected(unit),
-            showCheckmark: true,
-            checkmarkColor: scheme.onSurface,
-            // Fond de la feuille : seul le contour marque le choix.
-            color: const WidgetStatePropertyAll(Colors.transparent),
-            labelStyle: TextStyle(color: scheme.onSurface),
-            side: BorderSide(
-              color: unit == selected ? scheme.onSurface : scheme.outline,
-            ),
-            materialTapTargetSize: MaterialTapTargetSize.padded,
-          ),
-      ],
     );
   }
 }

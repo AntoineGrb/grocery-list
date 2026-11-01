@@ -77,6 +77,25 @@ final inListProvider = StreamProvider<Set<String>>(
   (ref) => ref.watch(listeRepositoryProvider).watchInListArticleIds(),
 );
 
+/// Plus ancienne ligne non cochée de chaque article « dans la liste » : celle
+/// que décrit et édite le tag quantité du Panneau +.
+final oldestLineByArticleProvider = StreamProvider<Map<String, ListeItem>>(
+  (ref) => ref
+      .watch(listeRepositoryProvider)
+      .watchUnchecked()
+      .map(oldestLineByArticle),
+);
+
+/// Première ligne de chaque article dans [items], reçues dans l'ordre d'ajout
+/// (`added_at` puis `id`).
+Map<String, ListeItem> oldestLineByArticle(List<ListeItem> items) {
+  final lines = <String, ListeItem>{};
+  for (final item in items) {
+    lines.putIfAbsent(item.articleId, () => item);
+  }
+  return lines;
+}
+
 /// Fréquents du Panneau + en liste plate : rayons (par défaut de l'article)
 /// dans l'ordre du parcours de `settings`, puis `position` dans un rayon
 /// (R6).

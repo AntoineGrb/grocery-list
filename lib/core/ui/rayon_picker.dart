@@ -13,7 +13,7 @@ const _selectedBorderWidth = 2.0;
 ///
 /// Chaque pastille est un bouton lu par son nom parlé (« Viande et
 /// poisson »), sélectionné ou non. Partagé par la Feuille d'édition
-/// d'article (depuis la Liste et le Panneau +) et Paramètres › Articles.
+/// d'article et Paramètres › Articles.
 class RayonPicker extends StatelessWidget {
   const RayonPicker({
     super.key,
