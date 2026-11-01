@@ -105,6 +105,8 @@ abstract final class KadiTheme {
         backgroundColor: p.surfaceContainer,
         modalBackgroundColor: p.surfaceContainer,
         surfaceTintColor: Colors.transparent,
+        // Par défaut transparente en M3 : l'élévation ne se verrait pas.
+        shadowColor: scheme.shadow,
         dragHandleColor: p.onSurfaceVariant,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(

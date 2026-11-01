@@ -40,6 +40,13 @@ abstract final class StringsFr {
   /// État lu d'un fréquent ou d'un résultat : « Lait, dans la liste ».
   static const dansLaListe = 'dans la liste';
 
+  /// Annonce d'un ajout depuis le Panneau + : « Lait ajouté, Crèmerie ».
+  static String ajouteAnnonce(String name, String rayon) =>
+      '$name ajouté, $rayon';
+
+  /// Annonce d'Entrée sur un article présent : « Lait, dans la liste ».
+  static String dansLaListeAnnonce(String name) => '$name, $dansLaListe';
+
   // Terminer les courses et Annuler.
   static const terminerLesCourses = 'Terminer les courses';
   static const coursesTerminees = 'Courses terminées. Bon appétit !';

@@ -6,9 +6,10 @@ import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
 
-/// Résultat d'Entrée dans le Panneau + : l'article du texte tapé et s'il
-/// vient d'être ajouté (faux : il était déjà dans la liste).
-typedef TexteAjoute = ({CatalogueArticle article, bool ajoute});
+/// Résultat d'Entrée dans le Panneau + : l'article du texte tapé, s'il vient
+/// d'être ajouté (faux : il était déjà dans la liste) et sa ligne (la plus
+/// ancienne non cochée s'il était déjà dans la liste).
+typedef TexteAjoute = ({CatalogueArticle article, bool ajoute, String lineId});
 
 /// Entrée dans le Champ d'ajout du Panneau + (R25, AD-3, AD-17), en une
 /// transaction : l'article du texte par l'unique `resolveTypedArticle`
@@ -27,11 +28,12 @@ class AjouterTexte {
   Future<TexteAjoute> call(String name) {
     return _db.transaction(() async {
       final article = await _catalogue.resolveTypedArticle(name);
-      if (await _liste.isInList(article.id)) {
-        return (article: article, ajoute: false);
+      final present = await _liste.firstUnchecked(article.id);
+      if (present != null) {
+        return (article: article, ajoute: false, lineId: present.lineId);
       }
-      await _liste.addArticle(article.id);
-      return (article: article, ajoute: true);
+      final added = await _liste.addArticle(article.id);
+      return (article: article, ajoute: true, lineId: added.lineId);
     });
   }
 }

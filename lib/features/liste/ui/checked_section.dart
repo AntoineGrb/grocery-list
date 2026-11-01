@@ -31,19 +31,13 @@ class CheckedSection extends StatefulWidget {
   State<CheckedSection> createState() => _CheckedSectionState();
 }
 
-class _CheckedSectionState extends State<CheckedSection>
-    with AutomaticKeepAliveClientMixin {
+class _CheckedSectionState extends State<CheckedSection> {
   bool _expanded = false;
-
-  // Garder l'état déplié quand la section sort de l'écran au défilement.
-  @override
-  bool get wantKeepAlive => true;
 
   void _toggle() => setState(() => _expanded = !_expanded);
 
   @override
   Widget build(BuildContext context) {
-    super.build(context);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final count = widget.items.length;

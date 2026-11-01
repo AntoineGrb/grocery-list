@@ -6,6 +6,36 @@ import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:material_ui/material_ui.dart';
 
+/// Poignée fine du Panneau + : le glissement se joue sur toute la feuille, et
+/// TalkBack ferme par la barrière ; elle n'est donc pas lue.
+class PanelHandle extends StatelessWidget {
+  const PanelHandle({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ExcludeSemantics(
+      child: SizedBox(
+        height: KadiSpacing.panelHandleHeight,
+        child: Center(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.bottomSheetTheme.dragHandleColor,
+              borderRadius: const BorderRadius.all(
+                Radius.circular(KadiRadius.full),
+              ),
+            ),
+            child: const SizedBox(
+              width: KadiSpacing.panelHandleWidth,
+              height: KadiSpacing.panelHandleThickness,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Seule ligne des résultats quand la saisie ne trouve rien : signe +
 /// neutre et « Ajouter « piles » », qui fait comme Entrée. Un bouton, lu
 /// « Ajouter « piles » ».
@@ -232,8 +262,7 @@ class _PanelRow extends StatelessWidget {
 
 /// Ligne de fréquent : Picto, nom et indicateur d'état ; dans la liste, le
 /// crayon [onEdit] ouvre la Feuille d'édition. Annoncée « Lait » hors
-/// liste, « Lait, dans la liste » dans la liste. Sert aussi à la Ligne
-/// saisie.
+/// liste, « Lait, dans la liste » dans la liste.
 class FrequentRow extends StatelessWidget {
   const FrequentRow({
     super.key,

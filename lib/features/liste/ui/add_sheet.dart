@@ -1,3 +1,7 @@
+import 'dart:math' as math;
+import 'dart:ui' show FlutterView;
+
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/app/actions/ajout_panneau.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -11,6 +15,7 @@ import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/liste_repository.dart';
+import '../state/liste_panel.dart';
 import '../state/liste_providers.dart';
 import 'add_sheet_rows.dart';
 import 'item_edit_sheet.dart';
@@ -22,29 +27,90 @@ class PanelUndo {
   String message = '';
 }
 
-/// Ouvre le Panneau + sur la Liste.
+/// Part de la zone libre prise par le Panneau + ; le reste montre la Liste.
+const _panelFreeZoneShare = 2 / 3;
+
+/// Hauteur minimale du panneau : poignée, Champ d'ajout, une ligne.
+const _panelMinHeight =
+    KadiSpacing.panelHandleHeight +
+    KadiSpacing.touchTarget +
+    KadiSpacing.s2 +
+    KadiSpacing.rowMinHeight;
+
+/// Sans voile, seule l'ombre détache le panneau de la Liste.
+const _panelElevation = 8.0;
+
+/// Hauteur du Panneau + au-dessus du clavier : environ deux tiers de la zone
+/// libre (écran − clavier − marge haute − Barre d'application) de [media],
+/// dont `padding.top` doit porter la marge haute de l'écran.
+double addPanelHeight(MediaQueryData media) {
+  final free =
+      media.size.height -
+      media.viewInsets.bottom -
+      media.padding.top -
+      kToolbarHeight;
+  return math.max(free * _panelFreeZoneShare, _panelMinHeight);
+}
+
+/// Forme du panneau : haut arrondi, filet sur le seul bord haut.
+class _TopOutlineBorder extends RoundedRectangleBorder {
+  const _TopOutlineBorder({required super.side})
+    : super(
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(KadiRadius.xl),
+        ),
+      );
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
+    const radius = Radius.circular(KadiRadius.xl);
+    canvas.drawPath(
+      Path()
+        ..moveTo(rect.left, rect.top + KadiRadius.xl)
+        ..arcToPoint(
+          Offset(rect.left + KadiRadius.xl, rect.top),
+          radius: radius,
+        )
+        ..lineTo(rect.right - KadiRadius.xl, rect.top)
+        ..arcToPoint(
+          Offset(rect.right, rect.top + KadiRadius.xl),
+          radius: radius,
+        ),
+      side.toPaint(),
+    );
+  }
+}
+
+/// Annonce TalkBack : la Liste est inaccessible sous le panneau.
+Future<void> _announce(FlutterView view, String message) =>
+    SemanticsService.sendAnnouncement(view, message, TextDirection.ltr);
+
+/// Ouvre le Panneau + sur la Liste, qui reste visible au-dessus de lui.
 ///
 /// [context] est sous le messager de la Liste : un Annuler encore possible
 /// à la fermeture du panneau y est remontré ; sinon l'emplacement est vidé.
 Future<void> showAddSheet(BuildContext context) async {
-  final undo = ProviderScope.containerOf(
-    context,
-    listen: false,
-  ).read(undoProvider);
+  final container = ProviderScope.containerOf(context, listen: false);
+  final undo = container.read(undoProvider);
+  final panel = container.read(listePanelProvider);
   final pending = PanelUndo();
   final messenger = ScaffoldMessenger.maybeOf(context);
   await showModalBottomSheet<void>(
     context: context,
-    // La barrière couvre toute l'app, Barre de navigation comprise.
+    // La barrière couvre toute l'app, Barre de navigation comprise ; sans
+    // couleur, elle laisse voir la Liste, qu'elle garde inerte, et un tap
+    // hors du panneau le ferme toujours.
     useRootNavigator: true,
+    barrierColor: Colors.transparent,
     isScrollControlled: true,
     useSafeArea: true,
-    showDragHandle: true,
-    builder: (_) => FractionallySizedBox(
-      heightFactor: 0.9,
-      child: AddSheet(pendingUndo: pending, listMessenger: messenger),
+    elevation: _panelElevation,
+    shape: _TopOutlineBorder(
+      side: BorderSide(color: Theme.of(context).colorScheme.outline),
     ),
+    builder: (_) => AddSheet(pendingUndo: pending, listMessenger: messenger),
   );
+  panel.close();
   final entry = pending.entry;
   if (entry == null) return;
   if (context.mounted && undo.canUndo(entry)) {
@@ -54,23 +120,25 @@ Future<void> showAddSheet(BuildContext context) async {
   }
 }
 
-/// Panneau + : Champ d'ajout focalisé, puis le titre « Ajouts fréquents » et
-/// les fréquents en liste plate dans l'ordre du parcours, sans En-tête de
-/// rayon, ou les résultats dès qu'un texte est saisi. Un tap ajoute
+/// Panneau + : poignée, Champ d'ajout focalisé, puis le titre « Ajouts
+/// fréquents » et les fréquents en liste plate dans l'ordre du parcours, sans
+/// En-tête de rayon, ou les résultats dès qu'un texte est saisi. Un tap ajoute
 /// l'article, ou le retire s'il est déjà dans la liste (avec Annuler). Reste
 /// ouvert après un ajout pour enchaîner.
 ///
 /// Entrée ajoute le texte tapé (R25) : l'article de ce nom, sinon un article
-/// hors catalogue (Divers, sans unité) ; déjà dans la liste, rien ne change.
-/// Le champ se vide, le clavier reste ouvert et la Ligne saisie (le dernier
-/// article d'Entrée) s'affiche sous le champ tant qu'il est dans la liste.
+/// hors catalogue (Divers, sans unité) ; déjà dans la liste, rien ne change
+/// et la Liste montre sa ligne. Le champ se vide et le clavier reste ouvert.
 /// Sans résultat, une seule ligne « Ajouter « … » » fait comme Entrée.
 ///
-/// Rien ne se déplie après un ajout : dans la liste, une ligne (fréquent,
-/// résultat ou Ligne saisie) montre un crayon à gauche de sa coche, qui
-/// ouvre la Feuille d'édition empilée sur le panneau (R14, AD-13) ; le
-/// panneau reste ouvert dessous et son messager montre les erreurs et
-/// l'Annuler de « Supprimer ».
+/// Rien ne se déplie après un ajout : l'article se voit dans la Liste,
+/// au-dessus du panneau (AD-19). Dans la liste, une ligne (fréquent ou
+/// résultat) montre un crayon à gauche de sa coche, qui ouvre la Feuille
+/// d'édition empilée sur le panneau (R14, AD-13) ; le panneau reste ouvert
+/// dessous et son messager montre les erreurs et l'Annuler de « Supprimer ».
+///
+/// Le panneau se pose au-dessus du clavier et publie sa géométrie à la Liste
+/// dans [ListePanel] à chaque changement.
 class AddSheet extends ConsumerStatefulWidget {
   const AddSheet({super.key, this.pendingUndo, this.listMessenger});
 
@@ -95,10 +163,6 @@ class _AddSheetState extends ConsumerState<AddSheet> {
   /// Un ajout par Entrée est en cours : une seconde Entrée est ignorée.
   bool _submitting = false;
 
-  /// Ligne saisie : le dernier article ajouté par Entrée, affiché sous le
-  /// champ tant qu'il est dans la liste.
-  CatalogueArticle? _saisie;
-
   /// Messager propre au panneau.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -122,26 +186,38 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     showErrorSnackBar(messenger, message);
   }
 
-  /// Entrée ou « Ajouter « … » » : ajoute le texte tapé (R25), sauf s'il
-  /// est déjà dans la liste, puis vide le champ et montre la Ligne saisie.
+  /// Entrée ou « Ajouter « … » » : ajoute le texte tapé (R25) puis vide le
+  /// champ ; déjà dans la liste, demande à la Liste de montrer sa ligne.
   /// Un texte vide ne fait rien ; un échec garde la saisie.
   Future<void> _addTyped() async {
     final text = _controller.text;
     if (text.trim().isEmpty || _submitting) return;
     _submitting = true;
+    final view = View.of(context);
+    final panel = ref.read(listePanelProvider);
+    final TexteAjoute result;
     try {
-      final result = await ref.read(ajouterTexteProvider).call(text);
-      if (!mounted) return;
-      setState(() {
-        _saisie = result.article;
-        // Une frappe pendant l'écriture est gardée.
-        if (_controller.text == text) _controller.clear();
-      });
+      result = await ref.read(ajouterTexteProvider).call(text);
     } catch (_) {
       _showMessage(StringsFr.ajoutImpossible);
+      return;
     } finally {
       _submitting = false;
     }
+    if (mounted) {
+      if (!result.ajoute) panel.reveal(result.lineId);
+      setState(() {
+        // Une frappe pendant l'écriture est gardée.
+        if (_controller.text == text) _controller.clear();
+      });
+    }
+    final article = result.article;
+    await _announce(
+      view,
+      result.ajoute
+          ? StringsFr.ajouteAnnonce(article.name, article.rayon.spokenLabel)
+          : StringsFr.dansLaListeAnnonce(article.name),
+    );
   }
 
   /// Ajoute [article], ou le retire s'il est dans la liste (AD-4), avec le
@@ -166,12 +242,18 @@ class _AddSheetState extends ConsumerState<AddSheet> {
 
   Future<void> _add(BuildContext context, CatalogueArticle article) async {
     final messenger = ScaffoldMessenger.of(context);
+    final view = View.of(context);
     try {
       await ref.read(listeRepositoryProvider).addArticle(article.id);
     } catch (_) {
       // Le panneau a pu se fermer pendant l'écriture.
       showErrorSnackBar(messenger, StringsFr.ajoutImpossible);
+      return;
     }
+    await _announce(
+      view,
+      StringsFr.ajouteAnnonce(article.name, article.rayon.spokenLabel),
+    );
   }
 
   Future<void> _remove(BuildContext context, CatalogueArticle article) async {
@@ -245,8 +327,36 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     });
   }
 
+  /// Publie le haut [top] et la hauteur [height] du panneau après la frame.
+  ///
+  /// Une fois la fermeture lancée, le clavier qui se ferme reconstruit encore
+  /// le panneau pendant sa descente : la route n'est plus active et il ne se
+  /// rouvre pas.
+  void _publishGeometry({required double top, required double height}) {
+    final route = ModalRoute.of(context);
+    final panel = ref.read(listePanelProvider);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || route?.isActive == false) return;
+      panel.open(top: top, height: height);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    // La feuille retire la marge haute de son MediaQuery ; la vue la garde.
+    final height = addPanelHeight(
+      media.copyWith(
+        padding: EdgeInsets.only(
+          top: MediaQueryData.fromView(View.of(context)).padding.top,
+        ),
+      ),
+    );
+    _publishGeometry(
+      top: media.size.height - media.viewInsets.bottom - height,
+      height: height,
+    );
+
     final query = _controller.text;
     final searching = query.trim().isNotEmpty;
     // Garder les derniers résultats tant que la nouvelle saisie n'a pas
@@ -266,7 +376,6 @@ class _AddSheetState extends ConsumerState<AddSheet> {
         ? null
         : ref.watch(frequentsInRouteProvider).value;
     final inList = ref.watch(inListProvider).value ?? const <String>{};
-    final saisie = _saisie;
 
     // Contenu sous le Champ d'ajout ; [context] est sous le messager du
     // panneau.
@@ -318,54 +427,55 @@ class _AddSheetState extends ConsumerState<AddSheet> {
 
     // Messager et Scaffold propres au panneau : la feuille vit sur le
     // navigateur racine, au-dessus du Scaffold de la Liste, dont les
-    // snackbars resteraient sous la barrière. Le Scaffold laisse la place au
-    // clavier ; le fond reste celui de la feuille.
-    return ScaffoldMessenger(
-      key: _messengerKey,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Builder(
-          builder: (context) => Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: KadiSpacing.margin,
-                ),
-                child: SizedBox(
-                  height: KadiSpacing.touchTarget,
-                  child: TextField(
-                    controller: _controller,
-                    autofocus: true,
-                    textInputAction: TextInputAction.done,
-                    onChanged: (_) => setState(() {}),
-                    onSubmitted: (_) => _addTyped(),
-                    // Le clavier reste ouvert après Entrée.
-                    onEditingComplete: () {},
-                    decoration: InputDecoration(
-                      hintText: StringsFr.ajouterUnArticle,
-                      prefixIcon: const Icon(Icons.add),
-                      suffixIcon: query.isEmpty
-                          ? null
-                          : IconButton(
-                              tooltip: StringsFr.effacerLeTexte,
-                              icon: const Icon(Icons.close),
-                              onPressed: () => setState(_controller.clear),
-                            ),
+    // snackbars resteraient sous la barrière. La hauteur exclut déjà le
+    // clavier : le Scaffold ne se redimensionne pas. Le fond reste celui de
+    // la feuille.
+    return Padding(
+      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      child: SizedBox(
+        height: height,
+        child: ScaffoldMessenger(
+          key: _messengerKey,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            resizeToAvoidBottomInset: false,
+            body: Builder(
+              builder: (context) => Column(
+                children: [
+                  const PanelHandle(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: KadiSpacing.margin,
+                    ),
+                    child: SizedBox(
+                      height: KadiSpacing.touchTarget,
+                      child: TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        textInputAction: TextInputAction.done,
+                        onChanged: (_) => setState(() {}),
+                        onSubmitted: (_) => _addTyped(),
+                        // Le clavier reste ouvert après Entrée.
+                        onEditingComplete: () {},
+                        decoration: InputDecoration(
+                          hintText: StringsFr.ajouterUnArticle,
+                          prefixIcon: const Icon(Icons.add),
+                          suffixIcon: query.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: StringsFr.effacerLeTexte,
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => setState(_controller.clear),
+                                ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: KadiSpacing.s2),
+                  Expanded(child: content(context)),
+                ],
               ),
-              const SizedBox(height: KadiSpacing.s2),
-              if (saisie != null && inList.contains(saisie.id))
-                FrequentRow(
-                  key: const ValueKey('saisie'),
-                  article: saisie,
-                  inList: true,
-                  onTap: () => _toggle(context, saisie),
-                  onEdit: () => _edit(context, saisie),
-                ),
-              Expanded(child: content(context)),
-            ],
+            ),
           ),
         ),
       ),

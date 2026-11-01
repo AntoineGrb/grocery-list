@@ -4,6 +4,7 @@ import 'package:kadi/app/actions/ajout_panneau.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 
@@ -66,6 +67,7 @@ void main() {
     expect(item.name, 'Piles');
     expect(item.rayon, Rayon.divers);
     expect(item.quantity, isNull);
+    expect(result.lineId, item.lineId);
     // Jamais dans la recherche.
     expect(await catalogue.watchSearch('pil').first, isEmpty);
   });
@@ -95,6 +97,7 @@ void main() {
 
     expect(result.ajoute, isFalse);
     expect(result.article.id, articles.firstWhere((a) => !a.inCatalogue).id);
+    expect(result.lineId, lines.single.id);
     expect(await db.select(db.listLines).get(), lines);
     expect(await db.select(db.listContributions).get(), contributions);
     expect(await db.select(db.articles).get(), articles);
@@ -108,9 +111,28 @@ void main() {
     final result = await ajouter('lait');
 
     expect(result.ajoute, isTrue);
+    expect(result.lineId, isNot(added.lineId));
     expect(await liste.watchUnchecked().first, hasLength(1));
     expect(await liste.watchChecked().first, hasLength(1));
   });
+
+  test(
+    'article sur deux lignes : la plus ancienne non cochée est rendue',
+    () async {
+      final oldest = await liste.addArticle(
+        SeedIds.lait,
+        quantity: 500,
+        unit: Unit.ml,
+      );
+      now = 2000;
+      await liste.addArticle(SeedIds.lait, quantity: 2000, unit: Unit.piece);
+
+      final result = await ajouter('lait');
+
+      expect(result.ajoute, isFalse);
+      expect(result.lineId, oldest.lineId);
+    },
+  );
 
   test(
     'texte libre réutilisé : Piles retiré puis retapé, même article',

@@ -6,11 +6,19 @@ import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 
 import '../data/liste_repository.dart';
+import 'liste_panel.dart';
 
 final listeRepositoryProvider = Provider<ListeRepository>(
   (ref) =>
       ListeRepository(ref.watch(databaseProvider), ref.watch(clockProvider)),
 );
+
+/// Objet partagé entre le Panneau + et la Liste (AD-19).
+final listePanelProvider = Provider<ListePanel>((ref) {
+  final panel = ListePanel();
+  ref.onDispose(panel.dispose);
+  return panel;
+});
 
 /// Groupe de la Liste : un rayon et ses lignes non cochées.
 class RayonGroup {

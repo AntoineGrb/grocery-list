@@ -97,8 +97,8 @@ Future<void> _closeEditSheet(WidgetTester tester) async {
 /// La ligne « Ajouter « … » ».
 final _addTyped = find.byType(AddTypedRow);
 
-/// La Ligne saisie, sous le Champ d'ajout.
-final _saisie = find.byKey(const ValueKey('saisie'));
+/// La Ligne d'article de [name] dans la Liste.
+Finder _listRow(String name) => find.widgetWithText(ItemRow, name);
 
 /// Entrée dans le Champ d'ajout.
 Future<void> _enter(WidgetTester tester) async {
@@ -567,67 +567,59 @@ void main() {
     await _letSnackBarClose(tester);
   });
 
-  group('Entrée et Ligne saisie', () {
-    testWidgets('« piles » + Entrée : Piles hors catalogue sous Divers ; champ '
-        'vidé, clavier ouvert, Ligne saisie « Piles » avec sa coche ; « pil » '
-        'ne le montre pas', (tester) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
-      await _openSheet(tester);
+  group('Entrée', () {
+    testWidgets(
+      '« piles » + Entrée : Piles hors catalogue sous Divers ; champ '
+      'vidé, clavier ouvert, aucune Ligne saisie ; « pil » ne le montre pas',
+      (tester) async {
+        final db = await _pumpApp(tester);
+        await _withoutPiles(tester, db);
+        await _openSheet(tester);
 
-      final field = tester.widget<TextField>(_search);
-      expect(field.decoration!.hintText, StringsFr.ajouterUnArticle);
-      expect(field.textInputAction, TextInputAction.done);
-      expect(
-        find.descendant(of: _search, matching: find.byIcon(Icons.add)),
-        findsOneWidget,
-      );
+        final field = tester.widget<TextField>(_search);
+        expect(field.decoration!.hintText, StringsFr.ajouterUnArticle);
+        expect(field.textInputAction, TextInputAction.done);
+        expect(
+          find.descendant(of: _search, matching: find.byIcon(Icons.add)),
+          findsOneWidget,
+        );
 
-      await _type(tester, 'piles');
-      await _enter(tester);
+        await _type(tester, 'piles');
+        await _enter(tester);
 
-      final piles = (await _activeArticles(db, 'piles')).single;
-      expect(piles.name, 'Piles');
-      expect(piles.rayon, 'divers');
-      expect(piles.unit, isNull);
-      expect(piles.inCatalogue, isFalse);
-      expect((await _activeLines(db, piles.id)).single.rayon, 'divers');
+        final piles = (await _activeArticles(db, 'piles')).single;
+        expect(piles.name, 'Piles');
+        expect(piles.rayon, 'divers');
+        expect(piles.unit, isNull);
+        expect(piles.inCatalogue, isFalse);
+        expect((await _activeLines(db, piles.id)).single.rayon, 'divers');
 
-      expect(_fieldText(tester), isEmpty);
-      expect(_fieldFocused(tester), isTrue);
-      expect(tester.testTextInput.isVisible, isTrue);
-      expect(_saisie, findsOneWidget);
-      expect(
-        find.descendant(of: _saisie, matching: find.text('Piles')),
-        findsOneWidget,
-      );
-      expect(_indicator(_saisie, Icons.check), findsOneWidget);
-      // Rien ne se déplie après Entrée ; les fréquents reviennent, sous la
-      // Ligne saisie.
-      expect(_inSheet(find.byType(QuantityField)), findsNothing);
-      expect(_inSheet(find.byType(RayonPicker)), findsNothing);
-      expect(_frequent('Lait'), findsOneWidget);
-      expect(
-        tester.getTopLeft(_saisie).dy,
-        lessThan(tester.getTopLeft(_frequent('Lait')).dy),
-      );
+        expect(_fieldText(tester), isEmpty);
+        expect(_fieldFocused(tester), isTrue);
+        expect(tester.testTextInput.isVisible, isTrue);
+        // Piles n'apparaît que dans la Liste, rien sous le champ.
+        expect(_inSheet(find.text('Piles')), findsNothing);
+        expect(_listRow('Piles'), findsOneWidget);
+        // Rien ne se déplie après Entrée ; les fréquents reviennent.
+        expect(_inSheet(find.byType(QuantityField)), findsNothing);
+        expect(_inSheet(find.byType(RayonPicker)), findsNothing);
+        expect(_frequent('Lait'), findsOneWidget);
 
-      await _type(tester, 'pil');
-      expect(find.byType(SearchResultRow), findsNothing);
-      expect(_addTyped, findsOneWidget);
-      // La Ligne saisie reste pendant la saisie suivante.
-      expect(_saisie, findsOneWidget);
+        await _type(tester, 'pil');
+        expect(find.byType(SearchResultRow), findsNothing);
+        expect(_addTyped, findsOneWidget);
 
-      await _closeSheet(tester);
-      final row = find.widgetWithText(ItemRow, 'Piles');
-      expect(row, findsOneWidget);
-      expect(
-        tester.getTopLeft(row).dy,
-        greaterThan(
-          tester.getTopLeft(find.widgetWithText(RayonHeader, 'Divers')).dy,
-        ),
-      );
-    });
+        await _closeSheet(tester);
+        final row = find.widgetWithText(ItemRow, 'Piles');
+        expect(row, findsOneWidget);
+        expect(
+          tester.getTopLeft(row).dy,
+          greaterThan(
+            tester.getTopLeft(find.widgetWithText(RayonHeader, 'Divers')).dy,
+          ),
+        );
+      },
+    );
 
     testWidgets('« LAIT » + Entrée : le Lait du catalogue sous Crèmerie, aucun '
         'article créé', (tester) async {
@@ -644,14 +636,12 @@ void main() {
         (await _activeLines(db, SeedIds.lait)).single.rayon,
         Rayon.cremerie.code,
       );
-      expect(
-        find.descendant(of: _saisie, matching: find.text('Lait')),
-        findsOneWidget,
-      );
+      expect(_listRow('Lait'), findsOneWidget);
     });
 
-    testWidgets('déjà dans la liste : Entrée ne change rien, champ vidé, Ligne '
-        'saisie', (tester) async {
+    testWidgets('déjà dans la liste : Entrée ne change rien, champ vidé', (
+      tester,
+    ) async {
       final db = await _pumpApp(tester);
       await _openSheet(tester);
       await _tap(tester, _frequent('Lait'));
@@ -664,10 +654,7 @@ void main() {
       expect(await db.select(db.listLines).get(), lines);
       expect(await db.select(db.listContributions).get(), contributions);
       expect(_fieldText(tester), isEmpty);
-      expect(
-        find.descendant(of: _saisie, matching: find.text('Lait')),
-        findsOneWidget,
-      );
+      expect(_listRow('Lait'), findsOneWidget);
       expect(_inSheet(_undoAction), findsNothing);
     });
 
@@ -680,7 +667,6 @@ void main() {
       await _enter(tester);
 
       expect(await db.select(db.listLines).get(), isEmpty);
-      expect(_saisie, findsNothing);
       expect(_fieldFocused(tester), isTrue);
     });
 
@@ -719,10 +705,7 @@ void main() {
       expect(zzz.inCatalogue, isFalse);
       expect(await _activeLines(db, zzz.id), hasLength(1));
       expect(_fieldText(tester), isEmpty);
-      expect(
-        find.descendant(of: _saisie, matching: find.text('Zzz')),
-        findsOneWidget,
-      );
+      expect(_listRow('Zzz'), findsOneWidget);
     });
 
     testWidgets('texte libre réutilisé : Piles retiré puis retapé, même '
@@ -734,8 +717,8 @@ void main() {
       await _type(tester, 'piles');
       await _enter(tester);
       final piles = (await _activeArticles(db, 'piles')).single;
-      await _tap(tester, _saisie);
-      await _letSnackBarClose(tester);
+      await ListeRepository(db, Clock()).removeArticle(piles.id);
+      await tester.pumpAndSettle();
 
       await _type(tester, 'Piles');
       await _enter(tester);
@@ -744,75 +727,8 @@ void main() {
       expect(await _activeLines(db, piles.id), hasLength(1));
     });
 
-    testWidgets('Ligne saisie, tap : retiré, snackbar Annuler, la ligne '
-        'disparaît ; Annuler la fait revenir', (tester) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
-      await _openSheet(tester);
-
-      await _type(tester, 'piles');
-      await _enter(tester);
-      final piles = (await _activeArticles(db, 'piles')).single;
-
-      await _tap(tester, _saisie);
-
-      expect(await _activeLines(db, piles.id), isEmpty);
-      expect(_saisie, findsNothing);
-      expect(
-        _inSheet(find.text(StringsFr.retireDeLaListe('Piles'))),
-        findsOneWidget,
-      );
-
-      await _tap(tester, _inSheet(_undoAction));
-
-      expect(await _activeLines(db, piles.id), hasLength(1));
-      expect(_saisie, findsOneWidget);
-      expect(_indicator(_saisie, Icons.check), findsOneWidget);
-    });
-
-    testWidgets('Ligne saisie cochée dans la Liste : elle disparaît', (
-      tester,
-    ) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
-      await _openSheet(tester);
-      await _type(tester, 'piles');
-      await _enter(tester);
-      final piles = (await _activeArticles(db, 'piles')).single;
-      final lineId = (await _activeLines(db, piles.id)).single.id;
-
-      await ListeRepository(db, Clock()).check(lineId);
-      await tester.pumpAndSettle();
-
-      expect(_saisie, findsNothing);
-    });
-
-    testWidgets('échec du retrait par la Ligne saisie : snackbar d’erreur, la '
-        'ligne reste', (tester) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
-      await _openSheet(tester);
-      await _type(tester, 'piles');
-      await _enter(tester);
-      await db.customStatement(
-        'CREATE TRIGGER no_remove BEFORE UPDATE OF deleted_at ON list_lines '
-        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
-      );
-
-      await _tap(tester, _saisie);
-
-      expect(
-        _inSheet(find.text(StringsFr.suppressionImpossible)),
-        findsOneWidget,
-      );
-      expect(_saisie, findsOneWidget);
-      await _letSnackBarClose(tester);
-    });
-
     testWidgets('TalkBack : le champ lu « Ajouter un article », « Ajouter '
-        '« piles » » bouton, la Ligne saisie « Piles, dans la liste »', (
-      tester,
-    ) async {
+        '« piles » » bouton', (tester) async {
       final handle = tester.ensureSemantics();
       final db = await _pumpApp(tester);
       await _withoutPiles(tester, db);
@@ -838,16 +754,6 @@ void main() {
           hasTapAction: true,
         ),
       );
-      await _enter(tester);
-
-      expect(
-        tester.getSemantics(find.bySemanticsLabel('Piles, dans la liste')),
-        isSemantics(
-          label: 'Piles, ${StringsFr.dansLaListe}',
-          isButton: true,
-          hasTapAction: true,
-        ),
-      );
       handle.dispose();
     });
 
@@ -867,7 +773,7 @@ void main() {
       expect(_inSheet(find.text(StringsFr.ajoutImpossible)), findsOneWidget);
       expect(await _activeArticles(db, 'piles'), isEmpty);
       expect(_fieldText(tester), 'piles');
-      expect(_saisie, findsNothing);
+      expect(_listRow('Piles'), findsNothing);
       await _letSnackBarClose(tester);
     });
   });
@@ -1101,10 +1007,9 @@ void main() {
       );
     });
 
-    testWidgets('résultat et Ligne saisie dans la liste : crayon ; « piles » '
-        '+ Entrée, crayon, Entretien : Piles sous Entretien', (tester) async {
-      final db = await _pumpApp(tester);
-      await _withoutPiles(tester, db);
+    testWidgets('résultat dans la liste : crayon qui ouvre la feuille ; hors '
+        'liste, pas de crayon', (tester) async {
+      await _pumpApp(tester);
       await _openSheet(tester);
 
       await _type(tester, 'lai');
@@ -1112,29 +1017,11 @@ void main() {
       await _tap(tester, _result('Lait'));
       expect(_pencil(_result('Lait')), findsOneWidget);
 
-      await _type(tester, 'piles');
-      await _enter(tester);
-      expect(_pencil(_saisie), findsOneWidget);
-      await _tapPencil(tester, _saisie);
+      await _tapPencil(tester, _result('Lait'));
 
-      expect(_inEditSheet(find.text('Piles')), findsOneWidget);
-      // Article sans unité : pièce préchoisie.
-      expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
-            .selected,
-        isTrue,
-      );
-      await _tap(tester, _pastille(Rayon.entretien));
+      expect(_inEditSheet(find.text('Lait')), findsOneWidget);
       await _closeEditSheet(tester);
       expect(_sheet, findsOneWidget);
-
-      final piles = (await _activeArticles(db, 'piles')).single;
-      expect(
-        (await _activeLines(db, piles.id)).single.rayon,
-        Rayon.entretien.code,
-      );
-      expect(piles.rayon, 'divers');
     });
 
     testWidgets('TalkBack : la ligne reste lue « Lait, dans la liste », le '

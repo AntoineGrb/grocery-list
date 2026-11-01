@@ -150,4 +150,7 @@ abstract final class KadiSpacing {
   static const listBottomInset = 96.0;
   static const rayonDot = 10.0;
   static const picto = 24.0;
+  static const panelHandleHeight = 20.0;
+  static const panelHandleWidth = 32.0;
+  static const panelHandleThickness = 4.0;
 }
