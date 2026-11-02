@@ -18,6 +18,7 @@ import 'package:kadi/features/recettes/ui/recipe_card.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/recettes.dart';
 import '../../helpers/test_db.dart';
 
 const _nbsp = ' ';
@@ -29,9 +30,7 @@ Future<AppDatabase> _openRecettes(
   Size size = const Size(400, 1400),
   List<Override> overrides = const [],
 }) async {
-  tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = size;
-  addTearDown(tester.view.reset);
+  tallPhone(tester, size);
   final db = await pumpKadi(tester, overrides: overrides);
   await db.transaction(
     () => CatalogueRepository(db, Clock()).createArticle(
@@ -40,41 +39,11 @@ Future<AppDatabase> _openRecettes(
       unit: Unit.g,
     ),
   );
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationBar),
-      matching: find.text(StringsFr.tabRecettes),
-    ),
-  );
-  await tester.pumpAndSettle();
+  await openTab(tester, StringsFr.tabRecettes);
   return db;
 }
 
-Finder _card(String name) =>
-    find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
-
 Finder get _fab => find.byType(FloatingActionButton);
-
-/// Ouvre la fiche de [name] par l'icône « modifier » de sa carte.
-Future<void> _edit(WidgetTester tester, String name) async {
-  await tester.tap(find.byTooltip(StringsFr.modifierRecette(name)));
-  await tester.pumpAndSettle();
-  expect(find.byType(FicheRecetteScreen), findsOneWidget);
-}
-
-Future<void> _back(WidgetTester tester) async {
-  await tester.tap(find.byType(BackButton));
-  await tester.pumpAndSettle();
-  expect(find.byType(FicheRecetteScreen), findsNothing);
-}
-
-/// Champ nom de la fiche.
-Finder get _nameField => find
-    .descendant(
-      of: find.byType(FicheRecetteScreen),
-      matching: find.byType(TextField),
-    )
-    .first;
 
 /// Champ de recherche de la fiche.
 Finder get _searchField => find.ancestor(
@@ -133,10 +102,6 @@ Future<void> _addIngredient(
   }
 }
 
-Future<Recipe?> _recipeNamed(AppDatabase db, String name) => (db.select(
-  db.recipes,
-)..where((r) => r.name.equals(name))).getSingleOrNull();
-
 Future<List<RecipeIngredient>> _ingredients(AppDatabase db, String recipeId) =>
     (db.select(db.recipeIngredients)
           ..where((i) => i.recipeId.equals(recipeId) & i.deletedAt.isNull())
@@ -161,10 +126,10 @@ void main() {
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);
     expect(find.text(StringsFr.nouvelleRecette), findsOneWidget);
-    expect(_focused(tester, _nameField), isTrue);
+    expect(_focused(tester, ficheNameField), isTrue);
     expect(tester.testTextInput.isVisible, isTrue);
 
-    await tester.enterText(_nameField, 'Chili');
+    await tester.enterText(ficheNameField, 'Chili');
     await tester.pumpAndSettle();
     // Un nom sans ingrédient : rien d'écrit.
     expect(await db.select(db.recipes).get(), hasLength(recipesBefore));
@@ -189,7 +154,7 @@ void main() {
       findsOneWidget,
     );
     // Enregistrée dès le nom et le premier ingrédient.
-    expect(await _recipeNamed(db, 'Chili'), isNotNull);
+    expect(await recipeNamed(db, 'Chili'), isNotNull);
 
     await tester.enterText(_quantity('Haricots rouges'), '500');
     await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -227,9 +192,9 @@ void main() {
     await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
     await tester.pumpAndSettle();
 
-    await _back(tester);
+    await backFromFiche(tester);
 
-    final chili = (await _recipeNamed(db, 'Chili'))!;
+    final chili = (await recipeNamed(db, 'Chili'))!;
     final haricots = await _article(db, 'Haricots rouges');
     final piment = await _article(db, "Piment d'Espelette");
     expect(
@@ -251,8 +216,8 @@ void main() {
     );
 
     // ★ La carte « Chili » avec le picto des haricots rouges.
-    expect(_card('Chili'), findsOneWidget);
-    final card = tester.widget<RecipeCard>(_card('Chili'));
+    expect(recipeCard('Chili'), findsOneWidget);
+    final card = tester.widget<RecipeCard>(recipeCard('Chili'));
     expect(card.card.pictoKey, haricots.pictoKey);
     expect(card.card.rayon, Rayon.epicerieSalee);
     expect(card.card.selected, isFalse);
@@ -265,19 +230,19 @@ void main() {
 
     await tester.tap(_fab);
     await tester.pumpAndSettle();
-    await tester.enterText(_nameField, 'Chili');
+    await tester.enterText(ficheNameField, 'Chili');
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
 
     await tester.tap(_fab);
     await tester.pumpAndSettle();
     // Le brouillon est mort avec l'écran.
-    expect(_textField(tester, _nameField).controller!.text, isEmpty);
+    expect(_textField(tester, ficheNameField).controller!.text, isEmpty);
     await _addIngredient(tester, 'riz', 'Riz', '300');
     await _addIngredient(tester, 'lard', 'Lardons');
-    await tester.enterText(_nameField, '   ');
+    await tester.enterText(ficheNameField, '   ');
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
 
     expect(await db.select(db.recipes).get(), before);
     expect(find.byType(RecipeCard), findsNWidgets(4));
@@ -289,31 +254,34 @@ void main() {
     final recipes = await db.select(db.recipes).get();
     final ingredients = await _ingredients(db, SeedRecipeIds.carbonara);
 
-    await _edit(tester, 'Pâtes carbonara');
+    await editRecipe(tester, 'Pâtes carbonara');
     expect(find.text(StringsFr.recette), findsOneWidget);
-    expect(_textField(tester, _nameField).controller!.text, 'Pâtes carbonara');
+    expect(
+      _textField(tester, ficheNameField).controller!.text,
+      'Pâtes carbonara',
+    );
     expect(find.byType(IngredientRow), findsNWidgets(5));
     // Ouverte sans focus : pas de clavier.
-    expect(_focused(tester, _nameField), isFalse);
+    expect(_focused(tester, ficheNameField), isFalse);
 
-    await tester.enterText(_nameField, '');
+    await tester.enterText(ficheNameField, '');
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
     expect(await db.select(db.recipes).get(), recipes);
-    expect(_card('Pâtes carbonara'), findsOneWidget);
+    expect(recipeCard('Pâtes carbonara'), findsOneWidget);
 
-    await _edit(tester, 'Pâtes carbonara');
+    await editRecipe(tester, 'Pâtes carbonara');
     for (final name in ['Pâtes', 'Lardons', 'Œufs', 'Parmesan', 'Poivre']) {
       await tester.tap(find.byTooltip(StringsFr.retirerIngredient(name)));
       await tester.pumpAndSettle();
     }
     expect(find.byType(IngredientRow), findsNothing);
-    await _back(tester);
+    await backFromFiche(tester);
     // Le dernier retrait n'est pas écrit : Poivre reste, seul.
     final kept = await _ingredients(db, SeedRecipeIds.carbonara);
     expect(kept.map((i) => i.id), [ingredients.last.id]);
     expect(
-      tester.widget<RecipeCard>(_card('Pâtes carbonara')).card.pictoKey,
+      tester.widget<RecipeCard>(recipeCard('Pâtes carbonara')).card.pictoKey,
       'poivre',
     );
   });
@@ -321,10 +289,10 @@ void main() {
   testWidgets('retirer un ingrédient : supprimé logiquement, la carte prend '
       'le picto du suivant', (tester) async {
     final db = await _openRecettes(tester);
-    await _edit(tester, 'Pâtes carbonara');
+    await editRecipe(tester, 'Pâtes carbonara');
     await tester.tap(find.byTooltip(StringsFr.retirerIngredient('Pâtes')));
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
 
     final rows = await (db.select(
       db.recipeIngredients,
@@ -332,7 +300,7 @@ void main() {
     final pates = rows.singleWhere((i) => i.articleId == SeedIds.pates);
     expect(pates.deletedAt, isNotNull);
     expect(
-      tester.widget<RecipeCard>(_card('Pâtes carbonara')).card.pictoKey,
+      tester.widget<RecipeCard>(recipeCard('Pâtes carbonara')).card.pictoKey,
       'lardons',
     );
   });
@@ -341,7 +309,7 @@ void main() {
       'l’ajoute pas de nouveau', (tester) async {
     final handle = tester.ensureSemantics();
     final db = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await _search(tester, 'riz');
 
     final indicator = tester.widget<InListIndicator>(
@@ -361,7 +329,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(IngredientRow), findsNWidgets(5));
     expect(_textField(tester, _searchField).controller!.text, 'riz');
-    await _back(tester);
+    await backFromFiche(tester);
     expect(await _ingredients(db, SeedRecipeIds.chili), hasLength(5));
     handle.dispose();
   });
@@ -369,7 +337,7 @@ void main() {
   testWidgets('kg : tap sur l’unité, Choix d’unité sous la ligne, 1,5 kg '
       'stocké 1500 g', (tester) async {
     final db = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
 
     final unit = find.descendant(
       of: _row('Riz'),
@@ -402,7 +370,7 @@ void main() {
     );
     await tester.enterText(_quantity('Riz'), '1,5');
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
 
     final riz = (await _ingredients(
       db,
@@ -411,11 +379,11 @@ void main() {
     expect((riz.quantity, riz.unit), (1500, 'g'));
 
     // Vide = sans quantité.
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     expect(_textField(tester, _quantity('Riz')).controller!.text, '1500');
     await tester.enterText(_quantity('Riz'), '');
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
     final empty = (await _ingredients(
       db,
       SeedRecipeIds.chili,
@@ -428,29 +396,22 @@ void main() {
     tester,
   ) async {
     final db = await _openRecettes(tester);
-    await tester.tap(_card('Chili con carne'));
+    await tester.tap(recipeCard('Chili con carne'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, StringsFr.validerN(1)));
-    await tester.pumpAndSettle();
+    await openRevue(tester, 1);
     await tester.tap(
       find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationBar),
-        matching: find.text(StringsFr.tabRecettes),
-      ),
-    );
-    await tester.pumpAndSettle();
+    await openTab(tester, StringsFr.tabRecettes);
     final lines = await db.select(db.listLines).get();
     final contributions = await db.select(db.listContributions).get();
     final selections = await db.select(db.weekSelections).get();
 
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await tester.enterText(_quantity('Riz'), '400');
     await tester.pumpAndSettle();
-    await _back(tester);
+    await backFromFiche(tester);
 
     expect(
       (await _ingredients(
@@ -463,7 +424,7 @@ void main() {
     expect(await db.select(db.listContributions).get(), contributions);
     expect(await db.select(db.weekSelections).get(), selections);
     expect(
-      tester.widget<RecipeCard>(_card('Chili con carne')).card.selected,
+      tester.widget<RecipeCard>(recipeCard('Chili con carne')).card.selected,
       isTrue,
     );
     expect(find.byType(FilledButton), findsNothing);
@@ -474,21 +435,21 @@ void main() {
     final db = await _openRecettes(tester);
     final edit = find.byTooltip(StringsFr.modifierRecette('Ratatouille'));
     expect(tester.getSize(edit), const Size.square(KadiSpacing.touchTarget));
-    await _edit(tester, 'Ratatouille');
-    await _back(tester);
+    await editRecipe(tester, 'Ratatouille');
+    await backFromFiche(tester);
     expect(await db.select(db.weekSelections).get(), isEmpty);
     expect(
-      tester.widget<RecipeCard>(_card('Ratatouille')).card.selected,
+      tester.widget<RecipeCard>(recipeCard('Ratatouille')).card.selected,
       isFalse,
     );
 
     // Sélectionnée : l'icône ne désélectionne pas non plus.
-    await tester.tap(_card('Ratatouille'));
+    await tester.tap(recipeCard('Ratatouille'));
     await tester.pumpAndSettle();
-    await _edit(tester, 'Ratatouille');
-    await _back(tester);
+    await editRecipe(tester, 'Ratatouille');
+    await backFromFiche(tester);
     expect(
-      tester.widget<RecipeCard>(_card('Ratatouille')).card.selected,
+      tester.widget<RecipeCard>(recipeCard('Ratatouille')).card.selected,
       isTrue,
     );
 
@@ -514,13 +475,13 @@ void main() {
     final pilou = await db.transaction(
       () => CatalogueRepository(db, Clock()).resolveTypedArticle('Pilou'),
     );
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await _search(tester, 'pilou');
     expect(find.byType(IngredientResultRow), findsNothing);
     await tester.tap(find.text(StringsFr.creerNom('pilou')));
     await tester.pumpAndSettle();
     expect(_row('Pilou'), findsOneWidget);
-    await _back(tester);
+    await backFromFiche(tester);
 
     final row = await (db.select(
       db.articles,
@@ -544,7 +505,7 @@ void main() {
     );
     final articles = await db.select(db.articles).get();
     final ingredients = await db.select(db.recipeIngredients).get();
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await _search(tester, 'Piment');
     await tester.tap(find.text(StringsFr.creerNom('Piment')));
     await tester.pumpAndSettle();
@@ -564,7 +525,7 @@ void main() {
       'CREATE TRIGGER no_save BEFORE UPDATE ON recipe_ingredients '
       "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
     );
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await tester.enterText(_quantity('Riz'), '400');
     await tester.pumpAndSettle();
 
@@ -583,7 +544,7 @@ void main() {
     await _openRecettes(tester, size: const Size(400, height));
     tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
     addTearDown(tester.view.resetViewInsets);
-    await _edit(tester, 'Ratatouille');
+    await editRecipe(tester, 'Ratatouille');
 
     /// [finder] tient dans la partie visible, sous la Barre d'application.
     void expectOnScreen(Finder finder) {
@@ -645,7 +606,7 @@ void main() {
       findsOneWidget,
     );
 
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     expect(
       find.bySemanticsLabel(RegExp(StringsFr.nomDeLaRecette)),
       findsWidgets,
@@ -717,7 +678,7 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(_fab.hitTestable(), findsOneWidget);
 
-      await _edit(tester, 'Chili con carne');
+      await editRecipe(tester, 'Chili con carne');
       expect(tester.takeException(), isNull);
       await tester.scrollUntilVisible(
         _row('Tomates concassées'),

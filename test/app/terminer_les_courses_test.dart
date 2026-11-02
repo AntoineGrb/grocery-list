@@ -11,6 +11,7 @@ import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/recettes/data/recettes_repository.dart';
 import 'package:kadi/features/recettes/state/revue.dart';
 
+import '../helpers/failing_clear_selections.dart';
 import '../helpers/test_db.dart';
 
 /// Vide la liste puis échoue, dans la transaction de l'action.
@@ -20,17 +21,6 @@ class _FailingListeRepository extends ListeRepository {
   @override
   Future<List<UndoRow>> clearList() async {
     await super.clearList();
-    throw StateError('échec simulé');
-  }
-}
-
-/// Supprime les sélections puis échoue, dans la transaction de l'action.
-class _FailingRecettesRepository extends RecettesRepository {
-  _FailingRecettesRepository(super.db, super.clock);
-
-  @override
-  Future<List<UndoRow>> clearSelections() async {
-    await super.clearSelections();
     throw StateError('échec simulé');
   }
 }
@@ -333,7 +323,7 @@ void main() {
       final failing = TerminerLesCourses(
         db,
         repo,
-        _FailingRecettesRepository(db, clock),
+        FailingClearSelectionsRepository(db, clock),
         undo,
       );
 

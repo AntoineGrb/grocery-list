@@ -14,10 +14,10 @@ import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_photo.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
-import 'package:kadi/features/recettes/ui/recipe_card.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/recettes.dart';
 import '../../helpers/test_db.dart';
 
 /// Image PNG de 1 × 1 px, lisible par le décodeur.
@@ -103,9 +103,7 @@ Future<_Env> _openRecettes(
   Size size = const Size(400, 1400),
   List<Override> overrides = const [],
 }) async {
-  tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = size;
-  addTearDown(tester.view.reset);
+  tallPhone(tester, size);
   final documents = Directory.systemTemp.createTempSync('kadi_fiche_');
   addTearDown(() {
     try {
@@ -128,29 +126,8 @@ Future<_Env> _openRecettes(
       ...overrides,
     ],
   );
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationBar),
-      matching: find.text(StringsFr.tabRecettes),
-    ),
-  );
-  await tester.pumpAndSettle();
+  await openTab(tester, StringsFr.tabRecettes);
   return _Env(db, photos, picker, browser, source);
-}
-
-Finder _card(String name) =>
-    find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
-
-Future<void> _edit(WidgetTester tester, String name) async {
-  await tester.tap(find.byTooltip(StringsFr.modifierRecette(name)));
-  await tester.pumpAndSettle();
-  expect(find.byType(FicheRecetteScreen), findsOneWidget);
-}
-
-Future<void> _back(WidgetTester tester) async {
-  await tester.tap(find.byType(BackButton));
-  await tester.pumpAndSettle();
-  expect(find.byType(FicheRecetteScreen), findsNothing);
 }
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
@@ -172,13 +149,6 @@ Future<void> _pick(
   await tester.pumpAndSettle();
 }
 
-Finder get _nameField => find
-    .descendant(
-      of: find.byType(FicheRecetteScreen),
-      matching: find.byType(TextField),
-    )
-    .first;
-
 Finder get _linkField => find.ancestor(
   of: find.text(StringsFr.lien),
   matching: find.byType(TextField),
@@ -192,18 +162,17 @@ Finder get _preview => find.descendant(
   matching: find.byType(Image),
 );
 
-Future<Recipe?> _recipeNamed(AppDatabase db, String name) => (db.select(
-  db.recipes,
-)..where((r) => r.name.equals(name))).getSingleOrNull();
-
 /// Photo de la carte de [name], nulle sur le visuel de repli.
 Image? _cardImage(WidgetTester tester, String name) {
-  final images = find.descendant(of: _card(name), matching: find.byType(Image));
+  final images = find.descendant(
+    of: recipeCard(name),
+    matching: find.byType(Image),
+  );
   return images.evaluate().isEmpty ? null : tester.widget<Image>(images);
 }
 
 Finder _cardPicto(String name) =>
-    find.descendant(of: _card(name), matching: find.byType(Picto));
+    find.descendant(of: recipeCard(name), matching: find.byType(Picto));
 
 /// Laisse les E/S réelles de lecture d'image finir, puis reconstruit.
 Future<void> _loadImages(WidgetTester tester) async {
@@ -220,7 +189,7 @@ void main() {
     expect(_cardImage(tester, 'Chili con carne'), isNull);
     expect(_cardPicto('Chili con carne'), findsOneWidget);
 
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     expect(_preview, findsNothing);
     env.picker.results.add(env.source.path);
     await _pick(tester);
@@ -232,11 +201,11 @@ void main() {
     expect(find.text(StringsFr.ajouterUnePhoto), findsNothing);
     expect(env.photos.files, {'photo-1.jpg'});
     expect(
-      (await _recipeNamed(env.db, 'Chili con carne'))!.photo,
+      (await recipeNamed(env.db, 'Chili con carne'))!.photo,
       'photo-1.jpg',
     );
 
-    await _back(tester);
+    await backFromFiche(tester);
     final image = _cardImage(tester, 'Chili con carne')!;
     final resized = image.image as ResizeImage;
     expect(
@@ -248,7 +217,7 @@ void main() {
     // largeur couvre la carte, et la hauteur pour une photo jusqu'à 2:1.
     final shown = tester.getSize(
       find.descendant(
-        of: _card('Chili con carne'),
+        of: recipeCard('Chili con carne'),
         matching: find.byType(Image),
       ),
     );
@@ -264,7 +233,7 @@ void main() {
       tester
           .getSize(
             find.descendant(
-              of: _card('Chili con carne'),
+              of: recipeCard('Chili con carne'),
               matching: find.byType(Image),
             ),
           )
@@ -280,7 +249,7 @@ void main() {
   testWidgets('choix annulé : rien ne change', (tester) async {
     final env = await _openRecettes(tester);
     final before = await env.db.select(env.db.recipes).get();
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     env.picker.results.add(null);
     await _pick(tester, source: StringsFr.appareilPhoto);
 
@@ -302,7 +271,7 @@ void main() {
     tester,
   ) async {
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     env.picker.results.addAll([env.source.path, env.source.path]);
     await _pick(tester);
     expect(env.photos.files, {'photo-1.jpg'});
@@ -317,33 +286,33 @@ void main() {
       PhotoSource.appareilPhoto,
     ]);
     expect(
-      (await _recipeNamed(env.db, 'Chili con carne'))!.photo,
+      (await recipeNamed(env.db, 'Chili con carne'))!.photo,
       'photo-2.jpg',
     );
     expect(env.photos.files, {'photo-2.jpg'});
-    await _back(tester);
+    await backFromFiche(tester);
     expect(env.photos.files, {'photo-2.jpg'});
   });
 
   testWidgets('Retirer : photo nulle, fichier supprimé, la carte revient au '
       'picto de repli', (tester) async {
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     env.picker.results.add(env.source.path);
     await _pick(tester);
-    await _back(tester);
+    await backFromFiche(tester);
     expect(_cardImage(tester, 'Chili con carne'), isNotNull);
 
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     // Photo lue de la base : son aperçu est là.
     expect(_preview, findsOneWidget);
     await _tap(tester, find.text(StringsFr.retirer));
     expect(_preview, findsNothing);
     expect(find.text(StringsFr.ajouterUnePhoto), findsOneWidget);
-    expect((await _recipeNamed(env.db, 'Chili con carne'))!.photo, isNull);
+    expect((await recipeNamed(env.db, 'Chili con carne'))!.photo, isNull);
     expect(env.photos.files, isEmpty);
 
-    await _back(tester);
+    await backFromFiche(tester);
     expect(_cardImage(tester, 'Chili con carne'), isNull);
     expect(_cardPicto('Chili con carne'), findsOneWidget);
   });
@@ -358,14 +327,14 @@ void main() {
     // Photo puis retour sans ingrédient : pas de recette, fichier supprimé.
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    await tester.enterText(_nameField, 'Soupe');
+    await tester.enterText(ficheNameField, 'Soupe');
     await tester.pumpAndSettle();
     env.picker.results.addAll([env.source.path, env.source.path]);
     await _pick(tester);
     await _pick(tester, action: StringsFr.remplacer);
     // A, jamais écrite, est supprimée dès le remplacement.
     expect(env.photos.files, {'photo-2.jpg'});
-    await _back(tester);
+    await backFromFiche(tester);
     expect(await env.db.select(env.db.recipes).get(), hasLength(count));
     expect(env.photos.files, isEmpty);
 
@@ -374,7 +343,7 @@ void main() {
     await tester.pumpAndSettle();
     env.picker.results.add(env.source.path);
     await _pick(tester);
-    await tester.enterText(_nameField, 'Soupe');
+    await tester.enterText(ficheNameField, 'Soupe');
     await tester.pumpAndSettle();
     await tester.enterText(
       find.ancestor(
@@ -390,8 +359,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect((await _recipeNamed(env.db, 'Soupe'))!.photo, 'photo-3.jpg');
-    await _back(tester);
+    expect((await recipeNamed(env.db, 'Soupe'))!.photo, 'photo-3.jpg');
+    await backFromFiche(tester);
     expect(env.photos.files, {'photo-3.jpg'});
     expect(_cardImage(tester, 'Soupe'), isNotNull);
   });
@@ -399,15 +368,15 @@ void main() {
   testWidgets('recette existante rendue invalide : la photo choisie n’est '
       'pas écrite, son fichier est supprimé, l’ancienne reste', (tester) async {
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     env.picker.results.addAll([env.source.path, env.source.path]);
     await _pick(tester);
-    await tester.enterText(_nameField, '');
+    await tester.enterText(ficheNameField, '');
     await tester.pumpAndSettle();
     await _pick(tester, action: StringsFr.remplacer);
-    await _back(tester);
+    await backFromFiche(tester);
     expect(
-      (await _recipeNamed(env.db, 'Chili con carne'))!.photo,
+      (await recipeNamed(env.db, 'Chili con carne'))!.photo,
       'photo-1.jpg',
     );
     expect(env.photos.files, {'photo-1.jpg'});
@@ -418,7 +387,7 @@ void main() {
   ) async {
     final env = await _openRecettes(tester);
     final before = await env.db.select(env.db.recipes).get();
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     env.picker.results.add('${env.photos.documents.path}/absente.png');
     await _pick(tester);
 
@@ -443,7 +412,7 @@ void main() {
     expect(_cardPicto('Chili con carne'), findsOneWidget);
 
     // La fiche aussi s'ouvre sans erreur, avec « Remplacer » et « Retirer ».
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await _loadImages(tester);
     expect(tester.takeException(), isNull);
     expect(find.text(StringsFr.retirer), findsOneWidget);
@@ -452,7 +421,7 @@ void main() {
   testWidgets('Lien : enregistré nettoyé, l’icône ouvre https://… ; vidé, '
       'lien nul et icône masquée', (tester) async {
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     expect(_openLink, findsNothing);
     final field = tester.widget<TextField>(_linkField);
     expect(field.keyboardType, TextInputType.url);
@@ -461,7 +430,7 @@ void main() {
     await tester.enterText(_linkField, ' marmiton.org/chili ');
     await tester.pumpAndSettle();
     expect(
-      (await _recipeNamed(env.db, 'Chili con carne'))!.link,
+      (await recipeNamed(env.db, 'Chili con carne'))!.link,
       'marmiton.org/chili',
     );
     expect(_openLink, findsOneWidget);
@@ -473,8 +442,8 @@ void main() {
     expect(env.browser.opened, [Uri.parse('https://marmiton.org/chili')]);
     expect(find.text(StringsFr.lienImpossible), findsNothing);
 
-    await _back(tester);
-    await _edit(tester, 'Chili con carne');
+    await backFromFiche(tester);
+    await editRecipe(tester, 'Chili con carne');
     expect(
       tester.widget<TextField>(_linkField).controller!.text,
       'marmiton.org/chili',
@@ -483,13 +452,13 @@ void main() {
     await tester.enterText(_linkField, '');
     await tester.pumpAndSettle();
     expect(_openLink, findsNothing);
-    expect((await _recipeNamed(env.db, 'Chili con carne'))!.link, isNull);
+    expect((await recipeNamed(env.db, 'Chili con carne'))!.link, isNull);
   });
 
   testWidgets('Lien qui ne s’ouvre pas : snackbar « Impossible d’ouvrir le '
       'lien. »', (tester) async {
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     await tester.ensureVisible(_linkField);
     await tester.enterText(_linkField, 'https://exemple.fr');
     await tester.pumpAndSettle();
@@ -513,7 +482,7 @@ void main() {
       '« Retirer la photo », « Lien », « Ouvrir le lien »', (tester) async {
     final handle = tester.ensureSemantics();
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     expect(
       tester.getSemantics(find.bySemanticsLabel(StringsFr.ajouterUnePhoto)),
       isSemantics(
@@ -572,7 +541,7 @@ void main() {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       final env = await _openRecettes(tester, size: const Size(360, 800));
-      await _edit(tester, 'Chili con carne');
+      await editRecipe(tester, 'Chili con carne');
       await tester.ensureVisible(find.text(StringsFr.ajouterUnePhoto));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -599,7 +568,7 @@ void main() {
     tester,
   ) async {
     final env = await _openRecettes(tester);
-    await _edit(tester, 'Chili con carne');
+    await editRecipe(tester, 'Chili con carne');
     env.picker.results.add(env.source.path);
     await _pick(tester);
 
@@ -609,7 +578,7 @@ void main() {
     );
 
     expect(find.byType(FicheRecetteScreen), findsNothing);
-    expect(_card('Chili con carne'), findsNothing);
+    expect(recipeCard('Chili con carne'), findsNothing);
     final recipe = await (env.db.select(
       env.db.recipes,
     )..where((r) => r.name.equals('Chili con carne'))).getSingle();

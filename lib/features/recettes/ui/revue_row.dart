@@ -4,13 +4,11 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/quantity_field.dart';
+import 'package:kadi/core/ui/round_check.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../state/revue.dart';
-
-/// Coche ronde de 24 dp, comme la Ligne d'article.
-const _checkScale = KadiSpacing.picto / Checkbox.width;
 
 /// Largeur du Champ quantité à droite de la ligne.
 const _fieldWidth = 128.0;
@@ -103,25 +101,10 @@ class RevueRow extends StatelessWidget {
       excludeSemantics: true,
       child: Row(
         children: [
-          SizedBox.square(
-            dimension: KadiSpacing.touchTarget,
-            child: Transform.scale(
-              scale: _checkScale,
-              child: Checkbox(
-                value: checked,
-                onChanged: (_) => _toggle(context),
-                shape: const CircleBorder(),
-                activeColor: accent,
-                checkColor: scheme.surface,
-                // Tailles d'avant l'échelle : contour de 2 dp, halo de 48 dp,
-                // à l'accent du rayon et jamais en argile (C6).
-                side: BorderSide(color: accent, width: 2 / _checkScale),
-                splashRadius: KadiSpacing.touchTarget / 2 / _checkScale,
-                overlayColor: WidgetStatePropertyAll(
-                  accent.withValues(alpha: 0.12),
-                ),
-              ),
-            ),
+          RoundCheck(
+            value: checked,
+            onChanged: () => _toggle(context),
+            accent: accent,
           ),
           const SizedBox(width: KadiSpacing.s1),
           Picto(pictoKey: line.pictoKey, rayon: line.rayon),

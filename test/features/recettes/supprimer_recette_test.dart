@@ -9,36 +9,13 @@ import 'package:kadi/features/recettes/ui/recipe_card.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/recettes.dart';
 import '../../helpers/test_db.dart';
 
-/// Téléphone haut : toute la fiche et toutes les cartes sont bâties.
-void _tallPhone(WidgetTester tester, [Size size = const Size(400, 1400)]) {
-  tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = size;
-  addTearDown(tester.view.reset);
-}
-
-Future<void> _openTab(WidgetTester tester, String tab) async {
-  await tester.tap(
-    find.descendant(of: find.byType(NavigationBar), matching: find.text(tab)),
-  );
-  await tester.pumpAndSettle();
-}
-
-Finder _card(String name) =>
-    find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
-
-Future<void> _tapCard(WidgetTester tester, String name) async {
-  await tester.ensureVisible(_card(name));
-  await tester.tap(_card(name));
-  await tester.pumpAndSettle();
-}
-
+/// Fait défiler jusqu'à l'icône « modifier » de [name], puis ouvre sa fiche.
 Future<void> _edit(WidgetTester tester, String name) async {
   await tester.ensureVisible(find.byTooltip(StringsFr.modifierRecette(name)));
-  await tester.tap(find.byTooltip(StringsFr.modifierRecette(name)));
-  await tester.pumpAndSettle();
-  expect(find.byType(FicheRecetteScreen), findsOneWidget);
+  await editRecipe(tester, name);
 }
 
 Finder get _deleteButton =>
@@ -71,7 +48,7 @@ void main() {
     testWidgets('installation neuve : Recettes, ligne d’accueil au-dessus '
         'des cartes, drapeau baissé ; relance : la Liste, sans ligne '
         'd’accueil', (tester) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       final handle = tester.ensureSemantics();
       final db = await pumpKadi(tester, firstLaunch: true);
 
@@ -84,7 +61,7 @@ void main() {
       expect(_welcome, findsOneWidget);
       expect(
         tester.getBottomLeft(_welcome).dy,
-        lessThan(tester.getTopLeft(_card('Chili con carne')).dy),
+        lessThan(tester.getTopLeft(recipeCard('Chili con carne')).dy),
       );
       // Lue par TalkBack, non interactive.
       expect(
@@ -98,8 +75,8 @@ void main() {
       expect((await db.select(db.settings).getSingle()).firstLaunch, isFalse);
 
       // Dans la session : la ligne reste en passant par la Liste.
-      await _openTab(tester, StringsFr.tabListe);
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabListe);
+      await openTab(tester, StringsFr.tabRecettes);
       expect(_welcome, findsOneWidget);
 
       // Relance de l'app sur la même base.
@@ -110,7 +87,7 @@ void main() {
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         1,
       );
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
       expect(find.byType(RecipeCard), findsNWidgets(4));
       expect(_welcome, findsNothing);
       handle.dispose();
@@ -120,14 +97,14 @@ void main() {
         'd’accueil', (tester) async {
       await pumpKadi(tester);
       expect(find.byType(ListeScreen), findsOneWidget);
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
       expect(find.byType(RecipeCard), findsNWidgets(4));
       expect(_welcome, findsNothing);
     });
 
     testWidgets('tout supprimer : message d’état vide et FAB +, plus de ligne '
         'd’accueil, même après Annuler', (tester) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       final db = await pumpKadi(tester, firstLaunch: true);
       expect(_welcome, findsOneWidget);
 
@@ -150,7 +127,7 @@ void main() {
       // Annuler rend la dernière : la ligne d'accueil ne revient pas.
       await tester.tap(_undoAction);
       await tester.pumpAndSettle();
-      expect(_card('Ratatouille'), findsOneWidget);
+      expect(recipeCard('Ratatouille'), findsOneWidget);
       expect(_welcome, findsNothing);
       expect(
         await (db.select(db.recipes)..where((r) => r.deletedAt.isNull())).get(),
@@ -162,15 +139,12 @@ void main() {
   group('supprimer une recette (R1, R7)', () {
     testWidgets('Chili validé : carte disparue, liste identique, snackbar '
         'annoncé ; Annuler : la carte revient, sélectionnée', (tester) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       final handle = tester.ensureSemantics();
       final db = await pumpKadi(tester);
-      await _openTab(tester, StringsFr.tabRecettes);
-      await _tapCard(tester, 'Chili con carne');
-      await tester.tap(
-        find.widgetWithText(FilledButton, StringsFr.validerN(1)),
-      );
-      await tester.pumpAndSettle();
+      await openTab(tester, StringsFr.tabRecettes);
+      await tapRecipeCard(tester, 'Chili con carne');
+      await openRevue(tester, 1);
       await tester.tap(
         find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
       );
@@ -178,12 +152,12 @@ void main() {
       expect(find.text('Poivrons'), findsOneWidget);
       final before = await _listAndSelections(db);
 
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
       await _edit(tester, 'Chili con carne');
       await _delete(tester);
 
       expect(find.byType(FicheRecetteScreen), findsNothing);
-      expect(_card('Chili con carne'), findsNothing);
+      expect(recipeCard('Chili con carne'), findsNothing);
       expect(find.byType(RecipeCard), findsNWidgets(3));
       const message = 'Recette supprimée : Chili con carne';
       expect(StringsFr.recetteSupprimee('Chili con carne'), message);
@@ -196,13 +170,13 @@ void main() {
       expect((await _recipe(db, SeedRecipeIds.chili)).deletedAt, isNotNull);
       expect(await _listAndSelections(db), before);
 
-      await _openTab(tester, StringsFr.tabListe);
+      await openTab(tester, StringsFr.tabListe);
       expect(find.text('Poivrons'), findsOneWidget);
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
 
       await tester.tap(_undoAction);
       await tester.pumpAndSettle();
-      expect(_card('Chili con carne'), findsOneWidget);
+      expect(recipeCard('Chili con carne'), findsOneWidget);
       expect(
         find.bySemanticsLabel('Chili con carne, sélectionnée'),
         findsOneWidget,
@@ -216,10 +190,10 @@ void main() {
 
     testWidgets('recette sélectionnée non validée : « Valider » part avec '
         'elle et revient avec Annuler', (tester) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       await pumpKadi(tester);
-      await _openTab(tester, StringsFr.tabRecettes);
-      await _tapCard(tester, 'Quiche lorraine');
+      await openTab(tester, StringsFr.tabRecettes);
+      await tapRecipeCard(tester, 'Quiche lorraine');
       expect(
         find.widgetWithText(FilledButton, StringsFr.validerN(1)),
         findsOneWidget,
@@ -240,10 +214,10 @@ void main() {
     testWidgets('bouton : en bas de la fiche, error, 48 dp, lu « Supprimer la '
         'recette » ; absent d’une fiche neuve, ni tant qu’elle '
         'n’est pas valide', (tester) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       final handle = tester.ensureSemantics();
       await pumpKadi(tester);
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
 
       await _edit(tester, 'Chili con carne');
       expect(_deleteButton, findsOneWidget);
@@ -299,9 +273,9 @@ void main() {
     testWidgets('fiche neuve enregistrée, puis supprimée : Annuler la rend', (
       tester,
     ) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       final db = await pumpKadi(tester);
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
       final fields = find.descendant(
@@ -317,10 +291,10 @@ void main() {
 
       await _delete(tester);
       expect(find.text(StringsFr.recetteSupprimee('Omelette')), findsOneWidget);
-      expect(_card('Omelette'), findsNothing);
+      expect(recipeCard('Omelette'), findsNothing);
       await tester.tap(_undoAction);
       await tester.pumpAndSettle();
-      expect(_card('Omelette'), findsOneWidget);
+      expect(recipeCard('Omelette'), findsOneWidget);
       expect(
         (await (db.select(
           db.recipes,
@@ -332,9 +306,9 @@ void main() {
     testWidgets('échec : snackbar d’erreur, la fiche reste, rien d’écrit', (
       tester,
     ) async {
-      _tallPhone(tester);
+      tallPhone(tester);
       final db = await pumpKadi(tester);
-      await _openTab(tester, StringsFr.tabRecettes);
+      await openTab(tester, StringsFr.tabRecettes);
       final before = await db.select(db.recipes).get();
       await db.customStatement(
         'CREATE TRIGGER no_delete BEFORE UPDATE OF deleted_at ON recipes '
@@ -355,7 +329,7 @@ void main() {
           'entiers, sans débordement', (tester) async {
         tester.platformDispatcher.textScaleFactorTestValue = scale;
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
-        _tallPhone(tester, const Size(360, 800));
+        tallPhone(tester, const Size(360, 800));
         await pumpKadi(tester, firstLaunch: true);
         expect(tester.takeException(), isNull);
         final welcome = tester.widget<Text>(_welcome);

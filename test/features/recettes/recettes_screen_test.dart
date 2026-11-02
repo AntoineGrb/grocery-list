@@ -16,6 +16,7 @@ import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/recettes.dart';
 import '../../helpers/test_db.dart';
 
 const _nbsp = ' ';
@@ -30,43 +31,12 @@ class _FailingAjouter implements AjouterALaListe {
 }
 
 /// Ouvre l'onglet Recettes.
-Future<void> _openRecettes(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationBar),
-      matching: find.text(StringsFr.tabRecettes),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
+Future<void> _openRecettes(WidgetTester tester) =>
+    openTab(tester, StringsFr.tabRecettes);
 
 /// Ouvre l'onglet Liste.
-Future<void> _openListe(WidgetTester tester) async {
-  await tester.tap(
-    find.descendant(
-      of: find.byType(NavigationBar),
-      matching: find.text(StringsFr.tabListe),
-    ),
-  );
-  await tester.pumpAndSettle();
-}
-
-Finder _card(String name) =>
-    find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
-
-Future<void> _tapCard(WidgetTester tester, String name) async {
-  await tester.ensureVisible(_card(name));
-  await tester.tap(_card(name));
-  await tester.pumpAndSettle();
-}
-
-Finder _valider(int n) =>
-    find.widgetWithText(FilledButton, StringsFr.validerN(n));
-
-Future<void> _validate(WidgetTester tester, int n) async {
-  await tester.tap(_valider(n));
-  await tester.pumpAndSettle();
-}
+Future<void> _openListe(WidgetTester tester) =>
+    openTab(tester, StringsFr.tabListe);
 
 /// La Ligne de Revue de [name].
 Finder _revueRow(String name) =>
@@ -118,14 +88,12 @@ List<String> _recordAnnouncements(WidgetTester tester) {
 /// Ouvre la Revue de Pâtes carbonara et Quiche lorraine, sur un téléphone
 /// haut où toute la Revue et toute la Liste sont bâties.
 Future<AppDatabase> _openCarbonaraQuiche(WidgetTester tester) async {
-  tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = const Size(400, 1400);
-  addTearDown(tester.view.reset);
+  tallPhone(tester);
   final db = await pumpKadi(tester);
   await _openRecettes(tester);
-  await _tapCard(tester, 'Pâtes carbonara');
-  await _tapCard(tester, 'Quiche lorraine');
-  await _validate(tester, 2);
+  await tapRecipeCard(tester, 'Pâtes carbonara');
+  await tapRecipeCard(tester, 'Quiche lorraine');
+  await openRevue(tester, 2);
   return db;
 }
 
@@ -150,10 +118,10 @@ void main() {
 
     expect(find.byType(RecipeCard), findsNWidgets(4));
     expect(find.text(StringsFr.recettesVide), findsNothing);
-    final chili = tester.getRect(_card('Chili con carne'));
-    final carbonara = tester.getRect(_card('Pâtes carbonara'));
-    final quiche = tester.getRect(_card('Quiche lorraine'));
-    final ratatouille = tester.getRect(_card('Ratatouille'));
+    final chili = tester.getRect(recipeCard('Chili con carne'));
+    final carbonara = tester.getRect(recipeCard('Pâtes carbonara'));
+    final quiche = tester.getRect(recipeCard('Quiche lorraine'));
+    final ratatouille = tester.getRect(recipeCard('Ratatouille'));
     // Rangées de deux cartes de même hauteur, triées par nom.
     expect(chili.top, carbonara.top);
     expect(chili.height, carbonara.height);
@@ -163,7 +131,7 @@ void main() {
     expect(chili.width, carbonara.width);
     // Le picto de repli de l'ingrédient principal, 44 dp.
     final chiliPicto = find.descendant(
-      of: _card('Chili con carne'),
+      of: recipeCard('Chili con carne'),
       matching: find.byWidgetPredicate(
         (w) =>
             w is SizedBox &&
@@ -197,23 +165,23 @@ void main() {
       find.bySemanticsLabel('Chili con carne, non sélectionnée'),
       findsOneWidget,
     );
-    await _tapCard(tester, 'Chili con carne');
+    await tapRecipeCard(tester, 'Chili con carne');
     expect(
       find.bySemanticsLabel('Chili con carne, sélectionnée'),
       findsOneWidget,
     );
     expect(
       find.descendant(
-        of: _card('Chili con carne'),
+        of: recipeCard('Chili con carne'),
         matching: find.byIcon(Icons.check),
       ),
       findsOneWidget,
     );
-    expect(_valider(1), findsOneWidget);
+    expect(validerButton(1), findsOneWidget);
     expect(await db.select(db.weekSelections).get(), hasLength(1));
 
-    await _tapCard(tester, 'Ratatouille');
-    expect(_valider(2), findsOneWidget);
+    await tapRecipeCard(tester, 'Ratatouille');
+    expect(validerButton(2), findsOneWidget);
 
     // Désélection d'une recette non validée, par TalkBack.
     tester.semantics.tap(
@@ -224,8 +192,8 @@ void main() {
       find.bySemanticsLabel('Chili con carne, non sélectionnée'),
       findsOneWidget,
     );
-    expect(_valider(1), findsOneWidget);
-    await _tapCard(tester, 'Ratatouille');
+    expect(validerButton(1), findsOneWidget);
+    await tapRecipeCard(tester, 'Ratatouille');
     expect(find.byType(FilledButton), findsNothing);
     // Une carte non validée se désélectionne sans snackbar.
     expect(find.byType(SnackBar), findsNothing);
@@ -241,9 +209,9 @@ void main() {
     final handle = tester.ensureSemantics();
     final db = await pumpKadi(tester);
     await _openRecettes(tester);
-    await _tapCard(tester, 'Pâtes carbonara');
-    await _tapCard(tester, 'Quiche lorraine');
-    await _validate(tester, 2);
+    await tapRecipeCard(tester, 'Pâtes carbonara');
+    await tapRecipeCard(tester, 'Quiche lorraine');
+    await openRevue(tester, 2);
 
     // Revue : plein écran, sans Barre de navigation, flèche retour.
     expect(find.byType(RevueScreen), findsOneWidget);
@@ -330,8 +298,8 @@ void main() {
     expect(find.byType(FilledButton), findsNothing);
 
     // Ratatouille seule en Revue.
-    await _tapCard(tester, 'Ratatouille');
-    await _validate(tester, 1);
+    await tapRecipeCard(tester, 'Ratatouille');
+    await openRevue(tester, 1);
     expect(find.byType(RevueRow), findsNWidgets(7));
     expect(find.text('Courgettes'), findsOneWidget);
     expect(find.text('Lardons'), findsNothing);
@@ -427,7 +395,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byType(RevueScreen), findsNothing);
-    expect(_valider(2), findsOneWidget);
+    expect(validerButton(2), findsOneWidget);
     expect(await db.select(db.listLines).get(), isEmpty);
     expect(
       (await db.select(db.weekSelections).get()).every(
@@ -437,7 +405,7 @@ void main() {
     );
 
     // Le brouillon est mort avec l'écran.
-    await _validate(tester, 2);
+    await openRevue(tester, 2);
     expect(_fieldText(tester, 'Œufs'), '6');
     expect(
       tester
@@ -541,14 +509,14 @@ void main() {
   ) async {
     final db = await pumpKadi(tester);
     await _openRecettes(tester);
-    await _tapCard(tester, 'Chili con carne');
-    await _validate(tester, 1);
+    await tapRecipeCard(tester, 'Chili con carne');
+    await openRevue(tester, 1);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
     expect(find.byType(RevueScreen), findsNothing);
-    expect(_valider(1), findsOneWidget);
+    expect(validerButton(1), findsOneWidget);
     expect(await db.select(db.listLines).get(), isEmpty);
     expect(
       (await db.select(db.weekSelections).getSingle()).validatedAt,
@@ -562,8 +530,8 @@ void main() {
       overrides: [ajouterALaListeProvider.overrideWithValue(_FailingAjouter())],
     );
     await _openRecettes(tester);
-    await _tapCard(tester, 'Chili con carne');
-    await _validate(tester, 1);
+    await tapRecipeCard(tester, 'Chili con carne');
+    await openRevue(tester, 1);
 
     await tester.tap(
       find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
@@ -623,7 +591,7 @@ void main() {
       );
       expect(
         find.descendant(
-          of: _card('Pâtes carbonara'),
+          of: recipeCard('Pâtes carbonara'),
           matching: find.byIcon(Icons.check),
         ),
         findsNothing,
@@ -672,16 +640,16 @@ void main() {
       tester,
     ) async {
       await validatedCarbonaraQuiche(tester);
-      await _tapCard(tester, 'Ratatouille');
-      await _tapCard(tester, 'Pâtes carbonara');
+      await tapRecipeCard(tester, 'Ratatouille');
+      await tapRecipeCard(tester, 'Pâtes carbonara');
 
       expect(find.text(carbonaraRetiree), findsOneWidget);
       expect(
         tester.getBottomLeft(find.byType(SnackBar)).dy,
-        lessThanOrEqualTo(tester.getTopLeft(_valider(1)).dy),
+        lessThanOrEqualTo(tester.getTopLeft(validerButton(1)).dy),
       );
 
-      await _validate(tester, 1);
+      await openRevue(tester, 1);
       expect(find.byType(RevueScreen), findsOneWidget);
       expect(find.byType(RevueRow), findsNWidgets(7));
       expect(find.text('Courgettes'), findsOneWidget);
@@ -692,7 +660,7 @@ void main() {
     testWidgets('fin du snackbar : plus d’Annuler, la carte reste '
         'désélectionnée', (tester) async {
       final db = await validatedCarbonaraQuiche(tester);
-      await _tapCard(tester, 'Pâtes carbonara');
+      await tapRecipeCard(tester, 'Pâtes carbonara');
       await letSnackBarClose(tester);
 
       expect(find.text(carbonaraRetiree), findsNothing);
@@ -715,7 +683,7 @@ void main() {
         "week_selections BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
       );
 
-      await _tapCard(tester, 'Pâtes carbonara');
+      await tapRecipeCard(tester, 'Pâtes carbonara');
 
       expect(find.text(StringsFr.modificationImpossible), findsOneWidget);
       expect(find.text(carbonaraRetiree), findsNothing);
@@ -757,8 +725,8 @@ void main() {
       await tester.pumpAndSettle();
       await checkOnListe(tester, 'Lardons');
       await _openRecettes(tester);
-      await _tapCard(tester, 'Chili con carne');
-      expect(_valider(1), findsOneWidget);
+      await tapRecipeCard(tester, 'Chili con carne');
+      expect(validerButton(1), findsOneWidget);
       return db;
     }
 
@@ -892,12 +860,12 @@ void main() {
       expect(await snapshot(db), before);
       expect(
         find.descendant(
-          of: _card('Pâtes carbonara'),
+          of: recipeCard('Pâtes carbonara'),
           matching: find.byIcon(Icons.check),
         ),
         findsOneWidget,
       );
-      expect(_valider(1), findsOneWidget);
+      expect(validerButton(1), findsOneWidget);
       expect(find.byType(SnackBar), findsNothing);
       // Toujours sur Recettes.
       expect(find.byType(RecipeCard), findsNWidgets(4));
@@ -919,7 +887,7 @@ void main() {
 
       expect(find.text(StringsFr.nouvelleListeImpossible), findsOneWidget);
       expect(await snapshot(db), before);
-      expect(_valider(1), findsOneWidget);
+      expect(validerButton(1), findsOneWidget);
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
     });
@@ -1014,15 +982,15 @@ void main() {
       await _openRecettes(tester);
       expect(tester.takeException(), isNull);
 
-      final chili = tester.getRect(_card('Chili con carne'));
-      final carbonara = tester.getRect(_card('Pâtes carbonara'));
+      final chili = tester.getRect(recipeCard('Chili con carne'));
+      final carbonara = tester.getRect(recipeCard('Pâtes carbonara'));
       expect(chili.height, carbonara.height);
       final name = tester.widget<Text>(find.text('Pâtes carbonara'));
       expect(name.maxLines, isNull);
       expect(name.overflow, isNull);
 
-      await _tapCard(tester, 'Pâtes carbonara');
-      await _validate(tester, 1);
+      await tapRecipeCard(tester, 'Pâtes carbonara');
+      await openRevue(tester, 1);
       expect(tester.takeException(), isNull);
       expect(find.byType(RevueScreen), findsOneWidget);
       final button = tester.getSize(

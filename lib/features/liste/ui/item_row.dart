@@ -5,6 +5,7 @@ import 'package:flutter/semantics.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/round_check.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -18,9 +19,6 @@ const _checkDelay = Duration(milliseconds: 300);
 /// Actions TalkBack équivalentes au glisser et à l'appui long (R24).
 const _supprimerAction = CustomSemanticsAction(label: StringsFr.supprimer);
 const _modifierAction = CustomSemanticsAction(label: StringsFr.modifier);
-
-/// Coche ronde de la Ligne d'article, 24 dp au lieu des 18 dp de la case M3.
-const _checkScale = KadiSpacing.picto / Checkbox.width;
 
 /// Ligne d'article de la Liste : case, nom et quantité, sans Picto.
 ///
@@ -152,26 +150,7 @@ class _ItemRowState extends ConsumerState<ItemRow> {
         ),
         child: Row(
           children: [
-            SizedBox.square(
-              dimension: KadiSpacing.touchTarget,
-              child: Transform.scale(
-                scale: _checkScale,
-                child: Checkbox(
-                  value: shown,
-                  onChanged: (_) => _toggle(),
-                  shape: const CircleBorder(),
-                  activeColor: accent,
-                  checkColor: scheme.surface,
-                  // Tailles d'avant l'échelle : contour de 2 dp, halo de 48 dp,
-                  // à l'accent du rayon et jamais en argile (C6).
-                  side: BorderSide(color: accent, width: 2 / _checkScale),
-                  splashRadius: KadiSpacing.touchTarget / 2 / _checkScale,
-                  overlayColor: WidgetStatePropertyAll(
-                    accent.withValues(alpha: 0.12),
-                  ),
-                ),
-              ),
-            ),
+            RoundCheck(value: shown, onChanged: _toggle, accent: accent),
             const SizedBox(width: KadiSpacing.s1),
             Expanded(
               // Marge verticale du texte seul : un nom sur plusieurs
