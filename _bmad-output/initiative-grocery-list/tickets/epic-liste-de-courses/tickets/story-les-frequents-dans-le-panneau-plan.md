@@ -3,7 +3,7 @@ title: 'Les fréquents dans le Panneau +'
 type: 'feature'
 ticket: '7'
 created: '2026-10-29'
-status: 'built'
+status: done
 baseline_revision: '51fe103811c17257cc9a7d4067a58c535959bc08'
 route: 'full'
 route_source: 'auto'

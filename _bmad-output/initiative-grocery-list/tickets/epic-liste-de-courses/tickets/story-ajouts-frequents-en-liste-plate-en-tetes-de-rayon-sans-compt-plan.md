@@ -3,7 +3,7 @@ title: 'Ajouts fréquents en liste plate, en-têtes de rayon sans compteur'
 type: 'feature'
 ticket: '12'
 created: '2026-10-30'
-status: 'built'
+status: done
 baseline_revision: 'fa6b82fa847804090b71638c6ab6e0d3e5b4f11f'
 route: 'full'
 route_source: 'auto'

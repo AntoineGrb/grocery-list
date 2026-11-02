@@ -3,7 +3,7 @@ title: 'Coche ronde, bouton Gérer, Cochés sans libellé'
 type: 'feature'
 ticket: '16'
 created: '2026-11-01'
-status: 'built'
+status: done
 baseline_revision: 'c61719260431d1a52ae640f2b2089dd5d8ee6f8a'
 route: 'oneshot'
 route_source: 'auto'

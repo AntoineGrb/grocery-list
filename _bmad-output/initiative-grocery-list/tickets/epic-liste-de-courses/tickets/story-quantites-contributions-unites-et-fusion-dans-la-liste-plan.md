@@ -3,7 +3,7 @@ title: 'Quantités : contributions, unités et fusion dans la liste'
 type: 'feature'
 ticket: '2'
 created: '2026-10-27'
-status: 'built'
+status: done
 baseline_revision: '4876bde24eff70b91a67996f1da7e7f4a47249c6'
 route: 'full'
 route_source: 'auto'

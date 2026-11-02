@@ -3,7 +3,7 @@ title: 'Supprimer et corriger un article de la liste'
 type: 'feature'
 ticket: '6'
 created: '2026-10-29'
-status: 'built'
+status: done
 baseline_revision: '3d26937590f97c801353caf42b497975687fe8e7'
 route: 'full'
 route_source: 'auto'

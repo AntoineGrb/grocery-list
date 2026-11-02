@@ -3,7 +3,7 @@ title: 'Le tag quantité et sa popup, sur les lignes du Panneau +'
 type: 'feature'
 ticket: '14'
 created: '2026-11-01'
-status: 'built'
+status: done
 baseline_revision: 'eb9d77d54feb866a5b144b2a2cfc007cbed5715d'
 route: 'full'
 route_source: 'auto'

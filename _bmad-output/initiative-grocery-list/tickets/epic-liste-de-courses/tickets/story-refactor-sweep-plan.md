@@ -3,7 +3,7 @@ title: 'Refactor sweep'
 type: 'refactor'
 ticket: '9'
 created: '2026-10-29'
-status: 'built'
+status: done
 baseline_revision: 'd03d2fcfb8dc5a5048743b311b25ff509a825966'
 route: 'full'
 route_source: 'auto'

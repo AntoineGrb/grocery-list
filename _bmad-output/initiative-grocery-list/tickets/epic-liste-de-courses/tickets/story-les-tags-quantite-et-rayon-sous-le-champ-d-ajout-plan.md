@@ -3,7 +3,7 @@ title: "Les tags Quantité et Rayon sous le Champ d'ajout"
 type: 'feature'
 ticket: '15'
 created: '2026-11-01'
-status: 'built'
+status: done
 baseline_revision: 'f808b7a90cc61e47918b88fe2e103d0e169ca322'
 route: 'full'
 route_source: 'auto'

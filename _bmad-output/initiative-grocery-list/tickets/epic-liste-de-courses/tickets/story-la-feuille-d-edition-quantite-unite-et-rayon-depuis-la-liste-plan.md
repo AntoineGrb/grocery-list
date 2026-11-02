@@ -3,7 +3,7 @@ title: 'La Feuille d''édition : quantité, unité et rayon, depuis la Liste et 
 type: 'feature'
 ticket: '11'
 created: '2026-10-30'
-status: 'built'
+status: done
 baseline_revision: '7b9b2ce05cd42a4c21e44d0a0461f60e7fa0def5'
 route: 'full'
 route_source: 'auto'

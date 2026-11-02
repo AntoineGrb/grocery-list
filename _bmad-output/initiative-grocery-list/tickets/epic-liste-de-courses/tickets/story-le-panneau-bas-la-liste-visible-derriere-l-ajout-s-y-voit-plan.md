@@ -3,7 +3,7 @@ title: "Le Panneau + bas : la Liste visible derrière, l'ajout s'y voit"
 type: 'feature'
 ticket: '13'
 created: '2026-11-01'
-status: 'built'
+status: done
 baseline_revision: 'c68fb9bd9cf207ef69bf5d4a4aad05c364d2eae3'
 route: 'full'
 route_source: 'auto'

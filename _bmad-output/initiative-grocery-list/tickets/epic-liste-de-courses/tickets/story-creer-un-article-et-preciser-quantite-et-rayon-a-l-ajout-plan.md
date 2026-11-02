@@ -3,7 +3,7 @@ title: 'Créer un article et préciser quantité et rayon à l''ajout'
 type: 'feature'
 ticket: '8'
 created: '2026-10-29'
-status: 'built'
+status: done
 baseline_revision: '661c8c79728a647c5ae1b980ac6609f109d18a78'
 route: 'full'
 route_source: 'auto'

@@ -3,7 +3,7 @@ title: 'Entrée ajoute l''article tapé, même hors catalogue'
 type: 'feature'
 ticket: '10'
 created: '2026-10-30'
-status: 'built'
+status: done
 baseline_revision: '904eadf448bdde560a1baadd64d6b011c371e7e9'
 route: 'full'
 route_source: 'auto'

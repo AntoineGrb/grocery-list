@@ -8,6 +8,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # La liste de courses au magasin
@@ -68,6 +69,7 @@ Antoine remplace son app todo par la Liste pour ses courses : il ajoute un artic
 
 ## Notes
 
+- Decision: 2026-11-02 — epic validé par Antoine sur le téléphone après plusieurs allers-retours sur le Panneau + (« la todo liste est conforme à mes attentes ») ; stories 2 à 16 et epic passés à done.
 - Decision: 2026-11-01 — re-slice après la 2e revue : quatre stories ajoutées dans une seule voie (même code du Panneau +), la plus risquée d'abord : 13 Liste visible derrière le panneau (traceur du replan), 14 tag et popup quantité, 15 tags sous le champ, 16 retours mineurs.
 - Decision: 2026-11-01 — pas de second « Refactor sweep » : les stories remplacent du code récent et nettoient ce qu'elles remplacent (Ligne saisie, crayon, feuille empilée) ; la story 9 reste le sweep de l'epic.
 - Decision: 2026-11-01 — tout est livré en un lot, sans essai intermédiaire ; Antoine teste l'ensemble à la fin (demande d'Antoine).

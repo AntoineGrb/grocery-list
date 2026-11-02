@@ -3,7 +3,7 @@ title: 'Terminer les courses, avec Annuler'
 type: 'feature'
 ticket: '5'
 created: '2026-10-28'
-status: 'built'
+status: done
 baseline_revision: '4350d2a015c806f47c0333e9f302cf16191a763c'
 route: 'full'
 route_source: 'auto'

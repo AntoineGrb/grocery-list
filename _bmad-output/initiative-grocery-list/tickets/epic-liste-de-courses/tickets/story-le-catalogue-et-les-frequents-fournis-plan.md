@@ -3,7 +3,7 @@ title: 'Le catalogue et les fréquents fournis'
 type: 'feature'
 ticket: '3'
 created: '2026-10-28'
-status: 'built'
+status: done
 baseline_revision: '4358891c95893d3fb94ffa587226cebdfc2b107d'
 route: 'full'
 route_source: 'auto'

@@ -3,7 +3,7 @@ title: 'Cocher au magasin'
 type: 'feature'
 ticket: '4'
 created: '2026-10-28'
-status: 'built'
+status: done
 baseline_revision: 'fb2d39d8b38d62b0342afbff3ced468931d36775'
 route: 'full'
 route_source: 'auto'
