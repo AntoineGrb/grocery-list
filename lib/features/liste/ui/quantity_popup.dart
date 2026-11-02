@@ -10,6 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../state/liste_panel.dart';
 import '../state/liste_providers.dart';
 import 'quantity_input.dart';
+import 'rayon_tag.dart' show addPopupLeft, addPopupWidth;
 
 /// Quantité saisie dans la Popup quantité ; [value] nulle : sans quantité.
 typedef QuantityEdit = ({StoredQuantity? value});
@@ -20,9 +21,6 @@ const _panelGap = KadiSpacing.s2;
 /// Hauteur gardée à la carte quand le panneau ne lui laisse pas la place :
 /// elle passe alors sur lui, et défile.
 const _cardMinHeight = KadiSpacing.touchTarget * 2;
-
-/// Ombre de la carte (dialogue M3).
-const _cardElevation = 6.0;
 
 /// Taille de la carte au début de son apparition, le reste vient du zoom.
 const _startScale = 0.96;
@@ -131,10 +129,12 @@ double _cardBottom(MediaQueryData media, double? panelTop) {
   return math.min(math.max(wanted, lowest), keyboardTop);
 }
 
-/// Popup quantité (DESIGN `quantity-popup`) : carte `surface-container`, nom
-/// en titre, Champ quantité focalisé, Choix d'unité. Jamais de rayon ni de
-/// « Supprimer ». Elle suit le panneau quand le clavier le déplace, et défile
-/// si elle ne tient pas (très grande police).
+/// Popup quantité (DESIGN `quantity-popup`) : carte compacte au fond des tags,
+/// sans bordure ni titre visible, posée juste au-dessus du panneau sur sa marge
+/// gauche : Champ quantité focalisé et bouton Valider, puis le Choix d'unité.
+/// Jamais de rayon ni de « Supprimer ». Le nom [title] n'est que lu par
+/// TalkBack. Elle suit le panneau quand le clavier le déplace, et défile si
+/// elle ne tient pas (très grande police).
 class QuantityPopup extends StatefulWidget {
   const QuantityPopup({
     super.key,
@@ -183,49 +183,52 @@ class _QuantityPopupState extends State<QuantityPopup> {
       opacity: _curve,
       child: ScaleTransition(
         scale: _scale,
-        alignment: Alignment.bottomCenter,
+        alignment: Alignment.bottomLeft,
         child: Semantics(
           scopesRoute: true,
           namesRoute: true,
           explicitChildNodes: true,
-          label: StringsFr.quantite,
+          label: widget.title,
           child: Material(
-            color: scheme.surfaceContainer,
-            elevation: _cardElevation,
+            // Sans ombre ni contour, comme la liste des rayons.
+            color: scheme.surfaceContainerHigh,
             clipBehavior: Clip.antiAlias,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(KadiRadius.lg),
-              side: BorderSide(color: scheme.outline),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(KadiRadius.lg)),
             ),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(KadiSpacing.s4),
+              padding: const EdgeInsets.all(KadiSpacing.s3),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Semantics(
-                    header: true,
-                    child: Text(
-                      widget.title,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: scheme.onSurface,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Semantics(
+                          label: StringsFr.quantite,
+                          child: QuantityField(
+                            controller: input.controller,
+                            unit: input.unit,
+                            autofocus: true,
+                            filled: true,
+                            onChanged: (_) => input.edited = true,
+                            onSubmitted: (_) => _close(),
+                          ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: KadiSpacing.s2),
+                      SubmitButton(
+                        icon: Icons.check,
+                        tooltip: StringsFr.valider,
+                        onPressed: _close,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: KadiSpacing.s3),
-                  Semantics(
-                    label: StringsFr.quantite,
-                    child: QuantityField(
-                      controller: input.controller,
-                      unit: input.unit,
-                      autofocus: true,
-                      onChanged: (_) => input.edited = true,
-                      onSubmitted: (_) => _close(),
-                    ),
-                  ),
-                  const SizedBox(height: KadiSpacing.s2),
+                  const SizedBox(height: KadiSpacing.s1),
                   UnitChoice(
                     selected: input.unit,
+                    dense: true,
                     onSelected: (unit) =>
                         setState(() => input.selectUnit(unit)),
                   ),
@@ -245,14 +248,52 @@ class _QuantityPopupState extends State<QuantityPopup> {
         final bottom = _cardBottom(media, widget.panel.top);
         return Padding(
           padding: EdgeInsets.only(
-            left: KadiSpacing.margin,
-            right: KadiSpacing.margin,
+            left: addPopupLeft,
+            right: addPopupLeft,
             top: media.padding.top,
             bottom: media.size.height - bottom,
           ),
-          child: Align(alignment: Alignment.bottomCenter, child: child),
+          child: Align(
+            alignment: Alignment.bottomLeft,
+            child: SizedBox(
+              width: addPopupWidth(media.size.width),
+              child: child,
+            ),
+          ),
         );
       },
+    );
+  }
+}
+
+/// Bouton Valider du Panneau + et de la Popup quantité : carré arrondi plein
+/// en argile, comme le FAB +, grisé sans [onPressed]. Cible de 48 dp.
+class SubmitButton extends StatelessWidget {
+  const SubmitButton({
+    super.key,
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return IconButton.filled(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      icon: Icon(icon),
+      style: IconButton.styleFrom(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(KadiRadius.md)),
+        ),
+      ),
     );
   }
 }

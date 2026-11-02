@@ -198,30 +198,50 @@ void _expectAbovePanel(WidgetTester tester, String name) {
 
 void main() {
   group('addPanelHeight', () {
-    test('deux tiers de la zone libre : écran − clavier − marge haute − Barre '
-        'd’application', () {
-      final height = addPanelHeight(
-        const MediaQueryData(
-          size: Size(412, 914),
-          padding: EdgeInsets.only(top: 24),
-          viewInsets: EdgeInsets.only(bottom: 300),
+    const chrome =
+        KadiSpacing.panelHandleHeight +
+        KadiSpacing.addFieldHeight +
+        KadiSpacing.touchTarget;
+
+    test('au contenu : poignée, champ, tags, puis les lignes demandées', () {
+      expect(
+        addPanelHeight(
+          const MediaQueryData(
+            size: Size(412, 914),
+            padding: EdgeInsets.only(top: 24),
+            viewInsets: EdgeInsets.only(bottom: 300),
+          ),
+          rows: 1,
         ),
+        chrome + KadiSpacing.rowMinHeight,
       );
-      expect(height, closeTo((914 - 300 - 24 - kToolbarHeight) * 2 / 3, 0.01));
     });
 
-    test('jamais moins que la poignée, le champ, les tags et une ligne', () {
+    test('jamais plus des deux tiers de la zone libre : écran − clavier − '
+        'marge haute − Barre d’application', () {
+      expect(
+        addPanelHeight(
+          const MediaQueryData(
+            size: Size(412, 914),
+            padding: EdgeInsets.only(top: 24),
+            viewInsets: EdgeInsets.only(bottom: 300),
+          ),
+          rows: 10,
+        ),
+        closeTo((914 - 300 - 24 - kToolbarHeight) * 2 / 3, 0.01),
+      );
+    });
+
+    test('jamais moins que la poignée, le champ et les tags', () {
       expect(
         addPanelHeight(
           const MediaQueryData(
             size: Size(800, 360),
             viewInsets: EdgeInsets.only(bottom: 280),
           ),
+          rows: 3,
         ),
-        KadiSpacing.panelHandleHeight +
-            KadiSpacing.touchTarget +
-            KadiSpacing.touchTarget +
-            KadiSpacing.rowMinHeight,
+        chrome,
       );
     });
   });
@@ -267,44 +287,68 @@ void main() {
   });
 
   group('le panneau', () {
-    testWidgets('412×914 et clavier de 300 dp : haut sous la Barre '
-        'd’application, au moins 150 dp de Liste visibles, barrière sans '
-        'couleur', (tester) async {
+    testWidgets('412×914 et clavier de 300 dp : seul le titre des fréquents '
+        'dépasse, carte à 8 dp du clavier, Liste assombrie par un voile '
+        'léger', (tester) async {
       await _pumpPhone(tester);
       await _openPanel(tester);
 
       final top = tester.getTopLeft(_body).dy;
       expect(top, closeTo(_panel(tester).top!, 0.01));
-      expect(top - _appBarBottom, greaterThanOrEqualTo(150));
-      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard);
+      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard - 8);
+      expect(tester.getTopLeft(_body).dx, 8);
       expect(
         tester.getSize(_body).height,
-        closeTo((914 - _keyboard - kToolbarHeight) * 2 / 3, 0.01),
+        KadiSpacing.panelHandleHeight +
+            KadiSpacing.addFieldHeight +
+            KadiSpacing.touchTarget +
+            KadiSpacing.touchTarget,
+      );
+      expect(_inSheet(find.byType(FrequentsTitle)), findsOneWidget);
+      expect(
+        tester.getBottomLeft(_inSheet(find.byType(FrequentsTitle))).dy,
+        lessThanOrEqualTo(tester.getBottomLeft(_body).dy + 0.01),
       );
 
       final route = ModalRoute.of(tester.element(_sheet))!;
-      expect(route.barrierColor!.a, 0);
+      final scheme = Theme.of(tester.element(_sheet)).colorScheme;
+      expect(route.barrierColor, scheme.scrim);
+      expect(route.barrierColor!.a, inExclusiveRange(0, 0.5));
       expect(route.barrierDismissible, isTrue);
     });
 
-    testWidgets('marge haute du téléphone : retirée de la zone libre, haut du '
-        'panneau toujours sous la Barre d’application', (tester) async {
-      tester.view.padding = const FakeViewPadding(top: 40);
-      await _pumpPhone(tester);
+    testWidgets('clavier fermé : le titre et quelques fréquents, la carte au '
+        'bas de l’écran', (tester) async {
+      await _pumpPhone(tester, keyboard: 0);
       await _openPanel(tester);
 
+      expect(tester.getBottomLeft(_body).dy, 914 - 8);
       expect(
         tester.getSize(_body).height,
-        closeTo((914 - _keyboard - 40 - kToolbarHeight) * 2 / 3, 0.01),
-      );
-      expect(
-        tester.getTopLeft(_body).dy - (40 + kToolbarHeight),
-        greaterThanOrEqualTo(150),
+        KadiSpacing.panelHandleHeight +
+            KadiSpacing.addFieldHeight +
+            KadiSpacing.touchTarget +
+            KadiSpacing.rowMinHeight * 5.5,
       );
     });
 
-    testWidgets('filet outline, ombre visible, poignée fine sans la poignée '
-        'M3, hors de la sémantique', (tester) async {
+    testWidgets('saisie : jusqu’à trois résultats visibles', (tester) async {
+      await _pumpPhone(tester);
+      await _openPanel(tester);
+      await tester.enterText(_search, 'o');
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(_body).height,
+        KadiSpacing.panelHandleHeight +
+            KadiSpacing.addFieldHeight +
+            KadiSpacing.touchTarget +
+            KadiSpacing.rowMinHeight * 3,
+      );
+    });
+
+    testWidgets('carte sans bordure ni ombre, coins arrondis, poignée '
+        'fine sans la poignée M3, hors de la sémantique', (tester) async {
       final handle = tester.ensureSemantics();
       await _pumpPhone(tester);
       await _openPanel(tester);
@@ -312,21 +356,17 @@ void main() {
       final bottomSheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
       expect(bottomSheet.showDragHandle, isFalse);
       final material = tester.widget<Material>(
-        find
-            .descendant(
-              of: find.byType(BottomSheet),
-              matching: find.byType(Material),
-            )
-            .first,
+        find.ancestor(of: _body, matching: find.byType(Material)).first,
       );
       final theme = Theme.of(tester.element(_sheet));
+      final shape = material.shape! as RoundedRectangleBorder;
+      expect(shape.side, BorderSide.none);
       expect(
-        (material.shape! as OutlinedBorder).side.color,
-        theme.colorScheme.outline,
+        shape.borderRadius,
+        const BorderRadius.all(Radius.circular(KadiRadius.xl)),
       );
-      expect(material.elevation, greaterThan(0));
-      expect(material.shadowColor, theme.colorScheme.shadow);
-      expect(material.shadowColor!.a, greaterThan(0));
+      expect(material.color, theme.colorScheme.surfaceContainer);
+      expect(material.elevation, 0);
 
       expect(tester.getSize(find.byType(PanelHandle)).height, 20);
       expect(
@@ -394,18 +434,24 @@ void main() {
       await tester.pumpAndSettle();
       await _openPanel(tester);
       final withKeyboard = tester.getSize(_body).height;
-      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard);
+      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard - 8);
 
       tester.view.viewInsets = FakeViewPadding.zero;
       await tester.pumpAndSettle();
 
       final height = tester.getSize(_body).height;
       expect(height, greaterThan(withKeyboard));
-      expect(height, closeTo((914 - kToolbarHeight) * 2 / 3, 0.01));
-      expect(tester.getBottomLeft(_body).dy, 914);
-      expect(_panel(tester).height, height);
+      expect(
+        height,
+        KadiSpacing.panelHandleHeight +
+            KadiSpacing.addFieldHeight +
+            KadiSpacing.touchTarget +
+            KadiSpacing.rowMinHeight * 5.5,
+      );
+      expect(tester.getBottomLeft(_body).dy, 914 - 8);
+      expect(_panel(tester).height, height + 8);
       expect(_panel(tester).top, closeTo(tester.getTopLeft(_body).dy, 0.01));
-      expect(_reserve(tester), height);
+      expect(_reserve(tester), height + 8);
 
       tester.view.viewInsets = const FakeViewPadding(bottom: _keyboard);
       await tester.pumpAndSettle();
@@ -585,7 +631,7 @@ void main() {
 
     testWidgets('ligne déjà visible : animée, position de défilement '
         'inchangée', (tester) async {
-      final db = await _pumpPhone(tester);
+      final db = await _pumpPhone(tester, keyboard: 0);
       final repo = ListeRepository(db, Clock());
       await repo.addArticle(SeedIds.tomates);
       await tester.pumpAndSettle();

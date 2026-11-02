@@ -3,7 +3,7 @@ title: DESIGN — grocery-list
 name: grocery-list
 description: "Liste de courses du foyer, Android (Flutter, Material 3). Palette « Argile sur fusain » : interface neutre, couleur portée par les 13 rayons, argile réservée au FAB +, à l'onglet actif, aux boutons d'action et à l'action des snackbars."
 status: draft
-updated: 2026-11-01
+updated: 2026-11-02
 sources:
   - ../../forge-grocery-list/forge-grocery-list.md
   - ../../forge-grocery-list/.memlog.md
@@ -219,24 +219,36 @@ components:
   add-sheet:
     background: '{colors.surface-container}'
     radius: '{rounded.xl}'
-    top-border: '{colors.outline}'
-    barrier: transparent
+    inset: 8px
+    border: none
+    elevation: '0'
+    barrier: 'voile scrim : noir 20 % en clair, 32 % en sombre'
+    field: '{typography.title-large}'
+    field-height: 56px
+  submit-button:
+    background: '{colors.primary}'
+    foreground: '{colors.on-primary}'
+    radius: '{rounded.md}'
+    size: 40px
+    touch-target: '{spacing.touch-target}'
   add-tag:
     label: '{typography.label-large}'
     height: 32px
     touch-target: '{spacing.touch-target}'
     radius: '{rounded.sm}'
-    empty-border: '{colors.outline}'
+    empty-background: 'surface-container-high : #E8DFD8 clair, #342C28 sombre'
     empty-label: '{colors.on-surface-variant}'
     filled-background: '{colors.on-surface-variant}'
     filled-label: '{colors.surface}'
     rayon-filled-background: 'fond de pastille du rayon : colors.rayon-<rayon>-pastille'
     rayon-filled-label: '{colors.on-surface}'
   quantity-popup:
-    background: '{colors.surface-container}'
+    background: 'surface-container-high'
     radius: '{rounded.lg}'
-    title: '{typography.title-medium}'
-    border: '{colors.outline}'
+    border: none
+    max-width: 340px
+    field-background: '{colors.surface-container}'
+    unit-selected-background: '{colors.surface-container}'
   search-field:
     background: '{colors.surface}'
     foreground: '{colors.on-surface}'
@@ -405,13 +417,13 @@ Grille M3 de 4 dp : `{spacing.1}` à `{spacing.6}` (4 → 32). Marge latérale `
 - **Zone du pouce** : FAB + en bas à droite au-dessus de la Barre de navigation (position M3 standard) ; Bouton d'action pleine largeur en bas d'écran, au-dessus de la Barre de navigation, le FAB + remontant alors au-dessus de lui. La Barre d'application ne porte que le titre, l'icône ⚙ et, sur Recettes, l'Action Nouvelle liste.
 - **Revue** : écran poussé plein écran, flèche retour, sans Barre de navigation ; le Bouton d'action « Ajouter à la liste » est en bas d'écran.
 - Le bas de la Liste réserve `{spacing.list-bottom-inset}` pour que le FAB ne masque jamais la dernière ligne, et la hauteur du Panneau + tant qu'il est ouvert.
-- **Panneau +** : environ deux tiers de la zone libre sous la Barre d'application et au-dessus du clavier [ASSUMPTION : à régler sur le test d'Antoine] ; le tiers restant montre la Liste. Poignée fine, pour ne pas prendre la place d'une ligne.
+- **Panneau +** : carte flottante à 8 dp des bords et du clavier, hauteur au contenu : clavier ouvert, seul le titre « Ajouts fréquents » dépasse sous les tags ; clavier fermé, environ quatre fréquents et demi ; pendant la saisie, jusqu'à trois résultats. Jamais plus des deux tiers de la zone libre. Poignée fine. Ses pop-ups (Popup quantité, liste des rayons) se posent juste au-dessus de la carte, calés sur sa marge gauche (24 dp), larges de 340 dp au plus.
 
 ## Elevation & Depth
 
 Élévation M3 tonale, réduite au minimum. Les écrans sont à plat sur `{colors.surface}` ; la Barre de navigation se détache par le ton `{colors.surface-container}`, pas par une ombre. La Barre d'application reste à plat, même au défilement (pas de teinte d'élévation, `surfaceTint` neutralisé).
 
-Ombres réservées aux éléments qui flottent réellement : le FAB (niveau 3 M3), les feuilles modales, la Popup quantité et le Dialogue de confirmation (valeurs M3). Sans voile, le Panneau + se détache de la Liste par son ombre et un filet `{colors.outline}` sur son haut, visible aussi en sombre. Aucune carte de groupe, aucune ombre de hiérarchie.
+Ombres réservées aux éléments qui flottent réellement : le FAB (niveau 3 M3), les feuilles modales et le Dialogue de confirmation (valeurs M3). Le Panneau + et ses pop-ups n'ont ni ombre ni contour : un voile léger assombrit la Liste, et leurs fonds plus clairs suffisent à les détacher. Aucune carte de groupe, aucune ombre de hiérarchie.
 
 ## Shapes
 
@@ -433,9 +445,9 @@ Composants M3 standard hérités sans changement hors des lignes ci-dessous (Tex
 | **En-tête de rayon** (`rayon-header`) | Pastille arrondie `{rounded.full}` sur fond `rayon-<rayon>-pastille` : point de 10 dp en accent du rayon + nom en `{typography.title-small}` `{colors.on-surface}`. Sans compteur. Utilisé dans la Liste et la Revue. |
 | **Ligne d'article** (`item-row`) | Hauteur ≥ `{spacing.row-min-height}`, marge `{spacing.margin}`. Sans Picto. Coche ronde de 24 dp (case M3 de forme circulaire, cible `{spacing.touch-target}`) dont le contour et le remplissage prennent l'accent du rayon, coche en `{colors.surface}`. Nom en `{typography.body-large}`, quantité arrondie pour la lecture (« 1,5 kg », « 20 cl ») en `{typography.body-medium}` `{colors.on-surface-variant}`. Pas de fond, pas de carte, sauf le surlignage d'arrivée : fond de pastille du rayon qui s'efface en fondu. |
 | **Section Cochés** (`checked-section`) | Filet `{colors.outline}` au-dessus. En-tête 48 dp : chevron, « Cochés (n) » en `{typography.label-large}` `{colors.on-surface-variant}`. Lignes cochées : coche ronde pleine en accent du rayon, nom et quantité barrés en `{colors.checked}`. |
-| **Panneau +** (`add-sheet`) | Feuille modale M3 basse, sans voile, fond `{colors.surface-container}` [ASSUMPTION], haut `{rounded.xl}`, filet et ombre. Champ d'ajout en tête, les deux tags dessous, puis le titre « Ajouts fréquents » et les fréquents en liste plate, sans En-tête de rayon. |
-| **Tags du panneau** (`add-tag`) | Puce de 32 dp, `{rounded.sm}`, cible `{spacing.touch-target}`, en `{typography.label-large}`. Vide : contour `{colors.outline}`, texte `{colors.on-surface-variant}`. Plein : fond `{colors.on-surface-variant}`, texte `{colors.surface}`, jamais d'argile. Tag Rayon : point de 10 dp en accent du rayon + nom + flèche ; choisi : fond de pastille du rayon, texte `{colors.on-surface}`. Sa liste déroulante montre les 13 pastilles. |
-| **Popup quantité** (`quantity-popup`) | Carte flottante `{colors.surface-container}`, `{rounded.lg}`, contour `{colors.outline}`, ombre, juste au-dessus du panneau, marges `{spacing.margin}`. Nom en `{typography.title-medium}`, Champ quantité, Choix d'unité. Apparaît en fondu et léger zoom depuis son bord bas, jamais du bas de l'écran. |
+| **Panneau +** (`add-sheet`) | Carte flottante sur un voile léger, fond `{colors.surface-container}`, coins `{rounded.xl}`, sans bordure ni ombre. Champ d'ajout sans fond ni icône, texte en `{typography.title-large}` ; dessous les deux tags et, au bout de la rangée, le bouton Valider (`submit-button`, flèche vers le haut, argile, grisé champ vide) ; puis le titre « Ajouts fréquents » et les fréquents en liste plate, sans En-tête de rayon. |
+| **Tags du panneau** (`add-tag`) | Puce de 32 dp, `{rounded.sm}`, cible `{spacing.touch-target}`, en `{typography.label-large}`, sans bordure. Vide : fond `surface-container-high`, plus clair que la carte en sombre, texte `{colors.on-surface-variant}`. Plein : fond `{colors.on-surface-variant}`, texte `{colors.surface}`, jamais d'argile. Tag Rayon : point de 10 dp en accent du rayon + nom + flèche ; choisi : fond de pastille du rayon, texte `{colors.on-surface}`. Sa liste déroulante : fond `surface-container-high`, `{rounded.lg}`, sans bordure ni barre de défilement visible, une ligne par rayon (point + nom), coche sur le rayon montré. |
+| **Popup quantité** (`quantity-popup`) | Carte compacte `surface-container-high`, `{rounded.lg}`, sans bordure ni ombre, juste au-dessus du panneau sur sa marge gauche. Sans titre visible (le nom est lu par TalkBack). Champ quantité à fond `{colors.surface-container}` sans bordure et, à côté, le bouton Valider (coche, argile) ; dessous le Choix d'unité resserré, sans contour, l'unité choisie sur fond `{colors.surface-container}`. Apparaît en fondu et léger zoom depuis son coin bas gauche. |
 | **Champ de recherche** (`search-field`) | Barre M3, `{rounded.full}`, hauteur `{spacing.touch-target}`, fond `{colors.surface}`, texte indicatif `{colors.on-surface-variant}`, icône × d'effacement à droite. Curseur en `{colors.on-surface}`, jamais en argile (le défaut M3 serait `primary`). Champ d'ajout du Panneau + : icône + à gauche, « Ajouter un article » ; Fiche recette et Paramètres › Articles : icône loupe. |
 | **Titre des fréquents** (`frequents-title`) | « Ajouts fréquents » en `{typography.title-small}` `{colors.on-surface-variant}`, marge `{spacing.margin}` ; bouton texte « Gérer » à droite, `{typography.label-large}` `{colors.on-surface-variant}`, cible `{spacing.touch-target}`. |
 | **Ligne de fréquent** (`frequent-row`) | Liste plate : Picto + nom en `{typography.body-large}` + indicateur d'état à droite, sans libellé de rayon. Hors liste : signe + en `{colors.on-surface-variant}` ; dans la liste : coche ronde pleine en accent du rayon, et à sa gauche le tag quantité (`add-tag`). Rien ne s'insère sous la ligne. |

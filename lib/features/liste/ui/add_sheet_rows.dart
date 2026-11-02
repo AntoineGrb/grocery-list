@@ -99,7 +99,7 @@ class AddTypedRow extends StatelessWidget {
 /// Titre de la section des fréquents du Panneau + : « Ajouts fréquents »,
 /// annoncé comme titre, et un bouton « Gérer » à droite, lu « Gérer les ajouts
 /// fréquents ». Il mènera à Paramètres › Fréquents (epic 3) ; d'ici là, il ne
-/// fait rien.
+/// fait rien. Un tap sur le titre ferme le clavier, pour voir les fréquents.
 class FrequentsTitle extends StatelessWidget {
   const FrequentsTitle({super.key});
 
@@ -117,14 +117,27 @@ class FrequentsTitle extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Semantics(
-              header: true,
-              label: StringsFr.ajoutsFrequents,
-              excludeSemantics: true,
-              child: Text(
-                StringsFr.ajoutsFrequents,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              excludeFromSemantics: true,
+              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: KadiSpacing.touchTarget,
+                ),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Semantics(
+                    header: true,
+                    label: StringsFr.ajoutsFrequents,
+                    excludeSemantics: true,
+                    child: Text(
+                      StringsFr.ajoutsFrequents,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -180,6 +193,10 @@ class InListIndicator extends StatelessWidget {
   }
 }
 
+/// Part du nom face au rayon abrégé d'une Ligne de résultat : au plus un tiers
+/// de la place pour le rayon.
+const _nameFlex = 2;
+
 /// Facteur de police au-delà duquel le rayon d'une ligne passe sous son nom.
 const _inlineMetaMaxTextScale = 1.2;
 
@@ -228,10 +245,13 @@ class _PanelRow extends StatelessWidget {
     // le nom, et rien ne déborde.
     final large =
         MediaQuery.textScalerOf(context).scale(1) > _inlineMetaMaxTextScale;
+    // Sur la même ligne, le rayon s'abrège plutôt que d'écraser le nom.
     final metaText = meta == null
         ? null
         : Text(
             meta,
+            maxLines: large ? null : 1,
+            overflow: large ? null : TextOverflow.ellipsis,
             style: theme.textTheme.bodyMedium?.copyWith(
               color: scheme.onSurfaceVariant,
             ),
@@ -261,6 +281,7 @@ class _PanelRow extends StatelessWidget {
                 ),
                 const SizedBox(width: KadiSpacing.s4),
                 Expanded(
+                  flex: _nameFlex,
                   child: ExcludeSemantics(
                     child: Padding(
                       // Le tag fait 48 dp : la ligne garde sa hauteur.
@@ -284,7 +305,7 @@ class _PanelRow extends StatelessWidget {
                 ),
                 if (metaText != null && !large) ...[
                   const SizedBox(width: KadiSpacing.s3),
-                  ExcludeSemantics(child: metaText),
+                  Flexible(child: ExcludeSemantics(child: metaText)),
                 ],
                 if (inList && line != null && onQuantityTap != null)
                   // Sa largeur seule, jusqu'à la limite : le nom garde le reste.

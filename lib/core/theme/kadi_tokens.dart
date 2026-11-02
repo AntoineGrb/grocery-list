@@ -13,6 +13,8 @@ class KadiPalette {
     required this.onPrimaryContainer,
     required this.surface,
     required this.surfaceContainer,
+    required this.surfaceContainerHigh,
+    required this.scrim,
     required this.onSurface,
     required this.onSurfaceVariant,
     required this.outline,
@@ -28,6 +30,12 @@ class KadiPalette {
   final Color onPrimaryContainer;
   final Color surface;
   final Color surfaceContainer;
+
+  /// Fond des tags et des pop-ups du Panneau +, posés sur sa carte.
+  final Color surfaceContainerHigh;
+
+  /// Voile qui assombrit un peu la Liste sous le Panneau +.
+  final Color scrim;
   final Color onSurface;
   final Color onSurfaceVariant;
   final Color outline;
@@ -43,6 +51,8 @@ class KadiPalette {
     onPrimaryContainer: Color(0xFF3B1305),
     surface: Color(0xFFFBF6F2),
     surfaceContainer: Color(0xFFF3ECE6),
+    surfaceContainerHigh: Color(0xFFE8DFD8),
+    scrim: Color(0x33000000),
     onSurface: Color(0xFF2A211C),
     onSurfaceVariant: Color(0xFF5C4E46),
     outline: Color(0xFF8F7E74),
@@ -87,6 +97,8 @@ class KadiPalette {
     onPrimaryContainer: Color(0xFFFFDBCC),
     surface: Color(0xFF1B1715),
     surfaceContainer: Color(0xFF26201D),
+    surfaceContainerHigh: Color(0xFF342C28),
+    scrim: Color(0x52000000),
     onSurface: Color(0xFFF0E5DD),
     onSurfaceVariant: Color(0xFFD0C2B8),
     outline: Color(0xFF9A8B81),
@@ -155,4 +167,6 @@ abstract final class KadiSpacing {
   static const panelHandleThickness = 4.0;
   static const tagHeight = 32.0;
   static const tagMaxWidth = 144.0;
+  static const addFieldHeight = 56.0;
+  static const addPopupMaxWidth = 340.0;
 }

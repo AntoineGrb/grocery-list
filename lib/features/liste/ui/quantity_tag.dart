@@ -1,8 +1,8 @@
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Tag du Panneau + (DESIGN `add-tag`) : puce de 32 dp en [color], bordée de
-/// [side], cible de 48 dp.
+/// Tag du Panneau + (DESIGN `add-tag`) : puce de 32 dp en [color], sans
+/// bordure, cible de 48 dp.
 ///
 /// Un bouton à part, lu [semanticLabel], même posé sur une ligne elle-même
 /// tappable.
@@ -10,23 +10,20 @@ class AddTag extends StatelessWidget {
   const AddTag({
     super.key,
     required this.color,
-    required this.side,
     required this.semanticLabel,
     required this.onTap,
     required this.child,
   });
 
   final Color color;
-  final BorderSide side;
   final String semanticLabel;
   final VoidCallback onTap;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(KadiRadius.sm),
-      side: side,
+    const shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(KadiRadius.sm)),
     );
 
     return Semantics(
@@ -81,8 +78,8 @@ class AddTag extends StatelessWidget {
   }
 }
 
-/// Tag quantité (DESIGN `add-tag`). Vide : le texte [emptyLabel] sur un contour
-/// `outline`. Plein : [value] en `surface` sur un fond `on-surface-variant`,
+/// Tag quantité (DESIGN `add-tag`). Vide : le texte [emptyLabel] atténué sur le
+/// fond des tags. Plein : [value] en `surface` sur un fond `on-surface-variant`,
 /// jamais d'argile.
 class QuantityTag extends StatelessWidget {
   const QuantityTag({
@@ -106,8 +103,7 @@ class QuantityTag extends StatelessWidget {
     final filled = value.isNotEmpty;
 
     return AddTag(
-      color: filled ? scheme.onSurfaceVariant : Colors.transparent,
-      side: filled ? BorderSide.none : BorderSide(color: scheme.outline),
+      color: filled ? scheme.onSurfaceVariant : scheme.surfaceContainerHigh,
       semanticLabel: semanticLabel,
       onTap: onTap,
       child: Text(

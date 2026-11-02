@@ -20,6 +20,7 @@ abstract final class StringsFr {
   // Panneau + : le Champ d'ajout porte le texte indicatif
   // [ajouterUnArticle].
   static const effacerLeTexte = 'Effacer le texte';
+  static const valider = 'Valider';
   static const ajoutImpossible = 'Ajout impossible. Réessaie.';
 
   /// Seule ligne des résultats quand la saisie ne trouve rien, qui fait

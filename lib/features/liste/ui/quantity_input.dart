@@ -76,16 +76,21 @@ class UnitChoice extends StatelessWidget {
     super.key,
     required this.selected,
     required this.onSelected,
+    this.dense = false,
   });
 
   final InputUnit selected;
   final ValueChanged<InputUnit> onSelected;
 
+  /// Puces resserrées et sans contour, pour la Popup quantité : l'unité
+  /// choisie sur un fond `surface-container`. La cible reste de 48 dp.
+  final bool dense;
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Wrap(
-      spacing: KadiSpacing.s2,
+      spacing: dense ? KadiSpacing.s1 : KadiSpacing.s2,
       children: [
         for (final unit in InputUnit.values)
           ChoiceChip(
@@ -93,15 +98,31 @@ class UnitChoice extends StatelessWidget {
             label: Text(_chipLabel(unit)),
             selected: unit == selected,
             onSelected: (_) => onSelected(unit),
-            showCheckmark: true,
+            showCheckmark: !dense,
             checkmarkColor: scheme.onSurface,
-            // Fond de la surface : seul le contour marque le choix.
-            color: const WidgetStatePropertyAll(Colors.transparent),
-            labelStyle: TextStyle(color: scheme.onSurface),
-            side: BorderSide(
-              color: unit == selected ? scheme.onSurface : scheme.outline,
+            // Fond de la surface : seul le contour marque le choix ; resserrées,
+            // seul le fond le marque.
+            // Resserrées, sur le fond de la Popup quantité : un transparent
+            // laisserait voir le fond sombre de la puce M3.
+            color: WidgetStateProperty.resolveWith(
+              (states) => !dense
+                  ? Colors.transparent
+                  : states.contains(WidgetState.selected)
+                  ? scheme.surfaceContainer
+                  : scheme.surfaceContainerHigh,
             ),
+            labelStyle: TextStyle(
+              color: !dense || unit == selected
+                  ? scheme.onSurface
+                  : scheme.onSurfaceVariant,
+            ),
+            side: dense
+                ? BorderSide.none
+                : BorderSide(
+                    color: unit == selected ? scheme.onSurface : scheme.outline,
+                  ),
             materialTapTargetSize: MaterialTapTargetSize.padded,
+            visualDensity: dense ? VisualDensity.compact : null,
           ),
       ],
     );

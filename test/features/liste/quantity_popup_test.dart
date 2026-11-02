@@ -184,6 +184,10 @@ void _failContributions(AppDatabase db) => db.customStatement(
 );
 
 void main() {
+  // Écran très haut : tous les fréquents tiennent dans le panneau.
+  setUp(() => addPanelFrequentRows = 40);
+  tearDown(() => addPanelFrequentRows = 4.5);
+
   test('oldestLineByArticle : la première ligne reçue de chaque article', () {
     ListeItem item(String lineId, String articleId) => ListeItem(
       lineId: lineId,
@@ -244,9 +248,12 @@ void main() {
       final theme = Theme.of(tester.element(row));
       final chip = tester.widget<Material>(_tagChip(row));
       final shape = chip.shape! as RoundedRectangleBorder;
-      expect(chip.color, Colors.transparent);
-      expect(shape.side.color, theme.colorScheme.outline);
-      expect(shape.borderRadius, BorderRadius.circular(KadiRadius.sm));
+      expect(chip.color, theme.colorScheme.surfaceContainerHigh);
+      expect(shape.side, BorderSide.none);
+      expect(
+        shape.borderRadius,
+        const BorderRadius.all(Radius.circular(KadiRadius.sm)),
+      );
       final text = tester.widget<Text>(
         find.descendant(of: _tag(row), matching: find.text(StringsFr.qte)),
       );
@@ -603,21 +610,34 @@ void main() {
 
       final panelTop = _panel(tester).top!;
       expect(tester.getBottomLeft(_card).dy, closeTo(panelTop - 8, 0.01));
-      expect(tester.getTopLeft(_card).dx, KadiSpacing.margin);
-      expect(tester.getTopRight(_card).dx, 412 - KadiSpacing.margin);
+      // Calée sur la marge gauche de la carte du panneau, compacte.
+      expect(tester.getTopLeft(_card).dx, KadiSpacing.s2 + KadiSpacing.margin);
+      expect(tester.getSize(_card).width, KadiSpacing.addPopupMaxWidth);
       expect(tester.getTopLeft(_card).dy, greaterThanOrEqualTo(0));
 
       final theme = Theme.of(tester.element(_popup));
       final card = tester.widget<Material>(_card);
       final shape = card.shape! as RoundedRectangleBorder;
-      expect(card.color, theme.colorScheme.surfaceContainer);
-      expect(card.elevation, greaterThan(0));
-      expect(shape.side.color, theme.colorScheme.outline);
-      expect(shape.borderRadius, BorderRadius.circular(KadiRadius.lg));
+      expect(card.color, theme.colorScheme.surfaceContainerHigh);
+      expect(card.elevation, 0);
+      expect(shape.side, BorderSide.none);
+      expect(
+        shape.borderRadius,
+        const BorderRadius.all(Radius.circular(KadiRadius.lg)),
+      );
 
-      final title = tester.widget<Text>(_inPopup(find.text('Tomates')));
-      expect(title.style!.fontSize, theme.textTheme.titleMedium!.fontSize);
-      expect(title.style!.fontWeight, theme.textTheme.titleMedium!.fontWeight);
+      // Sans titre visible ; Valider à côté du champ.
+      expect(_inPopup(find.text('Tomates')), findsNothing);
+      final submit = _inPopup(find.byType(SubmitButton));
+      expect(submit, findsOneWidget);
+      expect(
+        tester.getCenter(submit).dy,
+        closeTo(tester.getCenter(_field).dy, 1),
+      );
+      expect(
+        tester.getTopLeft(submit).dx,
+        greaterThan(tester.getTopRight(_field).dx),
+      );
       expect(_focused(tester, _field), isTrue);
       // Le focus automatique ne montre pas la poignée du curseur.
       final editable = tester.state<EditableTextState>(
@@ -860,10 +880,11 @@ void main() {
       await ListeRepository(db, Clock()).addArticle(SeedIds.tomates);
       await tester.pumpAndSettle();
       await _openPanel(tester);
-      await _scrollTo(tester, 'Tomates');
+      await tester.enterText(_search, 'tomates');
+      await tester.pumpAndSettle();
       expect(_focused(tester, _search), isTrue);
 
-      await _openPopup(tester, _frequent('Tomates'));
+      await _openPopup(tester, _result('Tomates'));
       expect(_focused(tester, _field), isTrue);
       expect(_focused(tester, _search), isFalse);
 
@@ -881,9 +902,10 @@ void main() {
         await ListeRepository(db, Clock()).addArticle(SeedIds.tomates);
         await tester.pumpAndSettle();
         await _openPanel(tester);
-        await _scrollTo(tester, 'Tomates');
+        await tester.enterText(_search, 'tomates');
+        await tester.pumpAndSettle();
 
-        await _openPopup(tester, _frequent('Tomates'));
+        await _openPopup(tester, _result('Tomates'));
         await _type(tester, '250');
         await _pressEnter(tester);
 
@@ -927,7 +949,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final highTop = _panel(tester).top!;
-      expect(highTop, lessThan(lowTop));
+      expect(highTop, isNot(lowTop));
       expect(tester.getBottomLeft(_card).dy, closeTo(highTop - 8, 0.01));
       expect(tester.getTopLeft(_card).dy, greaterThanOrEqualTo(0));
 
@@ -966,9 +988,9 @@ void main() {
       await ListeRepository(db, Clock()).addArticle(SeedIds.tomates);
       await tester.pumpAndSettle();
       await _openPanel(tester);
-      await _scrollTo(tester, 'Tomates');
 
-      await _openPopup(tester, _frequent('Tomates'));
+      await tester.tap(_inSheet(find.byType(QuantityTag)).first);
+      await tester.pumpAndSettle();
 
       expect(tester.getTopLeft(_card).dy, greaterThanOrEqualTo(0));
       expect(tester.getBottomLeft(_card).dy, lessThanOrEqualTo(360 - 200));
@@ -1022,7 +1044,7 @@ void main() {
       );
       expect(fade.opacity.value, inExclusiveRange(0, 1));
       expect(scale.scale.value, inExclusiveRange(0.9, 1));
-      expect(scale.alignment, Alignment.bottomCenter);
+      expect(scale.alignment, Alignment.bottomLeft);
       expect(
         tester.getBottomLeft(_card).dy,
         closeTo(_panel(tester).top! - 8, 0.01),

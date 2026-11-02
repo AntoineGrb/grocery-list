@@ -90,6 +90,7 @@ class QuantityField extends StatelessWidget {
     required this.unit,
     this.focusNode,
     this.autofocus = false,
+    this.filled = false,
     this.onChanged,
     this.onSubmitted,
   });
@@ -100,6 +101,9 @@ class QuantityField extends StatelessWidget {
 
   /// Prend le focus à son apparition, clavier ouvert.
   final bool autofocus;
+
+  /// Fond `surface-container` sans bordure, pour la Popup quantité.
+  final bool filled;
 
   /// Saisie de l'utilisateur.
   final ValueChanged<String>? onChanged;
@@ -112,8 +116,10 @@ class QuantityField extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final border = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(KadiRadius.xs),
-      borderSide: BorderSide(color: scheme.outline),
+      borderRadius: BorderRadius.circular(
+        filled ? KadiRadius.sm : KadiRadius.xs,
+      ),
+      borderSide: filled ? BorderSide.none : BorderSide(color: scheme.outline),
     );
     final decimal = unit.decimals > 0;
 
@@ -141,13 +147,18 @@ class QuantityField extends StatelessWidget {
         textAlign: TextAlign.end,
         style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
         decoration: InputDecoration(
-          // Le thème global n'a pas de bordure : le Champ quantité en a une.
+          // Le thème global n'a pas de bordure : le Champ quantité en a une,
+          // sauf rempli.
+          filled: filled,
+          fillColor: scheme.surfaceContainer,
           border: border,
           enabledBorder: border,
-          focusedBorder: border.copyWith(
-            // Jamais d'argile sur un état (C6).
-            borderSide: BorderSide(color: scheme.onSurface, width: 2),
-          ),
+          focusedBorder: filled
+              ? border
+              : border.copyWith(
+                  // Jamais d'argile sur un état (C6).
+                  borderSide: BorderSide(color: scheme.onSurface, width: 2),
+                ),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: KadiSpacing.s3,
           ),

@@ -130,6 +130,10 @@ Future<List<ListLine>> _activeLines(AppDatabase db, String articleId) =>
         .get();
 
 void main() {
+  // Écran très haut : tous les fréquents tiennent dans le panneau.
+  setUp(() => addPanelFrequentRows = 40);
+  tearDown(() => addPanelFrequentRows = 4.5);
+
   testWidgets(
     'Panneau + ouvert : champ focalisé, « Ajouts fréquents » et son bouton, '
     'puis les fréquents en liste plate dans l’ordre du parcours, sans '
@@ -570,9 +574,10 @@ void main() {
         final field = tester.widget<TextField>(_search);
         expect(field.decoration!.hintText, StringsFr.ajouterUnArticle);
         expect(field.textInputAction, TextInputAction.done);
+        // Sans icône : le texte posé sur la carte.
         expect(
           find.descendant(of: _search, matching: find.byIcon(Icons.add)),
-          findsOneWidget,
+          findsNothing,
         );
 
         await _type(tester, 'piles');

@@ -34,58 +34,40 @@ class PanelUndo {
   String message = '';
 }
 
-/// Part de la zone libre prise par le Panneau + ; le reste montre la Liste.
-const _panelFreeZoneShare = 2 / 3;
-
-/// Hauteur minimale du panneau : poignée, Champ d'ajout, tags, une ligne.
-const _panelMinHeight =
+/// Haut du panneau toujours visible : poignée, Champ d'ajout, rangée des tags.
+const _panelChromeHeight =
     KadiSpacing.panelHandleHeight +
-    KadiSpacing.touchTarget +
-    KadiSpacing.touchTarget +
-    KadiSpacing.rowMinHeight;
+    KadiSpacing.addFieldHeight +
+    KadiSpacing.touchTarget;
 
-/// Sans voile, seule l'ombre détache le panneau de la Liste.
-const _panelElevation = 8.0;
+/// Fréquents visibles clavier fermé : la moitié de la dernière ligne dit
+/// qu'ils défilent. Les tests qui touchent tous les fréquents l'augmentent.
+@visibleForTesting
+double addPanelFrequentRows = 4.5;
 
-/// Hauteur du Panneau + au-dessus du clavier : environ deux tiers de la zone
-/// libre (écran − clavier − marge haute − Barre d'application) de [media],
-/// dont `padding.top` doit porter la marge haute de l'écran.
-double addPanelHeight(MediaQueryData media) {
+/// Résultats visibles pendant la saisie.
+const _maxResultRows = 3;
+
+/// Part maximale de la zone libre prise par le panneau : la Liste reste
+/// toujours visible au-dessus.
+const _panelMaxShare = 2 / 3;
+
+/// Écart entre la carte du panneau et les bords de l'écran ou le clavier.
+const _panelInset = KadiSpacing.s2;
+
+/// Hauteur de la carte du Panneau + pour [rows] lignes de contenu sous les
+/// tags (titre compris), bornée aux deux tiers de la zone libre (écran −
+/// clavier − marge haute − Barre d'application) de [media], dont
+/// `padding.top` doit porter la marge haute de l'écran.
+double addPanelHeight(MediaQueryData media, {required double rows}) {
   final free =
       media.size.height -
       media.viewInsets.bottom -
       media.padding.top -
       kToolbarHeight;
-  return math.max(free * _panelFreeZoneShare, _panelMinHeight);
-}
-
-/// Forme du panneau : haut arrondi, filet sur le seul bord haut.
-class _TopOutlineBorder extends RoundedRectangleBorder {
-  const _TopOutlineBorder({required super.side})
-    : super(
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(KadiRadius.xl),
-        ),
-      );
-
-  @override
-  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    const radius = Radius.circular(KadiRadius.xl);
-    canvas.drawPath(
-      Path()
-        ..moveTo(rect.left, rect.top + KadiRadius.xl)
-        ..arcToPoint(
-          Offset(rect.left + KadiRadius.xl, rect.top),
-          radius: radius,
-        )
-        ..lineTo(rect.right - KadiRadius.xl, rect.top)
-        ..arcToPoint(
-          Offset(rect.right, rect.top + KadiRadius.xl),
-          radius: radius,
-        ),
-      side.toPaint(),
-    );
-  }
+  final row = media.textScaler.scale(KadiSpacing.rowMinHeight);
+  final wanted = _panelChromeHeight + rows * row;
+  return math.max(math.min(wanted, free * _panelMaxShare), _panelChromeHeight);
 }
 
 /// Annonce TalkBack : la Liste est inaccessible sous le panneau.
@@ -104,17 +86,16 @@ Future<void> showAddSheet(BuildContext context) async {
   final messenger = ScaffoldMessenger.maybeOf(context);
   await showModalBottomSheet<void>(
     context: context,
-    // La barrière couvre toute l'app, Barre de navigation comprise ; sans
-    // couleur, elle laisse voir la Liste, qu'elle garde inerte, et un tap
-    // hors du panneau le ferme toujours.
+    // La barrière couvre toute l'app, Barre de navigation comprise ; son voile
+    // léger assombrit un peu la Liste, qu'elle garde visible et inerte, et un
+    // tap hors du panneau le ferme toujours.
     useRootNavigator: true,
-    barrierColor: Colors.transparent,
+    barrierColor: Theme.of(context).colorScheme.scrim,
     isScrollControlled: true,
     useSafeArea: true,
-    elevation: _panelElevation,
-    shape: _TopOutlineBorder(
-      side: BorderSide(color: Theme.of(context).colorScheme.outline),
-    ),
+    // La feuille ne fait que porter la carte flottante du panneau.
+    backgroundColor: Colors.transparent,
+    elevation: 0,
     builder: (_) => AddSheet(pendingUndo: pending, listMessenger: messenger),
   );
   panel.close();
@@ -127,7 +108,8 @@ Future<void> showAddSheet(BuildContext context) async {
   }
 }
 
-/// Panneau + : poignée, Champ d'ajout focalisé, Tag Quantité et Tag Rayon, puis
+/// Panneau + : carte flottante au-dessus du clavier, sans bordure. Poignée,
+/// Champ d'ajout focalisé, Tag Quantité, Tag Rayon et bouton Valider, puis
 /// le titre « Ajouts fréquents » et les fréquents en liste plate dans l'ordre
 /// du parcours, sans En-tête de rayon, ou les résultats dès qu'un texte est
 /// saisi. Un tap ajoute l'article, ou le retire s'il est déjà dans la liste
@@ -151,8 +133,10 @@ Future<void> showAddSheet(BuildContext context) async {
 /// reste ouvert dessous et son messager montre les erreurs. Aucune feuille ne
 /// s'ouvre depuis le panneau.
 ///
-/// Le panneau se pose au-dessus du clavier et publie sa géométrie à la Liste
-/// dans [ListePanel] à chaque changement.
+/// Sa hauteur suit le contenu : clavier ouvert, seul le titre des fréquents
+/// dépasse ; clavier fermé, quelques fréquents ; pendant la saisie, jusqu'à
+/// trois résultats. Il publie sa géométrie à la Liste dans [ListePanel] à
+/// chaque changement.
 class AddSheet extends ConsumerStatefulWidget {
   const AddSheet({super.key, this.pendingUndo, this.listMessenger});
 
@@ -435,19 +419,8 @@ class _AddSheetState extends ConsumerState<AddSheet> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
-    // La feuille retire la marge haute de son MediaQuery ; la vue la garde.
-    final height = addPanelHeight(
-      media.copyWith(
-        padding: EdgeInsets.only(
-          top: MediaQueryData.fromView(View.of(context)).padding.top,
-        ),
-      ),
-    );
-    _publishGeometry(
-      top: media.size.height - media.viewInsets.bottom - height,
-      height: height,
-    );
-
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final query = _controller.text;
     final searching = query.trim().isNotEmpty;
     // Garder les derniers résultats tant que la nouvelle saisie n'a pas
@@ -477,6 +450,31 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     final lines =
         ref.watch(oldestLineByArticleProvider).value ??
         const <String, ListeItem>{};
+
+    final keyboardOpen = media.viewInsets.bottom > 0;
+    // La feuille retire les marges de son MediaQuery ; la vue les garde.
+    final view = MediaQueryData.fromView(View.of(context));
+    final double rows = searching
+        ? math
+              .min(results.length + (showAddTyped ? 1 : 0), _maxResultRows)
+              .clamp(1, _maxResultRows)
+              .toDouble()
+        : keyboardOpen
+        ? 1
+        : 1 + addPanelFrequentRows;
+    final height = addPanelHeight(
+      media.copyWith(padding: EdgeInsets.only(top: view.padding.top)),
+      rows: rows,
+    );
+    // Clavier fermé, la carte reste au-dessus de la barre de gestes.
+    final bottom =
+        (keyboardOpen ? media.viewInsets.bottom : view.padding.bottom) +
+        _panelInset;
+    final top = media.size.height - bottom - height;
+    _publishGeometry(
+      top: top,
+      height: media.size.height - media.viewInsets.bottom - top,
+    );
 
     // Contenu sous le Champ d'ajout ; [context] est sous le messager du
     // panneau.
@@ -533,81 +531,115 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     // snackbars resteraient sous la barrière. La hauteur exclut déjà le
     // clavier : le Scaffold ne se redimensionne pas. Le fond reste celui de
     // la feuille.
+    final fieldStyle = theme.textTheme.titleLarge;
     return Padding(
-      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      padding: EdgeInsets.fromLTRB(_panelInset, 0, _panelInset, bottom),
       child: SizedBox(
         height: height,
-        child: ScaffoldMessenger(
-          key: _messengerKey,
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            resizeToAvoidBottomInset: false,
-            body: Builder(
-              builder: (context) => Column(
-                children: [
-                  const PanelHandle(),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: KadiSpacing.margin,
-                    ),
-                    child: SizedBox(
-                      height: KadiSpacing.touchTarget,
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _fieldFocus,
-                        autofocus: true,
-                        textInputAction: TextInputAction.done,
-                        onChanged: (_) => setState(() {}),
-                        onSubmitted: (_) => _addTyped(),
-                        // Le clavier reste ouvert après Entrée.
-                        onEditingComplete: () {},
-                        decoration: InputDecoration(
-                          hintText: StringsFr.ajouterUnArticle,
-                          prefixIcon: const Icon(Icons.add),
-                          suffixIcon: query.isEmpty
-                              ? null
-                              : IconButton(
-                                  tooltip: StringsFr.effacerLeTexte,
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () => setState(_controller.clear),
-                                ),
+        child: Material(
+          // Sans ombre ni contour : le voile sur la Liste suffit à la détacher.
+          color: scheme.surfaceContainer,
+          clipBehavior: Clip.antiAlias,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(KadiRadius.xl)),
+          ),
+          child: ScaffoldMessenger(
+            key: _messengerKey,
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              resizeToAvoidBottomInset: false,
+              body: Builder(
+                builder: (context) => Column(
+                  children: [
+                    const PanelHandle(),
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: KadiSpacing.margin,
+                        end: KadiSpacing.s1,
+                      ),
+                      child: SizedBox(
+                        height: KadiSpacing.addFieldHeight,
+                        child: TextField(
+                          controller: _controller,
+                          focusNode: _fieldFocus,
+                          autofocus: true,
+                          textInputAction: TextInputAction.done,
+                          textAlignVertical: TextAlignVertical.center,
+                          style: fieldStyle?.copyWith(color: scheme.onSurface),
+                          onChanged: (_) => setState(() {}),
+                          onSubmitted: (_) => _addTyped(),
+                          // Le clavier reste ouvert après Entrée.
+                          onEditingComplete: () {},
+                          decoration: InputDecoration(
+                            // Sans fond ni icône : le texte posé sur la carte.
+                            filled: false,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: StringsFr.ajouterUnArticle,
+                            hintStyle: fieldStyle?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                            suffixIcon: query.isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: StringsFr.effacerLeTexte,
+                                    icon: const Icon(Icons.close),
+                                    onPressed: () =>
+                                        setState(_controller.clear),
+                                  ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  // Les puces s'alignent sur le Champ d'ajout, leur pourtour
-                  // tappable déborde dans la marge.
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: KadiSpacing.margin - KadiSpacing.s2,
-                    ),
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      // En grande police, le Tag Rayon passe à la ligne.
-                      child: Wrap(
+                    // Les puces s'alignent sur le Champ d'ajout, leur pourtour
+                    // tappable déborde dans la marge ; Valider fait comme
+                    // Entrée, au bout de la rangée.
+                    Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: KadiSpacing.margin - KadiSpacing.s2,
+                        end: KadiSpacing.s1,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          QuantityTag(
-                            value: quantityValue,
-                            emptyLabel: StringsFr.quantite,
-                            semanticLabel: StringsFr.quantiteTag(quantityValue),
-                            onTap: _editDraftQuantity,
+                          Expanded(
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              // En grande police, le Tag Rayon passe à la ligne.
+                              child: Wrap(
+                                children: [
+                                  QuantityTag(
+                                    value: quantityValue,
+                                    emptyLabel: StringsFr.quantite,
+                                    semanticLabel: StringsFr.quantiteTag(
+                                      quantityValue,
+                                    ),
+                                    onTap: _editDraftQuantity,
+                                  ),
+                                  RayonTag(
+                                    rayon:
+                                        draftRayon ??
+                                        _exactArticle(query)?.rayon ??
+                                        Rayon.divers,
+                                    chosen: draftRayon != null,
+                                    route: route,
+                                    onSelected: (rayon) =>
+                                        setState(() => _draftRayon = rayon),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                          RayonTag(
-                            rayon:
-                                draftRayon ??
-                                _exactArticle(query)?.rayon ??
-                                Rayon.divers,
-                            chosen: draftRayon != null,
-                            route: route,
-                            onSelected: (rayon) =>
-                                setState(() => _draftRayon = rayon),
+                          SubmitButton(
+                            icon: Icons.arrow_upward,
+                            tooltip: StringsFr.valider,
+                            onPressed: searching ? _addTyped : null,
                           ),
                         ],
                       ),
                     ),
-                  ),
-                  Expanded(child: content(context)),
-                ],
+                    Expanded(child: content(context)),
+                  ],
+                ),
               ),
             ),
           ),

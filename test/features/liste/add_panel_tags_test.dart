@@ -8,7 +8,6 @@ import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
-import 'package:kadi/core/ui/rayon_pastille.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
@@ -195,6 +194,10 @@ void _failContributions(AppDatabase db) => db.customStatement(
 );
 
 void main() {
+  // Écran très haut : tous les fréquents tiennent dans le panneau.
+  setUp(() => addPanelFrequentRows = 40);
+  tearDown(() => addPanelFrequentRows = 4.5);
+
   final twoPieces = formatQuantity(2000, Unit.piece);
 
   group('les tags sous le champ', () {
@@ -219,7 +222,10 @@ void main() {
         lessThan(tester.getCenter(_rayonTag).dx),
       );
       // Puces alignées sur le Champ d'ajout.
-      expect(tester.getTopLeft(_chip(_quantityTag)).dx, KadiSpacing.margin);
+      expect(
+        tester.getTopLeft(_chip(_quantityTag)).dx,
+        KadiSpacing.s2 + KadiSpacing.margin,
+      );
 
       final theme = Theme.of(tester.element(_rayonTag));
       final divers = KadiColors.of(tester.element(_rayonTag))
@@ -235,9 +241,12 @@ void main() {
       );
       final chip = tester.widget<Material>(_chip(_rayonTag));
       final shape = chip.shape! as RoundedRectangleBorder;
-      expect(chip.color, Colors.transparent);
-      expect(shape.side.color, theme.colorScheme.outline);
-      expect(shape.borderRadius, BorderRadius.circular(KadiRadius.sm));
+      expect(chip.color, theme.colorScheme.surfaceContainerHigh);
+      expect(shape.side, BorderSide.none);
+      expect(
+        shape.borderRadius,
+        const BorderRadius.all(Radius.circular(KadiRadius.sm)),
+      );
       final dot = tester.widget<Container>(
         find.descendant(of: _rayonTag, matching: find.byType(Container)),
       );
@@ -394,13 +403,8 @@ void main() {
       expect(_menuEntries, findsNWidgets(Rayon.values.length));
       expect(
         tester
-            .widgetList<RayonPastille>(
-              find.descendant(
-                of: _menuEntries,
-                matching: find.byType(RayonPastille),
-              ),
-            )
-            .map((p) => p.rayon),
+            .widgetList<MenuItemButton>(_menuEntries)
+            .map((b) => (b.key! as ValueKey<Rayon>).value),
         route,
       );
       final panel = find.ancestor(
@@ -463,7 +467,9 @@ void main() {
 
       await _tap(tester, _rayonTag);
       expect(_menuEntries, findsNWidgets(13));
-      await tester.tapAt(tester.getCenter(_frequent('Tomates')));
+      await tester.tapAt(
+        tester.getCenter(_inSheet(find.byType(FrequentsTitle))),
+      );
       await tester.pumpAndSettle();
       expect(_menuEntries, findsNothing);
       expect(await _lines(db, SeedIds.tomates), isEmpty);
@@ -586,10 +592,8 @@ void main() {
       await _openPanel(tester);
 
       await _tap(tester, _quantityTag);
-      expect(
-        find.descendant(of: _popup, matching: find.text(StringsFr.quantite)),
-        findsOneWidget,
-      );
+      // Nom lu par TalkBack seulement : la carte n'a plus de titre visible.
+      expect(tester.widget<QuantityPopup>(_popup).title, StringsFr.quantite);
       expect(
         tester
             .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
@@ -601,10 +605,7 @@ void main() {
 
       await _type(tester, 'tom');
       await _tap(tester, _quantityTag);
-      expect(
-        find.descendant(of: _popup, matching: find.text('tom')),
-        findsOneWidget,
-      );
+      expect(tester.widget<QuantityPopup>(_popup).title, 'tom');
       expect(
         tester
             .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
@@ -616,10 +617,7 @@ void main() {
 
       await _type(tester, 'tomates');
       await _tap(tester, _quantityTag);
-      expect(
-        find.descendant(of: _popup, matching: find.text('tomates')),
-        findsOneWidget,
-      );
+      expect(tester.widget<QuantityPopup>(_popup).title, 'tomates');
       expect(
         tester
             .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.g)))
@@ -696,7 +694,7 @@ void main() {
 
         expect(_inTag(_quantityTag, StringsFr.quantite), findsOneWidget);
         final empty = tester.widget<Material>(_chip(_quantityTag));
-        expect(empty.color, Colors.transparent);
+        expect(empty.color, theme.colorScheme.surfaceContainerHigh);
       },
     );
 

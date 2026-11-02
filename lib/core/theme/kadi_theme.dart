@@ -30,6 +30,8 @@ abstract final class KadiTheme {
           onPrimaryContainer: p.onPrimaryContainer,
           surface: p.surface,
           surfaceContainer: p.surfaceContainer,
+          surfaceContainerHigh: p.surfaceContainerHigh,
+          scrim: p.scrim,
           onSurface: p.onSurface,
           onSurfaceVariant: p.onSurfaceVariant,
           outline: p.outline,
