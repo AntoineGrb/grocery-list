@@ -131,5 +131,5 @@ Pour Antoine et son foyer, préparer la liste de la semaine à partir des recett
 - Assumption: dans les Paramètres, Articles, Fréquents et Parcours sont des sous-écrans ; la Fiche article est une feuille modale, et le picto se choisit dans une grille du pack avec recherche.
 - Assumption: les rôles M3 dérivés viennent de ColorScheme.fromSeed, surchargés par DESIGN.md ; le Snackbar a un fond on-surface, un texte surface et une action en argile du thème opposé (inverse-primary) ; contrastes vérifiés au build.
 - Open question: source et licence du pack de pictos, et faisabilité du complément en SVG générés : Antoine attend des propositions. C7 attend.
-- Open question: ingrédients de recette en texte libre comme la liste, ou catalogue seul ? R1, epic 2.
+- Assumption: 2026-11-02 — un ingrédient de recette inconnu passe par « Créer « … » » et rejoint le catalogue (Divers, sans unité), comme le Flux 4 et AD-17, pas une ligne libre (R1, epic 2) ; Antoine le valide au test de fin d'epic 2.
 - Open question: Paramètres › Articles a-t-il encore lieu si la liste n'alimente plus le catalogue, et un fréquent peut-il être un nom libre ? R18, R20, epic 3.

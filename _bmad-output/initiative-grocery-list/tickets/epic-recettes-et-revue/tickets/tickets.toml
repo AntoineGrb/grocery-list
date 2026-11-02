@@ -1,0 +1,93 @@
+# Stories de l'epic 2, dans l'ordre de construction.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Une recette exemple sélectionnée et validée arrive dans la Liste"
+description = "Parcours traceur : migration v3 (tables recipes avec nom, lien et nom de photo facultatifs ; recipe_ingredients avec article, position, quantité et unité nulles ensemble ; week_selections avec validated_at ; AD-2, AD-6, AD-7, AD-14, avec dump du schéma et test de migration ; toutes les colonnes de l'epic, sans v4 ensuite) ; recettes.json de 4 recettes exemples simples générées par IA avec les articles du catalogue fourni (UUID définitifs, seed_version, chargées par le chargeur d'AD-8) ; Recettes en Cartes recette sur 2 colonnes (nom et picto de repli du premier ingrédient, teinté de son rayon) ; un tap sélectionne ou désélectionne une carte non validée (coche et bordure, nouvelle ligne week_selections à chaque sélection, AD-16) ; « Valider (n) » en Bouton d'action, seulement pour les recettes sélectionnées non validées ; la Revue, écran poussé plein écran, montre leurs ingrédients groupés par rayon actuel de l'article dans l'ordre du parcours, tous cochés, même article et même unité additionnés, deux unités en deux lignes ; « Ajouter à la liste », action transverse en une transaction (AD-3), ajoute une contribution week_selection par ingrédient (AD-4), fixe validated_at pour toutes les recettes de la Revue et ouvre la Liste avec « Ta liste est prête. ». Annonces TalkBack et taille de police système sur Recettes et la Revue."
+verify = "Sur une base de test avec les recettes exemples, toucher deux cartes affiche « Valider (2) » ; Valider ouvre la Revue groupée par rayon, tout coché, l'article commun aux deux recettes sur une ligne additionnée ; « Ajouter à la liste » ouvre la Liste triée par rayon avec « Ta liste est prête. », les lignes portent des contributions week_selection, et « Valider » a disparu."
+covers = ["R2", "R3", "R4", "R5", "R9", "R13"]
+after = ["epic-liste-de-courses"]
+hitl = false
+risk = "high"
+notes = ["Désélectionner une carte déjà validée est la story 3 ; la décoche et la correction en Revue, la story 2 ; Nouvelle liste et Terminer les courses, la story 4 ; la Fiche recette, la story 5 ; photo et lien, la story 6 ; l'ouverture sur Recettes au premier lancement, la story 7.", "Risque élevé : la migration touche la vraie liste d'Antoine. Contrôle en plus : un test de migration depuis une base v2 qui a déjà des lignes de liste les garde intactes."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "La Revue : décocher ce qu'on a déjà et corriger une quantité"
+description = "Complète la Revue et l'action Ajouter à la liste de la story 1 : en Revue, un tap sur la case décoche un ingrédient (nom en couleur cochée, sans barré, la ligne reste en place) ; le Champ quantité à droite se corrige dans l'unité de la ligne, valeur exacte, vide = sans quantité. « Ajouter à la liste » n'ajoute que les lignes cochées : une ligne décochée ne crée aucune contribution, une ligne corrigée qui fusionne plusieurs recettes est répartie au prorata de leurs quantités d'origine, arrondie dans l'unité, la dernière recette absorbant le reste (AD-4). Tout décoché : le bouton reste actif, n'ajoute rien et valide quand même les recettes (AD-16). Retour sans valider : rien n'est ajouté, la sélection est conservée et le brouillon oublié (AD-1). Annonces TalkBack de l'état de la case et de la quantité."
+verify = "Les tests de l'action et de l'écran montrent : Pâtes décochées n'entrent pas dans la liste ; Œufs 8 corrigé à 6, venant de deux recettes à 4 et 4, donnent deux contributions de 3 et 3 et une ligne « Œufs 6 » ; tout décocher puis Ajouter n'ajoute rien et fait disparaître « Valider » ; le retour arrière n'ajoute rien et garde « Valider (n) »."
+covers = ["R4", "R5", "R9", "R13"]
+after = [1]
+hitl = false
+risk = "high"
+notes = ["Risque élevé : le prorata fausse la liste sans bruit. Contrôle en plus : les contributions réparties font toujours exactement la valeur corrigée, millièmes de pièce compris."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Désélectionner une recette validée retire ses quantités, avec Annuler"
+description = "Un tap sur une carte déjà validée la désélectionne : action transverse en une transaction (AD-3) qui supprime logiquement la sélection (AD-16) et retire ses contributions des seules lignes non cochées et non manuelles, une ligne sans contribution active disparaissant (AD-4, AD-5) ; les lignes cochées et les lignes corrigées à la main ne changent pas. Snackbar « Ingrédients de « Chili » retirés de la liste » · « Annuler », qui rétablit sélection, lignes et contributions par le service Annuler (AD-10). Désélectionner une carte non validée reste sans snackbar. Valider ensuite une autre recette (Flux 5) ne renvoie en Revue que ses ingrédients."
+verify = "Les tests de l'action montrent : Tomates 300 g (Chili) + 200 g (Quiche), désélectionner Chili laisse « Tomates 200 g » ; une ligne cochée du Chili reste cochée ; une ligne corrigée à la main garde sa quantité ; Annuler rend exactement l'état précédent (lignes, contributions, sélection) ; le test d'écran montre le snackbar et TalkBack annonce « Chili, non sélectionnée »."
+covers = ["R3", "R6", "R13"]
+after = [2]
+hitl = false
+risk = "high"
+notes = ["Risque élevé : un retrait faux efface des courses. Contrôle en plus : un instantané complet des tables avant la désélection est égal à celui d'après Annuler."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Nouvelle liste, et Terminer les courses remet la sélection à zéro"
+description = "Action Nouvelle liste en action texte dans la Barre d'application de Recettes : Dialogue de confirmation « Nouvelle liste ? » · « La liste en cours et la sélection de la semaine seront effacées. » · « Garder » (repli par défaut) / « Effacer et recommencer » ; confirmée, une action transverse en une transaction efface toutes les lignes, cochées ou non, et supprime logiquement toutes les sélections (AD-3, AD-16). Terminer les courses de l'epic 1 supprime aussi les sélections dans la même transaction, et son Annuler restaure liste et sélection. Dialogue et action Nouvelle liste annoncés par TalkBack, cible de 48 dp."
+verify = "Les tests montrent : avec deux recettes validées et une liste en partie cochée, Nouvelle liste puis « Effacer et recommencer » laisse une liste vide et aucune carte sélectionnée ; « Garder » ne change rien ; Terminer les courses vide liste et sélection, et Annuler rend les cartes sélectionnées et les lignes."
+covers = ["R8", "R10", "R13"]
+after = [3]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Fiche recette : créer et modifier une recette en moins d'une minute"
+description = "Le FAB + de Recettes (« Nouvelle recette », empilé au-dessus de Valider) ouvre une Fiche recette vide, écran poussé ; l'icône « modifier » de la carte (cible 48 dp, « Modifier Chili ») ouvre la fiche existante. Nom, puis Champ de recherche sur tout le catalogue : un tap sur un résultat l'ajoute comme Ligne d'ingrédient (picto, nom, Champ quantité à l'unité de l'article, sinon pièce, Choix d'unité par un tap sur l'unité, icône de retrait) ; sans correspondance exacte, « Créer « … » » crée l'article au catalogue par createArticle (Divers, sans unité, AD-17) sans quitter la fiche. L'ingrédient copie l'unité de l'article à son ajout (AD-15). Enregistrement automatique dès un nom et un ingrédient ; une nouvelle fiche incomplète ne crée rien, une recette existante privée de nom ou d'ingrédient garde sa dernière version valide. Modifier une recette validée ne change pas la liste (R7)."
+verify = "Les tests d'écran montrent : FAB +, « Chili », « hari » puis Haricots rouges, 500, puis quatre autres ingrédients dont un créé, retour : la carte « Chili » apparaît avec le picto des haricots rouges ; une fiche quittée sans ingrédient ne crée pas de carte ; vider le nom d'une recette existante garde l'ancien ; modifier une recette validée laisse la liste identique."
+covers = ["R1", "R2", "R7", "R13"]
+after = [4]
+hitl = false
+risk = "medium"
+notes = ["Le Choix d'unité de l'epic 1 vit dans features/liste/ui et part d'une ligne de liste : à généraliser pour la Ligne d'ingrédient (recettes peut dépendre de liste)."]
+
+[[entry]]
+id = 6
+type = "story"
+title = "Photo et lien d'une recette"
+description = "Complète la Fiche recette de la story 5. Touch point galerie et appareil photo : dans la Fiche recette, ajouter une photo propose la galerie ou l'appareil photo, sans autre permission que celles-ci (C2) ; la photo est copiée, réencodée et plafonnée en taille dans photos/<uuid>.jpg du dossier documents de l'app, la table ne stockant que ce nom (AD-18) ; on peut la remplacer ou la retirer. La Carte recette affiche la photo, sinon le picto de repli. Un champ lien facultatif, et une icône qui ouvre le lien dans le navigateur. Boutons photo, retrait et lien libellés pour TalkBack."
+verify = "Les tests avec un sélecteur d'image simulé montrent : une photo choisie est copiée en JPEG plafonné sous photos/ et s'affiche sur la carte ; la retirer rend le picto de repli ; un lien saisi est enregistré et l'icône demande son ouverture ; le manifeste fusionné du release ne demande aucune autre permission que galerie et appareil photo. Sur le téléphone, la galerie et l'appareil photo fonctionnent (vérifié au test de fin d'epic)."
+covers = ["R1", "R2", "R13"]
+after = [5]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Premier lancement sur Recettes, supprimer une recette, Recettes vide"
+description = "Le chargeur d'AD-8 lève le drapeau de premier lancement quand il insère les recettes exemples (recettes.json de la story 1) ; l'app s'ouvre alors sur Recettes avec la ligne d'accueil « Voici quelques recettes pour essayer. Supprime-les quand tu veux. » et baisse le drapeau, la ligne d'accueil restant affichée jusqu'à la fin de cette session ; les lancements suivants s'ouvrent sur la Liste (AD-13). Supprimer une recette depuis sa fiche, sans confirmation : retour à Recettes avec « Recette supprimée : Chili » · « Annuler » ; la liste en cours ne change pas (R7). Sans recette, Recettes affiche « Pas encore de recette. Ajoute ta première avec +. » et le FAB +. Ligne d'accueil, état vide et snackbar de suppression annoncés par TalkBack."
+verify = "Les tests montrent : premier démarrage après l'insertion des recettes exemples → onglet Recettes avec la ligne d'accueil, démarrage suivant → Liste ; supprimer une recette validée laisse la liste identique et Annuler rend la recette ; supprimer toutes les recettes affiche le message d'état vide."
+covers = ["R1", "R7", "R11", "R12", "R13"]
+after = [6]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Refactor sweep"
+description = "Nettoyage seul, à partir des plans et des constats de revue que l'epic a reportés ; portée fixée à son début. Tout ce qui n'est pas du nettoyage devient une nouvelle story."
+verify = "La suite de tests passe, flutter analyze est propre, et le build release s'installe."
+covers = []
+after = [1, 2, 3, 4, 5, 6, 7]
+hitl = false
+risk = "low"
