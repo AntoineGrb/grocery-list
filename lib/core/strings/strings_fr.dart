@@ -28,6 +28,17 @@ abstract final class StringsFr {
   static String ingredientsRetires(String name) =>
       'Ingrédients de « $name » retirés de la liste';
 
+  // Nouvelle liste : action de la Barre d'application de Recettes et son
+  // Dialogue de confirmation.
+  static const nouvelleListe = 'Nouvelle liste';
+  static const nouvelleListeTitre = 'Nouvelle liste ?';
+  static const nouvelleListeTexte =
+      'La liste en cours et la sélection de la semaine seront effacées.';
+  static const garder = 'Garder';
+  static const effacerEtRecommencer = 'Effacer et recommencer';
+  static const nouvelleListeImpossible =
+      'Impossible d’effacer la liste. Réessaie.';
+
   // Revue.
   static const revue = 'Revue';
   static const revueConsigne = 'Décoche ce que tu as déjà.';

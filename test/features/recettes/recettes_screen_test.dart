@@ -730,6 +730,278 @@ void main() {
     });
   });
 
+  group('Nouvelle liste (R8) et Terminer les courses (R10)', () {
+    final action = find.widgetWithText(TextButton, StringsFr.nouvelleListe);
+    final garder = find.widgetWithText(TextButton, StringsFr.garder);
+    final effacer = find.widgetWithText(
+      TextButton,
+      StringsFr.effacerEtRecommencer,
+    );
+
+    /// Coche la ligne de la Liste de [name].
+    Future<void> checkOnListe(WidgetTester tester, String name) async {
+      final box = find.descendant(
+        of: find.ancestor(of: find.text(name), matching: find.byType(ItemRow)),
+        matching: find.byType(Checkbox),
+      );
+      await tester.ensureVisible(box.first);
+      await tester.tap(box.first);
+      await tester.pumpAndSettle();
+    }
+
+    /// Carbonara et Quiche validées, Lardons cochés dans la Liste, Chili
+    /// sélectionnée non validée ; Recettes ouverte.
+    Future<AppDatabase> semaineEnCours(WidgetTester tester) async {
+      final db = await _openCarbonaraQuiche(tester);
+      await tester.tap(_ajouterButton);
+      await tester.pumpAndSettle();
+      await checkOnListe(tester, 'Lardons');
+      await _openRecettes(tester);
+      await _tapCard(tester, 'Chili con carne');
+      expect(_valider(1), findsOneWidget);
+      return db;
+    }
+
+    Future<void> openDialog(WidgetTester tester) async {
+      await tester.tap(action);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+    }
+
+    /// Les trois tables touchées par Nouvelle liste.
+    Future<List<Object>> snapshot(AppDatabase db) async => [
+      ...await db.select(db.listLines).get(),
+      ...await db.select(db.listContributions).get(),
+      ...await db.select(db.weekSelections).get(),
+    ];
+
+    testWidgets('action texte de la Barre d’application, on-surface, 48 dp, '
+        'lue « Nouvelle liste » ; dialogue avec ses textes et couleurs', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      await pumpKadi(tester);
+      await _openRecettes(tester);
+
+      expect(
+        find.descendant(of: find.byType(AppBar), matching: action),
+        findsOneWidget,
+      );
+      final size = tester.getSize(action);
+      expect(size.height, greaterThanOrEqualTo(KadiSpacing.touchTarget));
+      expect(size.width, greaterThanOrEqualTo(KadiSpacing.touchTarget));
+      final scheme = Theme.of(tester.element(action)).colorScheme;
+      final label = tester.widget<RichText>(
+        find.descendant(of: action, matching: find.byType(RichText)),
+      );
+      expect(label.text.style?.color, scheme.onSurface);
+      expect(label.text.style?.color, isNot(scheme.primary));
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(StringsFr.nouvelleListe)),
+        isSemantics(
+          label: StringsFr.nouvelleListe,
+          isButton: true,
+          hasTapAction: true,
+        ),
+      );
+
+      // Toujours visible, même sans sélection ni liste.
+      await openDialog(tester);
+      expect(find.text(StringsFr.nouvelleListeTitre), findsOneWidget);
+      expect(find.text(StringsFr.nouvelleListeTexte), findsOneWidget);
+      expect(garder, findsOneWidget);
+      expect(effacer, findsOneWidget);
+      final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
+      expect(dialog.backgroundColor, scheme.surfaceContainer);
+      Color? colorOf(Finder button) => tester
+          .widget<RichText>(
+            find.descendant(of: button, matching: find.byType(RichText)),
+          )
+          .text
+          .style
+          ?.color;
+      expect(colorOf(garder), scheme.onSurface);
+      expect(colorOf(effacer), scheme.error);
+      expect(
+        tester.getSize(garder).height,
+        greaterThanOrEqualTo(KadiSpacing.touchTarget),
+      );
+
+      // Déjà vide : rien à effacer, pas d'erreur.
+      await tester.tap(effacer);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+      handle.dispose();
+    });
+
+    testWidgets('Effacer et recommencer : aucune carte sélectionnée, pas de '
+        '« Valider », pas d’Annuler, la Liste vide', (tester) async {
+      final handle = tester.ensureSemantics();
+      final db = await semaineEnCours(tester);
+
+      await openDialog(tester);
+      await tester.tap(effacer);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AlertDialog), findsNothing);
+      for (final name in [
+        'Chili con carne',
+        'Pâtes carbonara',
+        'Quiche lorraine',
+        'Ratatouille',
+      ]) {
+        expect(
+          find.bySemanticsLabel('$name, non sélectionnée'),
+          findsOneWidget,
+        );
+      }
+      expect(find.byType(FilledButton), findsNothing);
+      expect(find.byType(SnackBar), findsNothing);
+      expect(find.byType(RecipeCard), findsNWidgets(4));
+      final selections = await db.select(db.weekSelections).get();
+      expect(selections.every((s) => s.deletedAt != null), isTrue);
+
+      await _openListe(tester);
+      expect(find.text(StringsFr.listeVide), findsOneWidget);
+      expect(find.byType(ItemRow), findsNothing);
+      expect(find.textContaining('Cochés'), findsNothing);
+      handle.dispose();
+    });
+
+    testWidgets('Garder, retour Android, tap hors du dialogue : rien ne '
+        'change', (tester) async {
+      final db = await semaineEnCours(tester);
+      final before = await snapshot(db);
+
+      await openDialog(tester);
+      await tester.tap(garder);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+
+      await openDialog(tester);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+
+      await openDialog(tester);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+
+      expect(await snapshot(db), before);
+      expect(
+        find.descendant(
+          of: _card('Pâtes carbonara'),
+          matching: find.byIcon(Icons.check),
+        ),
+        findsOneWidget,
+      );
+      expect(_valider(1), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
+      // Toujours sur Recettes.
+      expect(find.byType(RecipeCard), findsNWidgets(4));
+    });
+
+    testWidgets('échec : snackbar d’erreur sur Recettes, rien d’écrit', (
+      tester,
+    ) async {
+      final db = await semaineEnCours(tester);
+      final before = await snapshot(db);
+      await db.customStatement(
+        'CREATE TRIGGER no_clear BEFORE UPDATE OF deleted_at ON '
+        "week_selections BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+
+      await openDialog(tester);
+      await tester.tap(effacer);
+      await tester.pumpAndSettle();
+
+      expect(find.text(StringsFr.nouvelleListeImpossible), findsOneWidget);
+      expect(await snapshot(db), before);
+      expect(_valider(1), findsOneWidget);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('police ×2 sur 360 dp : action et dialogue entiers, sans '
+        'débordement', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 800);
+      addTearDown(tester.view.reset);
+      await pumpKadi(tester);
+      await _openRecettes(tester);
+      expect(tester.takeException(), isNull);
+      expect(action.hitTestable(), findsOneWidget);
+      expect(tester.getRect(action).right, lessThanOrEqualTo(360));
+
+      await openDialog(tester);
+      expect(tester.takeException(), isNull);
+      expect(find.text(StringsFr.nouvelleListeTexte), findsOneWidget);
+      expect(garder.hitTestable(), findsOneWidget);
+      expect(effacer.hitTestable(), findsOneWidget);
+      await tester.tap(garder);
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('Liste → Terminer les courses : cartes désélectionnées ; '
+        'Annuler : lignes cochées et cartes de nouveau sélectionnées, sans '
+        '« Valider »', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _openCarbonaraQuiche(tester);
+      await tester.tap(_ajouterButton);
+      await tester.pumpAndSettle();
+      final names = [
+        for (final row in tester.widgetList<ItemRow>(find.byType(ItemRow)))
+          row.item.name,
+      ];
+      expect(names, hasLength(8));
+      for (final name in names) {
+        await checkOnListe(tester, name);
+      }
+      final terminer = find.widgetWithText(
+        FilledButton,
+        StringsFr.terminerLesCourses,
+      );
+      await tester.tap(terminer);
+      await tester.pumpAndSettle();
+      expect(find.text(StringsFr.listeVide), findsOneWidget);
+      expect(find.text(StringsFr.coursesTerminees), findsOneWidget);
+
+      await _openRecettes(tester);
+      expect(
+        find.bySemanticsLabel('Pâtes carbonara, non sélectionnée'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Quiche lorraine, non sélectionnée'),
+        findsOneWidget,
+      );
+      expect(find.byType(FilledButton), findsNothing);
+
+      await _openListe(tester);
+      await tester.tap(find.widgetWithText(SnackBarAction, StringsFr.annuler));
+      await tester.pumpAndSettle();
+      expect(find.text(StringsFr.listeVide), findsNothing);
+      expect(find.text(StringsFr.cochesTitre(8)), findsOneWidget);
+      expect(terminer, findsOneWidget);
+
+      await _openRecettes(tester);
+      expect(
+        find.bySemanticsLabel('Pâtes carbonara, sélectionnée'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('Quiche lorraine, sélectionnée'),
+        findsOneWidget,
+      );
+      expect(find.byType(FilledButton), findsNothing);
+      handle.dispose();
+    });
+  });
+
   for (final scale in [1.3, 2.0, 3.0]) {
     testWidgets('police ×$scale sur 360 dp : cartes et Revue sans '
         'débordement ni troncature', (tester) async {

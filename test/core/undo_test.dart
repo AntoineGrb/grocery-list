@@ -6,6 +6,7 @@ import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
+import 'package:kadi/features/recettes/data/recettes_repository.dart';
 
 import '../helpers/test_db.dart';
 
@@ -83,7 +84,12 @@ void main() {
         await repo.check(l.id);
       }
       now = 2000;
-      final entry = (await TerminerLesCourses(db, repo, undo)())!;
+      final entry = (await TerminerLesCourses(
+        db,
+        repo,
+        RecettesRepository(db, clock),
+        undo,
+      )())!;
 
       now = 3000;
       await repo.addArticle(SeedIds.tomates);

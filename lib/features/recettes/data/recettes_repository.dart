@@ -217,6 +217,30 @@ class RecettesRepository {
     );
   }
 
+  /// Supprime logiquement toutes les sélections actives, validées ou non
+  /// (AD-16) : remise à zéro de la sélection de la semaine par Terminer les
+  /// courses et Nouvelle liste (AD-3). À appeler dans la transaction de
+  /// l'action : pas de transaction propre.
+  ///
+  /// Rend leur état d'avant pour Annuler (AD-10) ; sans sélection active,
+  /// rien n'est écrit et le résultat est vide.
+  Future<List<UndoRow>> clearSelections() async {
+    final active = await (_db.select(
+      _db.weekSelections,
+    )..where((s) => s.deletedAt.isNull())).get();
+    if (active.isEmpty) return const [];
+    // Un seul horodatage, postérieur à chaque ancien `updated_at`.
+    final stamp = _clock.stamp(
+      active.map((s) => s.updatedAt).reduce((a, b) => a > b ? a : b),
+    );
+    await (_db.update(
+      _db.weekSelections,
+    )..where((s) => s.id.isIn([for (final s in active) s.id]))).write(
+      WeekSelectionsCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+    );
+    return [for (final s in active) UndoRow.before(_db.weekSelections, s)];
+  }
+
   Future<List<WeekSelection>> _activeSelections(String recipeId) => (_db.select(
     _db.weekSelections,
   )..where((s) => s.recipeId.equals(recipeId) & s.deletedAt.isNull())).get();

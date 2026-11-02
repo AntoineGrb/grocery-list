@@ -197,6 +197,57 @@ void main() {
       expect(await db.select(db.weekSelections).get(), before);
     });
 
+    test('remise à zéro : toutes les sélections actives, validées ou non, '
+        'supprimées logiquement, état d’avant rendu ; Annuler les '
+        'rétablit', () async {
+      await repo.select(SeedRecipeIds.chili);
+      await repo.select(SeedRecipeIds.quiche);
+      await repo.select(SeedRecipeIds.ratatouille);
+      await repo.deselect(SeedRecipeIds.ratatouille);
+      final chili = (await selections(SeedRecipeIds.chili)).single.id;
+      now = 2000;
+      await db.transaction(() => repo.markValidated([chili]));
+      final before = await db.select(db.weekSelections).get();
+      final deleted = before.singleWhere((s) => s.deletedAt != null);
+      now = 3000;
+
+      final rows = await db.transaction(repo.clearSelections);
+
+      expect(rows, hasLength(2));
+      expect(rows.every((r) => r.table == db.weekSelections), isTrue);
+      final after = await db.select(db.weekSelections).get();
+      expect(after.every((s) => s.deletedAt != null), isTrue);
+      for (final s in after.where((s) => s.id != deleted.id)) {
+        expect((s.deletedAt, s.updatedAt), (3000, 3000));
+      }
+      expect(after.singleWhere((s) => s.id == deleted.id), deleted);
+      final cards = await repo.watchCards().first;
+      expect(cards.every((c) => !c.selected && !c.validated), isTrue);
+
+      final undo = Undo(db, clock);
+      now = 4000;
+      expect(await undo.undo(undo.record(rows)), isTrue);
+      final restored = {
+        for (final s in await db.select(db.weekSelections).get()) s.id: s,
+      };
+      for (final b in before) {
+        expect(restored[b.id]!.copyWith(updatedAt: b.updatedAt), b);
+      }
+      final chiliCard = (await repo.watchCards().first).first;
+      expect((chiliCard.selected, chiliCard.validated), (true, true));
+    });
+
+    test('remise à zéro sans sélection active : rien n’est écrit', () async {
+      await repo.select(SeedRecipeIds.chili);
+      await repo.deselect(SeedRecipeIds.chili);
+      final before = await db.select(db.weekSelections).get();
+      final last = clock.last;
+
+      expect(await db.transaction(repo.clearSelections), isEmpty);
+      expect(clock.last, last);
+      expect(await db.select(db.weekSelections).get(), before);
+    });
+
     test('recette supprimée : pas de sélection', () async {
       await (db.update(
         db.recipes,
