@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
 import 'package:uuid/uuid.dart';
@@ -69,6 +70,13 @@ class RevueSource {
 typedef PendingSelections = ({
   List<String> selectionIds,
   List<RevueSource> ingredients,
+});
+
+/// Sélections validées supprimées par [RecettesRepository.deselectValidated]
+/// et leur état d'avant pour Annuler (AD-10).
+typedef DeselectedSelections = ({
+  List<String> selectionIds,
+  List<UndoRow> undoRows,
 });
 
 /// Propriétaire de `recipes`, `recipe_ingredients` et `week_selections`
@@ -176,6 +184,37 @@ class RecettesRepository {
         );
       }
     });
+  }
+
+  /// Supprime logiquement la sélection validée de la recette [recipeId]
+  /// (AD-16), désélection d'une recette validée (AD-3). À appeler dans la
+  /// transaction de l'action : pas de transaction propre.
+  ///
+  /// Rend les ids des sélections supprimées, dont l'action retire les
+  /// contributions, et leur état d'avant pour Annuler (AD-10). Sans
+  /// sélection active validée, rien n'est écrit et le résultat est vide.
+  Future<DeselectedSelections> deselectValidated(String recipeId) async {
+    final validated = [
+      for (final s in await _activeSelections(recipeId))
+        if (s.validatedAt != null) s,
+    ];
+    if (validated.isEmpty) {
+      return (selectionIds: <String>[], undoRows: <UndoRow>[]);
+    }
+    final stamp = _clock.stamp(
+      validated.map((s) => s.updatedAt).reduce((a, b) => a > b ? a : b),
+    );
+    await (_db.update(
+      _db.weekSelections,
+    )..where((s) => s.id.isIn([for (final s in validated) s.id]))).write(
+      WeekSelectionsCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+    );
+    return (
+      selectionIds: [for (final s in validated) s.id],
+      undoRows: [
+        for (final s in validated) UndoRow.before(_db.weekSelections, s),
+      ],
+    );
   }
 
   Future<List<WeekSelection>> _activeSelections(String recipeId) => (_db.select(

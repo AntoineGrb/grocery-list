@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/recettes/data/recettes_repository.dart';
 
@@ -148,6 +149,52 @@ void main() {
       expect(await db.select(db.weekSelections).get(), before);
       final chili = (await repo.watchCards().first).first;
       expect((chili.selected, chili.validated), (true, true));
+    });
+
+    test(
+      'désélectionner une sélection validée (action) : supprimée '
+      'logiquement, id et état d’avant rendus ; Annuler la rétablit',
+      () async {
+        await repo.select(SeedRecipeIds.chili);
+        final id = (await selections(SeedRecipeIds.chili)).single.id;
+        now = 2000;
+        await db.transaction(() => repo.markValidated([id]));
+        final before = (await selections(SeedRecipeIds.chili)).single;
+        now = 3000;
+
+        final result = await db.transaction(
+          () => repo.deselectValidated(SeedRecipeIds.chili),
+        );
+
+        expect(result.selectionIds, [id]);
+        expect(result.undoRows.single.table, db.weekSelections);
+        final after = (await selections(SeedRecipeIds.chili)).single;
+        expect((after.deletedAt, after.updatedAt), (3000, 3000));
+        expect(after.validatedAt, before.validatedAt);
+        final chili = (await repo.watchCards().first).first;
+        expect((chili.selected, chili.validated), (false, false));
+
+        final undo = Undo(db, clock);
+        now = 4000;
+        expect(await undo.undo(undo.record(result.undoRows)), isTrue);
+        final restored = (await selections(SeedRecipeIds.chili)).single;
+        expect(restored.copyWith(updatedAt: before.updatedAt), before);
+        expect(restored.updatedAt, greaterThan(3000));
+      },
+    );
+
+    test('désélectionner une sélection non validée par l’action : rien '
+        'n’est écrit', () async {
+      await repo.select(SeedRecipeIds.chili);
+      final before = await db.select(db.weekSelections).get();
+      final last = clock.last;
+      final result = await db.transaction(
+        () => repo.deselectValidated(SeedRecipeIds.chili),
+      );
+      expect(result.selectionIds, isEmpty);
+      expect(result.undoRows, isEmpty);
+      expect(clock.last, last);
+      expect(await db.select(db.weekSelections).get(), before);
     });
 
     test('recette supprimée : pas de sélection', () async {

@@ -1237,4 +1237,251 @@ void main() {
       );
     });
   });
+
+  group('retrait d’une sélection (AD-4, AD-5)', () {
+    Future<AddedContribution> recipe(
+      String articleId,
+      String selectionId, {
+      int? quantity,
+      Unit? unit,
+    }) => db.transaction(
+      () => repo.addRecipeContribution(
+        articleId,
+        weekSelectionId: selectionId,
+        quantity: quantity,
+        unit: unit,
+      ),
+    );
+
+    Future<List<UndoRow>> remove(String selectionId) =>
+        db.transaction(() => repo.removeSelectionContributions(selectionId));
+
+    Future<ListLine> lineOf(String id) =>
+        (db.select(db.listLines)..where((l) => l.id.equals(id))).getSingle();
+
+    Future<ListContribution> contributionOf(String id) => (db.select(
+      db.listContributions,
+    )..where((c) => c.id.equals(id))).getSingle();
+
+    test('quantités fusionnées : Tomates 300 g (Chili) + 200 g (Quiche), '
+        'Chili retiré : « Tomates 200 g »', () async {
+      final chili = await recipe(
+        SeedIds.tomates,
+        'chili',
+        quantity: 300,
+        unit: Unit.g,
+      );
+      final quiche = await recipe(
+        SeedIds.tomates,
+        'quiche',
+        quantity: 200,
+        unit: Unit.g,
+      );
+      final lineBefore = await lineOf(chili.lineId);
+      now = 2000;
+
+      final rows = await remove('chili');
+
+      final item = (await repo.watchUnchecked().first).single;
+      expect(
+        (item.lineId, item.quantity, item.unit),
+        (chili.lineId, 200, Unit.g),
+      );
+      final removed = await contributionOf(chili.contributionId);
+      expect((removed.deletedAt, removed.updatedAt), (2000, 2000));
+      expect((await contributionOf(quiche.contributionId)).deletedAt, isNull);
+      // La ligne garde une contribution chiffrée : elle ne change pas.
+      expect(await lineOf(chili.lineId), lineBefore);
+      expect(rows, hasLength(1));
+      expect(rows.single.table, db.listContributions);
+    });
+
+    test('ligne seule : supprimée logiquement, état d’avant rendu', () async {
+      final chili = await recipe(
+        SeedIds.viandeHachee,
+        'chili',
+        quantity: 500,
+        unit: Unit.g,
+      );
+      now = 2000;
+
+      final rows = await remove('chili');
+
+      final line = await lineOf(chili.lineId);
+      expect((line.deletedAt, line.updatedAt), (2000, 2000));
+      expect(await repo.watchUnchecked().first, isEmpty);
+      expect(rows.where((r) => r.table == db.listLines), hasLength(1));
+      expect(rows.where((r) => r.table == db.listContributions), hasLength(1));
+    });
+
+    test('ligne cochée : rien ne change, rien n’est écrit', () async {
+      final chili = await recipe(
+        SeedIds.riz,
+        'chili',
+        quantity: 300,
+        unit: Unit.g,
+      );
+      await repo.check(chili.lineId);
+      final lines = await db.select(db.listLines).get();
+      final contributions = await db.select(db.listContributions).get();
+      final last = clock.last;
+
+      expect(await remove('chili'), isEmpty);
+
+      expect(clock.last, last);
+      expect(await db.select(db.listLines).get(), lines);
+      expect(await db.select(db.listContributions).get(), contributions);
+      final item = (await repo.watchChecked().first).single;
+      expect((item.quantity, item.unit), (300, Unit.g));
+    });
+
+    test('ligne corrigée à la main : garde sa quantité et ses '
+        'contributions', () async {
+      final ajout = await repo.addArticle(
+        SeedIds.lardons,
+        quantity: 100,
+        unit: Unit.g,
+      );
+      await repo.setQuantity(ajout.lineId, 250, unit: Unit.g);
+      final chili = await recipe(
+        SeedIds.lardons,
+        'chili',
+        quantity: 200,
+        unit: Unit.g,
+      );
+      expect(chili.lineId, ajout.lineId);
+      final lines = await db.select(db.listLines).get();
+      final contributions = await db.select(db.listContributions).get();
+
+      expect(await remove('chili'), isEmpty);
+
+      expect(await db.select(db.listLines).get(), lines);
+      expect(await db.select(db.listContributions).get(), contributions);
+      expect((await repo.watchUnchecked().first).single.quantity, 450);
+    });
+
+    test('mêlée à un ajout sans quantité : ligne gardée, sans quantité ni '
+        'unité ; une contribution chiffrée suivante la rejoint', () async {
+      final chili = await recipe(
+        SeedIds.riz,
+        'chili',
+        quantity: 300,
+        unit: Unit.g,
+      );
+      final ajout = await repo.addArticle(SeedIds.riz);
+      expect(ajout.lineId, chili.lineId);
+      now = 2000;
+
+      final rows = await remove('chili');
+
+      final line = await lineOf(chili.lineId);
+      expect((line.deletedAt, line.unit, line.updatedAt), (null, null, 2000));
+      final item = (await repo.watchUnchecked().first).single;
+      expect((item.quantity, item.unit), (null, null));
+      expect(rows.where((r) => r.table == db.listLines), hasLength(1));
+
+      final next = await repo.addArticle(
+        SeedIds.riz,
+        quantity: 2000,
+        unit: Unit.piece,
+      );
+      expect(next.lineId, chili.lineId);
+      final after = (await repo.watchUnchecked().first).single;
+      expect((after.quantity, after.unit), (2000, Unit.piece));
+    });
+
+    test('seules les contributions actives de cette sélection ; une '
+        'contribution déjà supprimée ne bouge pas', () async {
+      final first = await recipe(
+        SeedIds.oignons,
+        'chili',
+        quantity: 2000,
+        unit: Unit.piece,
+      );
+      await (db.update(
+        db.listContributions,
+      )..where((c) => c.id.equals(first.contributionId))).write(
+        const ListContributionsCompanion(
+          deletedAt: Value(1500),
+          updatedAt: Value(1500),
+        ),
+      );
+      final kept = await recipe(
+        SeedIds.oignons,
+        'ratatouille',
+        quantity: 1000,
+        unit: Unit.piece,
+      );
+      final deletedBefore = await contributionOf(first.contributionId);
+
+      expect(await remove('chili'), isEmpty);
+      expect(await contributionOf(first.contributionId), deletedBefore);
+      expect((await contributionOf(kept.contributionId)).deletedAt, isNull);
+      expect(await remove('inconnue'), isEmpty);
+    });
+
+    test('article qui a déjà une ligne sans unité : la ligne garde son unité, '
+        'sans quantité ; une seule ligne sans unité (AD-4)', () async {
+      final a = await recipe(
+        SeedIds.lardons,
+        'carbonara',
+        quantity: 200,
+        unit: Unit.g,
+      );
+      final b = await repo.addArticle(
+        SeedIds.lardons,
+        quantity: 2000,
+        unit: Unit.piece,
+      );
+      expect(b.lineId, isNot(a.lineId));
+      await repo.setQuantity(b.lineId, null);
+      expect((await lineOf(b.lineId)).unit, isNull);
+      final ajout = await repo.addArticle(SeedIds.lardons);
+      expect(ajout.lineId, a.lineId);
+      now = 2000;
+
+      await remove('carbonara');
+
+      final unitless =
+          await (db.select(db.listLines)..where(
+                (l) =>
+                    l.articleId.equals(SeedIds.lardons) &
+                    l.deletedAt.isNull() &
+                    l.checkedAt.isNull() &
+                    l.unit.isNull(),
+              ))
+              .get();
+      expect(unitless.map((l) => l.id), [b.lineId]);
+      final lineA = await lineOf(a.lineId);
+      expect((lineA.deletedAt, lineA.unit), (null, Unit.g.code));
+      final itemA = (await repo.watchUnchecked().first).singleWhere(
+        (i) => i.lineId == a.lineId,
+      );
+      expect(itemA.quantity, isNull);
+    });
+
+    test('Annuler : lignes et contributions exactement comme avant', () async {
+      await recipe(SeedIds.tomates, 'chili', quantity: 300, unit: Unit.g);
+      await recipe(SeedIds.tomates, 'quiche', quantity: 200, unit: Unit.g);
+      await recipe(SeedIds.viandeHachee, 'chili', quantity: 500, unit: Unit.g);
+      await recipe(SeedIds.riz, 'chili', quantity: 300, unit: Unit.g);
+      await repo.addArticle(SeedIds.riz);
+      Future<List<Map<String, dynamic>>> snapshot() async => [
+        for (final l in await db.select(db.listLines).get())
+          l.toJson()..remove('updatedAt'),
+        for (final c in await db.select(db.listContributions).get())
+          c.toJson()..remove('updatedAt'),
+      ];
+      final before = await snapshot();
+      final undo = Undo(db, clock);
+      now = 2000;
+
+      final entry = undo.record(await remove('chili'));
+      expect(await snapshot(), isNot(before));
+      now = 3000;
+      expect(await undo.undo(entry), isTrue);
+
+      expect(await snapshot(), before);
+    });
+  });
 }

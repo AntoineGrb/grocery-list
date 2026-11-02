@@ -389,6 +389,119 @@ class ListeRepository {
     });
   }
 
+  /// Retire les contributions de la sélection [weekSelectionId], désélection
+  /// d'une recette validée (AD-3, AD-4, AD-5). À appeler dans la transaction
+  /// de l'action : pas de transaction propre.
+  ///
+  /// Seules ses contributions `week_selection` actives sur des lignes
+  /// actives, non cochées et non manuelles sont supprimées logiquement : une
+  /// ligne cochée ou corrigée à la main ne change pas. Une ligne qui n'a plus
+  /// aucune contribution active est supprimée logiquement ; une ligne qui en
+  /// garde mais aucune chiffrée perd son unité, pour qu'une contribution
+  /// chiffrée suivante la rejoigne (AD-4), sauf si l'article a déjà une ligne
+  /// active non cochée sans unité : elle garde alors son unité, sans
+  /// quantité. Rend l'état d'avant de chaque
+  /// ligne touchée pour Annuler (AD-10) ; rien à retirer : rien n'est écrit
+  /// et la liste rendue est vide.
+  Future<List<UndoRow>> removeSelectionContributions(
+    String weekSelectionId,
+  ) async {
+    final l = _db.listLines;
+    final c = _db.listContributions;
+    final rows =
+        await (_db.select(c).join([
+              innerJoin(
+                l,
+                l.id.equalsExp(c.lineId) &
+                    l.deletedAt.isNull() &
+                    l.checkedAt.isNull() &
+                    l.manualAt.isNull(),
+              ),
+            ])..where(
+              c.source.equals(ContributionSource.weekSelection) &
+                  c.weekSelectionId.equals(weekSelectionId) &
+                  c.deletedAt.isNull(),
+            ))
+            .get();
+    if (rows.isEmpty) return const <UndoRow>[];
+    final removed = [for (final row in rows) row.readTable(c)];
+    final lines = {
+      for (final row in rows) row.readTable(l).id: row.readTable(l),
+    };
+    final kept =
+        await (_db.select(c)..where(
+              (x) =>
+                  x.lineId.isIn(lines.keys) &
+                  x.deletedAt.isNull() &
+                  x.id.isNotIn([for (final r in removed) r.id]),
+            ))
+            .get();
+
+    final emptied = <ListLine>[];
+    final candidates = <ListLine>[];
+    for (final line in lines.values) {
+      final rest = kept.where((x) => x.lineId == line.id);
+      if (rest.isEmpty) {
+        emptied.add(line);
+      } else if (line.unit != null && rest.every((x) => x.quantity == null)) {
+        candidates.add(line);
+      }
+    }
+
+    // Une seule ligne non cochée sans unité par article (AD-4) : une ligne
+    // dont l'article en a déjà une garde son unité, sans quantité.
+    final emptiedIds = {for (final e in emptied) e.id};
+    final unitless = candidates.isEmpty
+        ? const <ListLine>[]
+        : await (_db.select(l)..where(
+                (x) =>
+                    x.articleId.isIn({
+                      for (final u in candidates) u.articleId,
+                    }) &
+                    x.deletedAt.isNull() &
+                    x.checkedAt.isNull() &
+                    x.unit.isNull(),
+              ))
+              .get();
+    final articlesWithUnitless = {
+      for (final u in unitless)
+        if (!emptiedIds.contains(u.id)) u.articleId,
+    };
+    final unquantified = <ListLine>[];
+    for (final line in candidates) {
+      if (articlesWithUnitless.add(line.articleId)) unquantified.add(line);
+    }
+
+    // Un seul horodatage, postérieur à chaque ancien `updated_at`.
+    final previous = [
+      for (final r in removed) r.updatedAt,
+      for (final line in [...emptied, ...unquantified]) line.updatedAt,
+    ].reduce((a, b) => a > b ? a : b);
+    final stamp = _clock.stamp(previous);
+
+    await _deleteContributions(removed, stamp);
+    if (emptied.isNotEmpty) {
+      await (_db.update(
+        l,
+      )..where((x) => x.id.isIn([for (final e in emptied) e.id]))).write(
+        ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+    }
+    if (unquantified.isNotEmpty) {
+      await (_db.update(
+        l,
+      )..where((x) => x.id.isIn([for (final u in unquantified) u.id]))).write(
+        ListLinesCompanion(unit: const Value(null), updatedAt: Value(stamp)),
+      );
+    }
+
+    return [
+      for (final line in [...emptied, ...unquantified])
+        UndoRow.before(_db.listLines, line),
+      for (final r in removed) UndoRow.before(_db.listContributions, r),
+    ];
+  }
+
   /// Corrige la quantité et l'unité de la ligne [lineId] depuis la Feuille
   /// d'édition ou la Popup quantité (AD-5) : dans une transaction, ses
   /// contributions actives sont supprimées logiquement, une contribution

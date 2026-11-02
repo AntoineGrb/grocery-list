@@ -22,6 +22,12 @@ abstract final class StringsFr {
   static String recetteSelectionnee(String name, {required bool selected}) =>
       '$name, ${selected ? 'sélectionnée' : 'non sélectionnée'}';
 
+  /// Snackbar Annuler de la désélection d'une recette validée :
+  /// « Ingrédients de « Chili » retirés de la liste » (guillemets français,
+  /// espaces insécables).
+  static String ingredientsRetires(String name) =>
+      'Ingrédients de « $name » retirés de la liste';
+
   // Revue.
   static const revue = 'Revue';
   static const revueConsigne = 'Décoche ce que tu as déjà.';

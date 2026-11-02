@@ -40,6 +40,17 @@ Future<void> _openRecettes(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Ouvre l'onglet Liste.
+Future<void> _openListe(WidgetTester tester) async {
+  await tester.tap(
+    find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.text(StringsFr.tabListe),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 Finder _card(String name) =>
     find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
 
@@ -216,6 +227,8 @@ void main() {
     expect(_valider(1), findsOneWidget);
     await _tapCard(tester, 'Ratatouille');
     expect(find.byType(FilledButton), findsNothing);
+    // Une carte non validée se désélectionne sans snackbar.
+    expect(find.byType(SnackBar), findsNothing);
     handle.dispose();
   });
 
@@ -315,14 +328,6 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(FilledButton), findsNothing);
-
-    // Une carte validée ne change pas (story 3).
-    await _tapCard(tester, 'Pâtes carbonara');
-    expect(
-      find.bySemanticsLabel('Pâtes carbonara, sélectionnée'),
-      findsOneWidget,
-    );
-    expect(await db.select(db.weekSelections).get(), selections);
 
     // Ratatouille seule en Revue.
     await _tapCard(tester, 'Ratatouille');
@@ -576,6 +581,153 @@ void main() {
       isNotNull,
     );
     expect(await db.select(db.listLines).get(), isEmpty);
+  });
+
+  group('désélectionner une recette validée (R6)', () {
+    final undoAction = find.widgetWithText(SnackBarAction, StringsFr.annuler);
+    final carbonaraRetiree = StringsFr.ingredientsRetires('Pâtes carbonara');
+    const lardons400 = 'Lardons, 400${_nbsp}g, Viande et poisson';
+    const lardons200 = 'Lardons, 200${_nbsp}g, Viande et poisson';
+
+    /// Carbonara et Quiche validées (Lardons 400 g dans la Liste), puis
+    /// retour sur Recettes.
+    Future<AppDatabase> validatedCarbonaraQuiche(WidgetTester tester) async {
+      final db = await _openCarbonaraQuiche(tester);
+      await tester.tap(_ajouterButton);
+      await tester.pumpAndSettle();
+      expect(find.bySemanticsLabel(lardons400), findsOneWidget);
+      await _openRecettes(tester);
+      return db;
+    }
+
+    Future<void> letSnackBarClose(WidgetTester tester) async {
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('toucher Carbonara validée : plus de coche, « Lardons 200 g » '
+        'dans la Liste, snackbar annoncé ; Annuler : resélectionnée sans '
+        'Valider, « Lardons 400 g »', (tester) async {
+      final handle = tester.ensureSemantics();
+      await validatedCarbonaraQuiche(tester);
+
+      // Par TalkBack : la carte est activable et relue après le tap.
+      tester.semantics.tap(
+        find.semantics.byLabel('Pâtes carbonara, sélectionnée'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel('Pâtes carbonara, non sélectionnée'),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: _card('Pâtes carbonara'),
+          matching: find.byIcon(Icons.check),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.bySemanticsLabel('Quiche lorraine, sélectionnée'),
+        findsOneWidget,
+      );
+      expect(
+        carbonaraRetiree,
+        'Ingrédients de «${_nbsp}Pâtes carbonara$_nbsp» retirés de la liste',
+      );
+      expect(find.text(carbonaraRetiree), findsOneWidget);
+      expect(undoAction, findsOneWidget);
+      // Snackbar annoncé par TalkBack (région dynamique).
+      expect(
+        tester.getSemantics(find.text(carbonaraRetiree)),
+        isSemantics(isLiveRegion: true),
+      );
+      // Aucune recette à valider : pas de Bouton d'action.
+      expect(find.byType(FilledButton), findsNothing);
+
+      await _openListe(tester);
+      expect(find.bySemanticsLabel(lardons200), findsOneWidget);
+      expect(find.text('Pâtes'), findsNothing);
+      expect(find.text('Poivre'), findsNothing);
+
+      await _openRecettes(tester);
+      expect(undoAction, findsOneWidget);
+      await tester.tap(undoAction);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.bySemanticsLabel('Pâtes carbonara, sélectionnée'),
+        findsOneWidget,
+      );
+      expect(find.byType(FilledButton), findsNothing);
+      await _openListe(tester);
+      expect(find.bySemanticsLabel(lardons400), findsOneWidget);
+      expect(find.text('Pâtes'), findsOneWidget);
+      handle.dispose();
+    });
+
+    testWidgets('snackbar au-dessus de « Valider (1) » ; ensuite, Ratatouille '
+        'validée : la Revue n’en montre que les ingrédients (Flux 5)', (
+      tester,
+    ) async {
+      await validatedCarbonaraQuiche(tester);
+      await _tapCard(tester, 'Ratatouille');
+      await _tapCard(tester, 'Pâtes carbonara');
+
+      expect(find.text(carbonaraRetiree), findsOneWidget);
+      expect(
+        tester.getBottomLeft(find.byType(SnackBar)).dy,
+        lessThanOrEqualTo(tester.getTopLeft(_valider(1)).dy),
+      );
+
+      await _validate(tester, 1);
+      expect(find.byType(RevueScreen), findsOneWidget);
+      expect(find.byType(RevueRow), findsNWidgets(7));
+      expect(find.text('Courgettes'), findsOneWidget);
+      expect(find.text('Lardons'), findsNothing);
+      expect(find.text('Pâtes'), findsNothing);
+    });
+
+    testWidgets('fin du snackbar : plus d’Annuler, la carte reste '
+        'désélectionnée', (tester) async {
+      final db = await validatedCarbonaraQuiche(tester);
+      await _tapCard(tester, 'Pâtes carbonara');
+      await letSnackBarClose(tester);
+
+      expect(find.text(carbonaraRetiree), findsNothing);
+      expect(
+        (await db.select(db.weekSelections).get()).where(
+          (s) => s.deletedAt == null,
+        ),
+        hasLength(1),
+      );
+    });
+
+    testWidgets('échec : snackbar d’erreur, rien d’écrit, carte toujours '
+        'sélectionnée', (tester) async {
+      final handle = tester.ensureSemantics();
+      final db = await validatedCarbonaraQuiche(tester);
+      final lines = await db.select(db.listLines).get();
+      final selections = await db.select(db.weekSelections).get();
+      await db.customStatement(
+        'CREATE TRIGGER no_deselect BEFORE UPDATE OF deleted_at ON '
+        "week_selections BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
+      );
+
+      await _tapCard(tester, 'Pâtes carbonara');
+
+      expect(find.text(StringsFr.modificationImpossible), findsOneWidget);
+      expect(find.text(carbonaraRetiree), findsNothing);
+      expect(
+        find.bySemanticsLabel('Pâtes carbonara, sélectionnée'),
+        findsOneWidget,
+      );
+      expect(await db.select(db.listLines).get(), lines);
+      expect(await db.select(db.weekSelections).get(), selections);
+      await letSnackBarClose(tester);
+      handle.dispose();
+    });
   });
 
   for (final scale in [1.3, 2.0, 3.0]) {
