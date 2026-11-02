@@ -41,5 +41,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Lien d'une recette ouvert dans le navigateur (url_launcher,
+             Android 11+). Aucune permission : la photo passe par le
+             sélecteur de photos et l'application photo du téléphone. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
     </queries>
 </manifest>

@@ -7,6 +7,8 @@ import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
 import 'package:uuid/uuid.dart';
 
+import 'recipe_link.dart';
+
 /// Carte d'une recette active de l'écran Recettes.
 class RecipeCardItem {
   const RecipeCardItem({
@@ -16,10 +18,15 @@ class RecipeCardItem {
     required this.rayon,
     required this.selected,
     required this.validated,
+    this.photo,
   });
 
   final String recipeId;
   final String name;
+
+  /// Nom du fichier de la photo dans `photos/` (AD-18), nul sans photo : la
+  /// carte montre alors le visuel de repli.
+  final String? photo;
 
   /// Picto de l'ingrédient principal (premier par `position`), vide sans
   /// ingrédient : le résolveur rend alors le repli neutre.
@@ -102,11 +109,19 @@ class RecipeSheet {
     required this.recipeId,
     required this.name,
     required this.ingredients,
+    this.link,
+    this.photo,
   });
 
   final String recipeId;
   final String name;
   final List<RecipeSheetIngredient> ingredients;
+
+  /// Lien de la recette, nul sans lien.
+  final String? link;
+
+  /// Nom du fichier de la photo dans `photos/` (AD-18), nul sans photo.
+  final String? photo;
 }
 
 /// Ingrédient du brouillon de la Fiche recette, à écrire : son id (stable,
@@ -126,17 +141,26 @@ class RecipeDraftIngredient {
 }
 
 /// Brouillon de la Fiche recette : la recette [recipeId] (tirée à l'ouverture
-/// d'une fiche vide), son nom tel que saisi et ses ingrédients dans l'ordre.
+/// d'une fiche vide), son nom tel que saisi, ses ingrédients dans l'ordre,
+/// son lien tel que saisi et sa photo.
 class RecipeDraft {
   const RecipeDraft({
     required this.recipeId,
     required this.name,
     required this.ingredients,
+    this.link,
+    this.photo,
   });
 
   final String recipeId;
   final String name;
   final List<RecipeDraftIngredient> ingredients;
+
+  /// Lien tel que saisi, écrit nettoyé ([cleanRecipeLink]) : vide, nul.
+  final String? link;
+
+  /// Nom du fichier de la photo dans `photos/` (AD-18), nul sans photo.
+  final String? photo;
 }
 
 /// Nom de recette écrit pour la saisie [input] : sans espaces de bord ni
@@ -182,7 +206,7 @@ class RecettesRepository {
         'FROM week_selections s '
         'WHERE s.recipe_id = r.id AND s.deleted_at IS NULL';
     final query = _db.customSelect(
-      'SELECT r.id, r.name, '
+      'SELECT r.id, r.name, r.photo, '
       '(SELECT a.picto_key $mainIngredient) AS picto_key, '
       '(SELECT a.rayon $mainIngredient) AS rayon, '
       'EXISTS (SELECT 1 $activeSelection) AS selected, '
@@ -202,6 +226,7 @@ class RecettesRepository {
           RecipeCardItem(
             recipeId: row.read<String>('id'),
             name: row.read<String>('name'),
+            photo: row.readNullable<String>('photo'),
             pictoKey: row.readNullable<String>('picto_key') ?? '',
             rayon:
                 Rayon.tryFromCode(row.readNullable<String>('rayon') ?? '') ??
@@ -243,6 +268,8 @@ class RecettesRepository {
     return RecipeSheet(
       recipeId: recipe.id,
       name: recipe.name,
+      link: recipe.link,
+      photo: recipe.photo,
       ingredients: [
         for (final row in rows)
           _sheetIngredient(row.readTable(i), row.readTable(a)),
@@ -270,7 +297,8 @@ class RecettesRepository {
   }
 
   /// Écrit le brouillon [draft] de la Fiche recette en une transaction
-  /// (enregistrement automatique, R1) : la recette (insérée ou renommée),
+  /// (enregistrement automatique, R1) : la recette (insérée, ou nom, lien
+  /// nettoyé et photo mis à jour),
   /// ses ingrédients (insérés, ou position, article, quantité et unité mis à
   /// jour) ; les ingrédients actifs absents du brouillon sont supprimés
   /// logiquement (AD-7). Seules les lignes qui changent sont écrites.
@@ -282,6 +310,8 @@ class RecettesRepository {
   Future<bool> saveDraft(RecipeDraft draft) {
     final name = cleanRecipeName(draft.name);
     if (name.isEmpty || draft.ingredients.isEmpty) return Future.value(false);
+    final link = cleanRecipeLink(draft.link);
+    final photo = draft.photo;
     return _db.transaction(() async {
       final recipe = await (_db.select(
         _db.recipes,
@@ -294,16 +324,22 @@ class RecettesRepository {
                 id: draft.recipeId,
                 updatedAt: _clock.stamp(),
                 name: name,
+                link: Value(link),
+                photo: Value(photo),
               ),
             );
       } else if (recipe.deletedAt != null) {
         return false;
-      } else if (recipe.name != name) {
+      } else if (recipe.name != name ||
+          recipe.link != link ||
+          recipe.photo != photo) {
         await (_db.update(
           _db.recipes,
         )..where((r) => r.id.equals(recipe.id))).write(
           RecipesCompanion(
             name: Value(name),
+            link: Value(link),
+            photo: Value(photo),
             updatedAt: Value(_clock.stamp(recipe.updatedAt)),
           ),
         );

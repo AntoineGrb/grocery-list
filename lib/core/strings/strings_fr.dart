@@ -57,6 +57,26 @@ abstract final class StringsFr {
   static const enregistrementImpossible =
       'Enregistrement impossible. Réessaie.';
 
+  // Photo et lien de la Fiche recette.
+  static const ajouterUnePhoto = 'Ajouter une photo';
+  static const galerie = 'Galerie';
+  static const appareilPhoto = 'Appareil photo';
+
+  /// Actions sous l'aperçu de la photo, et leur lecture par TalkBack.
+  static const remplacer = 'Remplacer';
+  static const retirer = 'Retirer';
+  static const remplacerLaPhoto = 'Remplacer la photo';
+  static const retirerLaPhoto = 'Retirer la photo';
+
+  /// Aperçu de la photo lu par TalkBack : « Photo de Chili » ; « Photo de la
+  /// recette » tant que la fiche n'a pas de nom.
+  static String photoDe(String name) =>
+      name.isEmpty ? 'Photo de la recette' : 'Photo de $name';
+  static const photoImpossible = 'Photo impossible à ajouter. Réessaie.';
+  static const lien = 'Lien';
+  static const ouvrirLeLien = 'Ouvrir le lien';
+  static const lienImpossible = 'Impossible d’ouvrir le lien.';
+
   // Nouvelle liste : action de la Barre d'application de Recettes et son
   // Dialogue de confirmation.
   static const nouvelleListe = 'Nouvelle liste';

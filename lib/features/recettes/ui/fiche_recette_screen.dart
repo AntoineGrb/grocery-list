@@ -11,7 +11,10 @@ import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/recettes_repository.dart';
+import '../data/recipe_link.dart';
+import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
+import 'fiche_recette_photo.dart';
 import 'fiche_recette_rows.dart';
 
 /// Fiche recette (R1) : écran poussé plein écran, flèche retour, sans Barre
@@ -25,6 +28,10 @@ import 'fiche_recette_rows.dart';
 /// d'ingrédient. Après un ajout, la recherche se vide et le Champ quantité
 /// du nouvel ingrédient prend le focus ; Entrée y rend le focus à la
 /// recherche.
+///
+/// Sous les ingrédients, la zone photo (galerie ou appareil photo, copiée
+/// sous `photos/`, AD-18 ; remplacer, retirer) et le champ « Lien », avec
+/// une icône qui l'ouvre dans le navigateur.
 ///
 /// Enregistrement automatique : dès que la fiche a un nom et au moins un
 /// ingrédient, chaque changement s'écrit, dans l'ordre, en une transaction.
@@ -46,6 +53,9 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     recettesRepositoryProvider,
   );
 
+  /// Lu à l'ouverture : le ménage des photos se finit après la fermeture.
+  late final RecipePhotos _photos;
+
   /// Id de la recette, tiré à l'ouverture d'une fiche vide : les écritures
   /// successives de la fiche visent la même ligne.
   late final String _recipeId = widget.recipeId ?? _repository.newId();
@@ -54,6 +64,25 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   final _nameFocus = FocusNode();
   final _searchController = TextEditingController();
   final _searchFocus = FocusNode();
+  final _linkController = TextEditingController();
+
+  /// Photo du brouillon (nom de fichier dans `photos/`), nulle sans photo.
+  String? _photo;
+
+  /// Photo de la recette en base, telle que la dernière écriture l'a mise.
+  String? _savedPhoto;
+
+  /// Fichiers de photo connus de la fiche (celui lu, ceux choisis) : ceux
+  /// que ni la base ni le brouillon ne portent plus sont supprimés après
+  /// une écriture, et à la fermeture.
+  final _photoFiles = <String>{};
+
+  /// Un choix de photo est en cours : un second tap est ignoré.
+  bool _picking = false;
+
+  /// La fiche est fermée : le ménage des photos attend la fin des
+  /// écritures.
+  bool _closed = false;
 
   /// Brouillon d'écran : les ingrédients dans l'ordre.
   final _ingredients = <IngredientDraft>[];
@@ -79,6 +108,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   @override
   void initState() {
     super.initState();
+    _photos = ref.read(recipePhotosProvider);
     final recipeId = widget.recipeId;
     if (recipeId == null) {
       _loaded = true;
@@ -97,6 +127,9 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
         return;
       }
       _nameController.text = sheet.name;
+      _linkController.text = sheet.link ?? '';
+      _photo = _savedPhoto = sheet.photo;
+      if (sheet.photo != null) _photoFiles.add(sheet.photo!);
       _ingredients.addAll(sheet.ingredients.map(IngredientDraft.read));
     });
   }
@@ -107,9 +140,12 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     _nameFocus.dispose();
     _searchController.dispose();
     _searchFocus.dispose();
+    _linkController.dispose();
     for (final ingredient in _ingredients) {
       ingredient.dispose();
     }
+    _closed = true;
+    if (!_saving) unawaited(_cleanPhotos());
     super.dispose();
   }
 
@@ -117,6 +153,8 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     recipeId: _recipeId,
     name: _nameController.text,
     ingredients: [for (final ingredient in _ingredients) _draftOf(ingredient)],
+    link: _linkController.text,
+    photo: _photo,
   );
 
   static RecipeDraftIngredient _draftOf(IngredientDraft ingredient) {
@@ -144,7 +182,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       final draft = _pendingSave!;
       _pendingSave = null;
       try {
-        await _repository.saveDraft(draft);
+        if (await _repository.saveDraft(draft)) _savedPhoto = draft.photo;
       } catch (_) {
         if (messenger != null) {
           showErrorSnackBar(messenger, StringsFr.enregistrementImpossible);
@@ -152,6 +190,70 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       }
     }
     _saving = false;
+    await _cleanPhotos();
+  }
+
+  /// Supprime les fichiers de photo que plus rien ne porte : ni la base,
+  /// ni (fiche ouverte) le brouillon. Après une écriture, l'ancienne photo
+  /// d'un remplacement ou d'un retrait ; à la fermeture, une photo choisie
+  /// sur une fiche jamais devenue valide.
+  Future<void> _cleanPhotos() async {
+    final keep = {_savedPhoto, if (!_closed) _photo};
+    final orphans = [
+      for (final name in _photoFiles)
+        if (!keep.contains(name)) name,
+    ];
+    _photoFiles.removeAll(orphans);
+    for (final name in orphans) {
+      await _photos.delete(name);
+    }
+  }
+
+  /// Prend une photo à [source] : copiée sous `photos/`, elle remplace celle
+  /// du brouillon. Choix annulé : rien ne change ; échec : snackbar, rien
+  /// d'écrit.
+  Future<void> _pickPhoto(PhotoSource source) async {
+    if (_picking) return;
+    _picking = true;
+    final messenger = ScaffoldMessenger.of(context);
+    final pick = ref.read(photoPickerProvider);
+    final String name;
+    try {
+      final path = await pick(source);
+      if (path == null) return;
+      name = await _photos.importPhoto(path);
+    } catch (_) {
+      showErrorSnackBar(messenger, StringsFr.photoImpossible);
+      return;
+    } finally {
+      _picking = false;
+    }
+    if (_closed || !mounted) {
+      await _photos.delete(name);
+      return;
+    }
+    _photoFiles.add(name);
+    setState(() => _photo = name);
+    _changed();
+  }
+
+  void _removePhoto() {
+    setState(() => _photo = null);
+    _changed();
+  }
+
+  /// Ouvre le lien dans le navigateur, `https://` ajouté sans schéma ; un
+  /// échec montre « Impossible d'ouvrir le lien. ».
+  Future<void> _openLink() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final uri = recipeLinkUri(_linkController.text);
+    var opened = false;
+    if (uri != null) {
+      try {
+        opened = await ref.read(openLinkProvider)(uri);
+      } catch (_) {}
+    }
+    if (!opened) showErrorSnackBar(messenger, StringsFr.lienImpossible);
   }
 
   /// Ajoute [article] comme ingrédient en dernière position, sauf s'il l'est
@@ -238,6 +340,11 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     // « Créer « … » » attend les résultats de cette saisie.
     final showCreate = fresh != null && !_hasExact(fresh, query);
     final ingredientIds = {for (final i in _ingredients) i.articleId};
+    final photo = _photo;
+    final photosDir = photo == null
+        ? null
+        : ref.watch(photosDirectoryProvider).value;
+    final hasLink = _linkController.text.trim().isNotEmpty;
 
     final nameStyle = theme.textTheme.titleLarge;
     final body = !_loaded || _missing
@@ -265,7 +372,11 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.next,
                       style: nameStyle?.copyWith(color: scheme.onSurface),
-                      onChanged: (_) => _changed(),
+                      onChanged: (_) {
+                        // L'aperçu de la photo est lu avec le nom.
+                        if (_photo != null) setState(() {});
+                        _changed();
+                      },
                       onSubmitted: (_) => _focus(_searchFocus),
                       decoration: InputDecoration(
                         filled: false,
@@ -358,6 +469,74 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                     onSubmitted: () => _focus(_searchFocus),
                     onRemove: () => _remove(ingredient),
                   ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    KadiSpacing.margin,
+                    KadiSpacing.s4,
+                    KadiSpacing.margin,
+                    KadiSpacing.s2,
+                  ),
+                  child: RecipePhotoZone(
+                    recipeName: cleanRecipeName(_nameController.text),
+                    hasPhoto: photo != null,
+                    file: photo == null || photosDir == null
+                        ? null
+                        : RecipePhotos.fileIn(photosDir, photo),
+                    onPick: _pickPhoto,
+                    onRemove: _removePhoto,
+                  ),
+                ),
+                // Champ « Lien » : facultatif, clavier URL ; l'icône
+                // d'ouverture n'est là que s'il n'est pas vide.
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: KadiSpacing.margin,
+                    vertical: KadiSpacing.s2,
+                  ),
+                  child: Semantics(
+                    label: StringsFr.lien,
+                    child: TextField(
+                      controller: _linkController,
+                      keyboardType: TextInputType.url,
+                      textInputAction: TextInputAction.done,
+                      autocorrect: false,
+                      enableSuggestions: false,
+                      onChanged: (_) {
+                        setState(() {});
+                        _changed();
+                      },
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurface,
+                      ),
+                      decoration: InputDecoration(
+                        hint: ExcludeSemantics(
+                          child: Text(
+                            StringsFr.lien,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        prefixIcon: const Icon(Icons.link),
+                        constraints: const BoxConstraints(
+                          minHeight: KadiSpacing.touchTarget,
+                        ),
+                        suffixIcon: hasLink
+                            ? IconButton(
+                                tooltip: StringsFr.ouvrirLeLien,
+                                style: IconButton.styleFrom(
+                                  minimumSize: const Size.square(
+                                    KadiSpacing.touchTarget,
+                                  ),
+                                ),
+                                icon: const Icon(Icons.open_in_new),
+                                onPressed: _openLink,
+                              )
+                            : null,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           );

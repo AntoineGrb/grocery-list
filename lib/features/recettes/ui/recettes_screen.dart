@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kadi/app/actions/deselectionner_une_recette.dart';
@@ -12,6 +14,7 @@ import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/recettes_repository.dart';
+import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
 import 'recipe_card.dart';
 
@@ -88,6 +91,10 @@ class RecettesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cards = ref.watch(recipeCardsProvider).value;
     final toValidate = ref.watch(toValidateCountProvider);
+    // Le dossier des photos n'est lu que si une carte en a une.
+    final photosDir = (cards ?? const []).any((c) => c.photo != null)
+        ? ref.watch(photosDirectoryProvider).value
+        : null;
 
     // Messager propre à Recettes : ses snackbars s'affichent dans son
     // Scaffold, au-dessus du Bouton d'action, pas dans la coque. Le Builder
@@ -151,12 +158,12 @@ class RecettesScreen extends ConsumerWidget {
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(child: _card(context, ref, left)),
+                      Expanded(child: _card(context, ref, left, photosDir)),
                       const SizedBox(width: KadiSpacing.gutter),
                       Expanded(
                         child: right == null
                             ? const SizedBox.shrink()
-                            : _card(context, ref, right),
+                            : _card(context, ref, right, photosDir),
                       ),
                     ],
                   ),
@@ -194,13 +201,20 @@ class RecettesScreen extends ConsumerWidget {
     );
   }
 
-  Widget _card(BuildContext context, WidgetRef ref, RecipeCardItem card) =>
-      RecipeCard(
-        key: ValueKey(card.recipeId),
-        card: card,
-        onTap: () => _toggle(context, ref, card),
-        onEdit: () => context.push(AppRoutes.recette(card.recipeId)),
-      );
+  Widget _card(
+    BuildContext context,
+    WidgetRef ref,
+    RecipeCardItem card,
+    Directory? photosDir,
+  ) => RecipeCard(
+    key: ValueKey(card.recipeId),
+    card: card,
+    photo: card.photo == null || photosDir == null
+        ? null
+        : RecipePhotos.fileIn(photosDir, card.photo!),
+    onTap: () => _toggle(context, ref, card),
+    onEdit: () => context.push(AppRoutes.recette(card.recipeId)),
+  );
 }
 
 /// Dialogue de confirmation de Nouvelle liste (DESIGN `confirm-dialog`) :

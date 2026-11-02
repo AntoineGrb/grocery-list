@@ -343,4 +343,137 @@ void main() {
       expect(await ingredients(SeedRecipeIds.chili), before);
     });
   });
+
+  group('photo et lien', () {
+    Future<List<RecipeDraftIngredient>> chiliDraft() async {
+      final sheet = (await repo.readSheet(SeedRecipeIds.chili))!;
+      return [
+        for (final i in sheet.ingredients)
+          ing(i.id, i.articleId, i.quantity, i.unit),
+      ];
+    }
+
+    test('lien nettoyé (espaces de bord retirés) et photo écrits, puis lus '
+        'par la fiche et la carte', () async {
+      expect(
+        await repo.saveDraft(
+          RecipeDraft(
+            recipeId: SeedRecipeIds.chili,
+            name: 'Chili con carne',
+            ingredients: await chiliDraft(),
+            link: '  marmiton.org/chili  ',
+            photo: 'a.jpg',
+          ),
+        ),
+        isTrue,
+      );
+      final row = (await recipe(SeedRecipeIds.chili))!;
+      expect(row.link, 'marmiton.org/chili');
+      expect(row.photo, 'a.jpg');
+      final sheet = (await repo.readSheet(SeedRecipeIds.chili))!;
+      expect(sheet.link, 'marmiton.org/chili');
+      expect(sheet.photo, 'a.jpg');
+      final cards = await repo.watchCards().first;
+      expect(
+        cards.singleWhere((c) => c.recipeId == SeedRecipeIds.chili).photo,
+        'a.jpg',
+      );
+      expect(
+        cards
+            .where((c) => c.recipeId != SeedRecipeIds.chili)
+            .map((c) => c.photo),
+        everyElement(isNull),
+      );
+    });
+
+    test('lien vidé ou blanc : nul ; photo retirée : nulle', () async {
+      final draft = await chiliDraft();
+      await repo.saveDraft(
+        RecipeDraft(
+          recipeId: SeedRecipeIds.chili,
+          name: 'Chili con carne',
+          ingredients: draft,
+          link: 'x.fr',
+          photo: 'a.jpg',
+        ),
+      );
+      now = 2000;
+      expect(
+        await repo.saveDraft(
+          RecipeDraft(
+            recipeId: SeedRecipeIds.chili,
+            name: 'Chili con carne',
+            ingredients: draft,
+            link: '   ',
+          ),
+        ),
+        isTrue,
+      );
+      final row = (await recipe(SeedRecipeIds.chili))!;
+      expect(row.link, isNull);
+      expect(row.photo, isNull);
+      expect(row.updatedAt, greaterThanOrEqualTo(2000));
+    });
+
+    test('seule la photo change : la recette est mise à jour', () async {
+      final draft = await chiliDraft();
+      final before = (await recipe(SeedRecipeIds.chili))!;
+      now = 3000;
+      await repo.saveDraft(
+        RecipeDraft(
+          recipeId: SeedRecipeIds.chili,
+          name: before.name,
+          ingredients: draft,
+          photo: 'b.jpg',
+        ),
+      );
+      final after = (await recipe(SeedRecipeIds.chili))!;
+      expect(after.photo, 'b.jpg');
+      expect(after.updatedAt, greaterThanOrEqualTo(3000));
+    });
+
+    test('rien ne change : rien d’écrit', () async {
+      final draft = await chiliDraft();
+      final before = (await recipe(SeedRecipeIds.chili))!;
+      now = 4000;
+      await repo.saveDraft(
+        RecipeDraft(
+          recipeId: SeedRecipeIds.chili,
+          name: before.name,
+          ingredients: draft,
+          link: before.link,
+          photo: before.photo,
+        ),
+      );
+      expect(await recipe(SeedRecipeIds.chili), before);
+    });
+
+    test('nouvelle recette : insérée avec son lien et sa photo ; fiche '
+        'invalide : rien d’écrit', () async {
+      expect(
+        await repo.saveDraft(
+          const RecipeDraft(
+            recipeId: 'neuve',
+            name: '',
+            ingredients: [],
+            link: 'x.fr',
+            photo: 'p.jpg',
+          ),
+        ),
+        isFalse,
+      );
+      expect(await recipe('neuve'), isNull);
+      await repo.saveDraft(
+        RecipeDraft(
+          recipeId: 'neuve',
+          name: 'Soupe',
+          ingredients: [ing('n1', SeedIds.riz)],
+          link: ' x.fr ',
+          photo: 'p.jpg',
+        ),
+      );
+      final row = (await recipe('neuve'))!;
+      expect((row.link, row.photo), ('x.fr', 'p.jpg'));
+    });
+  });
 }
