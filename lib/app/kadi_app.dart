@@ -5,6 +5,7 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_theme.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
+import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -30,6 +31,15 @@ class _KadiAppState extends ConsumerState<KadiApp> {
       GoRoute(
         path: AppRoutes.revue,
         builder: (context, state) => const RevueScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.nouvelleRecette,
+        builder: (context, state) => const FicheRecetteScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.recettePattern,
+        builder: (context, state) =>
+            FicheRecetteScreen(recipeId: state.pathParameters['id']),
       ),
     ],
   );

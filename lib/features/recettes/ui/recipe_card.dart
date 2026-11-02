@@ -13,11 +13,21 @@ import '../data/recettes_repository.dart';
 ///
 /// Le nom n'est jamais tronqué : la carte grandit avec la police système.
 /// Annoncée « Chili con carne, sélectionnée » ou « …, non sélectionnée ».
+///
+/// Icône « modifier » discrète en haut à droite du visuel, cible de 48 dp,
+/// lue « Modifier Chili con carne » : elle ouvre la Fiche recette ([onEdit])
+/// sans changer la sélection ; un tap ailleurs sur la carte sélectionne.
 class RecipeCard extends StatelessWidget {
-  const RecipeCard({super.key, required this.card, required this.onTap});
+  const RecipeCard({
+    super.key,
+    required this.card,
+    required this.onTap,
+    required this.onEdit,
+  });
 
   final RecipeCardItem card;
   final VoidCallback onTap;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -79,40 +89,58 @@ class RecipeCard extends StatelessWidget {
       ),
     );
 
-    return Semantics(
-      button: true,
-      label: StringsFr.recetteSelectionnee(card.name, selected: card.selected),
-      onTap: onTap,
-      excludeSemantics: true,
-      // Les contraintes de la rangée passent telles quelles à la carte : deux
-      // cartes d'une rangée ont la même hauteur.
-      child: Stack(
-        fit: StackFit.passthrough,
-        children: [
-          content,
-          if (card.selected)
-            Positioned(
-              top: KadiSpacing.s2,
-              left: KadiSpacing.s2,
-              child: IgnorePointer(
-                child: Container(
-                  width: KadiSpacing.recipeMark,
-                  height: KadiSpacing.recipeMark,
-                  decoration: BoxDecoration(
-                    color: scheme.onSurface,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: scheme.surface,
-                      width: 2,
-                      strokeAlign: BorderSide.strokeAlignOutside,
-                    ),
+    // Les contraintes de la rangée passent telles quelles à la carte : deux
+    // cartes d'une rangée ont la même hauteur.
+    return Stack(
+      fit: StackFit.passthrough,
+      children: [
+        Semantics(
+          container: true,
+          button: true,
+          label: StringsFr.recetteSelectionnee(
+            card.name,
+            selected: card.selected,
+          ),
+          onTap: onTap,
+          excludeSemantics: true,
+          child: content,
+        ),
+        if (card.selected)
+          Positioned(
+            top: KadiSpacing.s2,
+            left: KadiSpacing.s2,
+            child: IgnorePointer(
+              child: Container(
+                width: KadiSpacing.recipeMark,
+                height: KadiSpacing.recipeMark,
+                decoration: BoxDecoration(
+                  color: scheme.onSurface,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: scheme.surface,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignOutside,
                   ),
-                  child: Icon(Icons.check, size: 18, color: scheme.surface),
                 ),
+                child: Icon(Icons.check, size: 18, color: scheme.surface),
               ),
             ),
-        ],
-      ),
+          ),
+        // Icône « modifier » : en haut à droite du visuel, 48 dp, lue à
+        // part ; elle ouvre la fiche sans toucher à la sélection.
+        PositionedDirectional(
+          top: 0,
+          end: 0,
+          child: IconButton(
+            tooltip: StringsFr.modifierRecette(card.name),
+            style: IconButton.styleFrom(
+              minimumSize: const Size.square(KadiSpacing.touchTarget),
+            ),
+            onPressed: onEdit,
+            icon: Icon(Icons.edit_outlined, color: scheme.onSurfaceVariant),
+          ),
+        ),
+      ],
     );
   }
 }

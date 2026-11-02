@@ -28,6 +28,35 @@ abstract final class StringsFr {
   static String ingredientsRetires(String name) =>
       'Ingrédients de « $name » retirés de la liste';
 
+  // Fiche recette.
+  /// FAB + de Recettes, lu par TalkBack, et titre d'une fiche vide.
+  static const nouvelleRecette = 'Nouvelle recette';
+
+  /// Titre de la fiche d'une recette existante.
+  static const recette = 'Recette';
+  static const nomDeLaRecette = 'Nom de la recette';
+  static const ajouterUnIngredient = 'Ajouter un ingrédient';
+
+  /// Icône « modifier » d'une Carte recette : « Modifier Chili con carne ».
+  static String modifierRecette(String name) => 'Modifier $name';
+
+  /// Ligne des résultats sans article de ce nom : « Créer « Piment » »
+  /// (guillemets français, espaces insécables).
+  static String creerNom(String saisie) => 'Créer « $saisie »';
+
+  /// État lu d'un résultat déjà ingrédient : « Riz, Épicerie salée, dans la
+  /// recette ».
+  static const dansLaRecette = 'dans la recette';
+
+  /// Icône de retrait d'une Ligne d'ingrédient : « Retirer Haricots rouges ».
+  static String retirerIngredient(String name) => 'Retirer $name';
+
+  /// Unité du Champ quantité d'une Ligne d'ingrédient, lue par TalkBack :
+  /// « Unité, g ».
+  static String uniteDe(String value) => '$unite, $value';
+  static const enregistrementImpossible =
+      'Enregistrement impossible. Réessaie.';
+
   // Nouvelle liste : action de la Barre d'application de Recettes et son
   // Dialogue de confirmation.
   static const nouvelleListe = 'Nouvelle liste';

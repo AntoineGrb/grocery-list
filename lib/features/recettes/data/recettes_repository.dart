@@ -65,6 +65,85 @@ class RevueSource {
   final Unit? articleUnit;
 }
 
+/// Ingrédient d'une recette tel que le lit la Fiche recette.
+class RecipeSheetIngredient {
+  const RecipeSheetIngredient({
+    required this.id,
+    required this.articleId,
+    required this.name,
+    required this.pictoKey,
+    required this.rayon,
+    this.quantity,
+    this.unit,
+    this.articleUnit,
+  });
+
+  /// `recipe_ingredients.id`.
+  final String id;
+  final String articleId;
+
+  /// Nom, picto et rayon actuels de l'article (AD-15).
+  final String name;
+  final String pictoKey;
+  final Rayon rayon;
+
+  /// Quantité stockée (AD-6), nulle avec [unit].
+  final int? quantity;
+  final Unit? unit;
+
+  /// Unité par défaut de l'article (`articles.unit`), nulle sans unité.
+  final Unit? articleUnit;
+}
+
+/// Recette active lue par la Fiche recette : nom et ingrédients actifs par
+/// `position`.
+class RecipeSheet {
+  const RecipeSheet({
+    required this.recipeId,
+    required this.name,
+    required this.ingredients,
+  });
+
+  final String recipeId;
+  final String name;
+  final List<RecipeSheetIngredient> ingredients;
+}
+
+/// Ingrédient du brouillon de la Fiche recette, à écrire : son id (stable,
+/// tiré à l'ajout), son article et sa quantité stockée, nulle avec [unit].
+class RecipeDraftIngredient {
+  const RecipeDraftIngredient({
+    required this.id,
+    required this.articleId,
+    this.quantity,
+    this.unit,
+  });
+
+  final String id;
+  final String articleId;
+  final int? quantity;
+  final Unit? unit;
+}
+
+/// Brouillon de la Fiche recette : la recette [recipeId] (tirée à l'ouverture
+/// d'une fiche vide), son nom tel que saisi et ses ingrédients dans l'ordre.
+class RecipeDraft {
+  const RecipeDraft({
+    required this.recipeId,
+    required this.name,
+    required this.ingredients,
+  });
+
+  final String recipeId;
+  final String name;
+  final List<RecipeDraftIngredient> ingredients;
+}
+
+/// Nom de recette écrit pour la saisie [input] : sans espaces de bord ni
+/// espaces doublés ; vide, la fiche n'est pas valide.
+String cleanRecipeName(String input) =>
+    input.trim().split(RegExp(r'\s+')).join(' ');
+
 /// Sélections à valider et leurs ingrédients, dans l'ordre des recettes
 /// (nom normalisé) puis `position`.
 typedef PendingSelections = ({
@@ -132,6 +211,172 @@ class RecettesRepository {
           ),
       ];
       return cards..sort(_byName);
+    });
+  }
+
+  /// Nouvel id (UUID v4) d'une recette ou d'un ingrédient de la Fiche
+  /// recette, tiré à l'ouverture d'une fiche vide ou à l'ajout (AD-7).
+  String newId() => _uuid.v4();
+
+  /// La recette active [recipeId] pour la Fiche recette : son nom et ses
+  /// ingrédients actifs par `position` dont l'article est actif (AD-7), avec
+  /// le nom, le picto, le rayon et l'unité actuels de l'article. `null` si la
+  /// recette est absente ou supprimée.
+  Future<RecipeSheet?> readSheet(String recipeId) async {
+    final recipe =
+        await (_db.select(_db.recipes)
+              ..where((r) => r.id.equals(recipeId) & r.deletedAt.isNull()))
+            .getSingleOrNull();
+    if (recipe == null) return null;
+    final i = _db.recipeIngredients;
+    final a = _db.articles;
+    final rows =
+        await (_db.select(i).join([
+                innerJoin(
+                  a,
+                  a.id.equalsExp(i.articleId) & a.deletedAt.isNull(),
+                ),
+              ])
+              ..where(i.recipeId.equals(recipeId) & i.deletedAt.isNull())
+              ..orderBy([OrderingTerm.asc(i.position), OrderingTerm.asc(i.id)]))
+            .get();
+    return RecipeSheet(
+      recipeId: recipe.id,
+      name: recipe.name,
+      ingredients: [
+        for (final row in rows)
+          _sheetIngredient(row.readTable(i), row.readTable(a)),
+      ],
+    );
+  }
+
+  static RecipeSheetIngredient _sheetIngredient(
+    RecipeIngredient ingredient,
+    Article article,
+  ) {
+    final unit = Unit.tryFromCode(ingredient.unit);
+    final quantity = ingredient.quantity;
+    final hasQuantity = unit != null && quantity != null && quantity > 0;
+    return RecipeSheetIngredient(
+      id: ingredient.id,
+      articleId: article.id,
+      name: article.name,
+      pictoKey: article.pictoKey,
+      rayon: Rayon.tryFromCode(article.rayon) ?? Rayon.divers,
+      quantity: hasQuantity ? quantity : null,
+      unit: hasQuantity ? unit : null,
+      articleUnit: Unit.tryFromCode(article.unit),
+    );
+  }
+
+  /// Écrit le brouillon [draft] de la Fiche recette en une transaction
+  /// (enregistrement automatique, R1) : la recette (insérée ou renommée),
+  /// ses ingrédients (insérés, ou position, article, quantité et unité mis à
+  /// jour) ; les ingrédients actifs absents du brouillon sont supprimés
+  /// logiquement (AD-7). Seules les lignes qui changent sont écrites.
+  ///
+  /// Rien n'est écrit, et le résultat est faux, si le brouillon n'a pas de
+  /// nom une fois nettoyé ([cleanRecipeName]) ou pas d'ingrédient, ou si la
+  /// recette a été supprimée : une nouvelle fiche incomplète ne crée rien,
+  /// une recette existante garde sa dernière version valide.
+  Future<bool> saveDraft(RecipeDraft draft) {
+    final name = cleanRecipeName(draft.name);
+    if (name.isEmpty || draft.ingredients.isEmpty) return Future.value(false);
+    return _db.transaction(() async {
+      final recipe = await (_db.select(
+        _db.recipes,
+      )..where((r) => r.id.equals(draft.recipeId))).getSingleOrNull();
+      if (recipe == null) {
+        await _db
+            .into(_db.recipes)
+            .insert(
+              RecipesCompanion.insert(
+                id: draft.recipeId,
+                updatedAt: _clock.stamp(),
+                name: name,
+              ),
+            );
+      } else if (recipe.deletedAt != null) {
+        return false;
+      } else if (recipe.name != name) {
+        await (_db.update(
+          _db.recipes,
+        )..where((r) => r.id.equals(recipe.id))).write(
+          RecipesCompanion(
+            name: Value(name),
+            updatedAt: Value(_clock.stamp(recipe.updatedAt)),
+          ),
+        );
+      }
+
+      // Ce que la fiche a lu ([readSheet]) : un ingrédient dont l'article
+      // est supprimé n'y est pas, et reste tel quel.
+      final i = _db.recipeIngredients;
+      final a = _db.articles;
+      final existing = {
+        for (final row
+            in await (_db.select(i).join([
+                  innerJoin(
+                    a,
+                    a.id.equalsExp(i.articleId) & a.deletedAt.isNull(),
+                  ),
+                ])..where(
+                  i.recipeId.equals(draft.recipeId) & i.deletedAt.isNull(),
+                ))
+                .get())
+          row.readTable(i).id: row.readTable(i),
+      };
+      for (final (position, ingredient) in draft.ingredients.indexed) {
+        final hasQuantity =
+            ingredient.quantity != null &&
+            ingredient.quantity! > 0 &&
+            ingredient.unit != null;
+        final quantity = hasQuantity ? ingredient.quantity : null;
+        final unit = hasQuantity ? ingredient.unit!.code : null;
+        final before = existing.remove(ingredient.id);
+        if (before == null) {
+          await _db
+              .into(_db.recipeIngredients)
+              .insert(
+                RecipeIngredientsCompanion.insert(
+                  id: ingredient.id,
+                  updatedAt: _clock.stamp(),
+                  recipeId: draft.recipeId,
+                  articleId: ingredient.articleId,
+                  position: position,
+                  quantity: Value(quantity),
+                  unit: Value(unit),
+                ),
+              );
+        } else if (before.position != position ||
+            before.articleId != ingredient.articleId ||
+            before.quantity != quantity ||
+            before.unit != unit) {
+          await (_db.update(
+            _db.recipeIngredients,
+          )..where((i) => i.id.equals(before.id))).write(
+            RecipeIngredientsCompanion(
+              articleId: Value(ingredient.articleId),
+              position: Value(position),
+              quantity: Value(quantity),
+              unit: Value(unit),
+              updatedAt: Value(_clock.stamp(before.updatedAt)),
+            ),
+          );
+        }
+      }
+      for (final removed in existing.values) {
+        final stamp = _clock.stamp(removed.updatedAt);
+        await (_db.update(
+          _db.recipeIngredients,
+        )..where((i) => i.id.equals(removed.id))).write(
+          RecipeIngredientsCompanion(
+            deletedAt: Value(stamp),
+            updatedAt: Value(stamp),
+          ),
+        );
+      }
+      return true;
     });
   }
 

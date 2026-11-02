@@ -93,6 +93,8 @@ class QuantityField extends StatelessWidget {
     this.filled = false,
     this.onChanged,
     this.onSubmitted,
+    this.onUnitTap,
+    this.unitSemanticsLabel,
   });
 
   final TextEditingController controller;
@@ -111,6 +113,13 @@ class QuantityField extends StatelessWidget {
   /// Validation du clavier.
   final ValueChanged<String>? onSubmitted;
 
+  /// Tap sur le suffixe d'unité (Ligne d'ingrédient : ouvre le Choix
+  /// d'unité). Sans lui, le suffixe n'est pas interactif.
+  final VoidCallback? onUnitTap;
+
+  /// Lecture TalkBack du suffixe tappable : « Unité, g ».
+  final String? unitSemanticsLabel;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -122,6 +131,65 @@ class QuantityField extends StatelessWidget {
       borderSide: filled ? BorderSide.none : BorderSide(color: scheme.outline),
     );
     final decimal = unit.decimals > 0;
+    final unitText = Text(
+      _suffix(unit),
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: scheme.onSurfaceVariant,
+      ),
+    );
+    final onUnitTap = this.onUnitTap;
+    // Tappable : toute la hauteur du champ et au moins 48 dp de large.
+    final Widget suffix = onUnitTap == null
+        ? Padding(
+            padding: const EdgeInsetsDirectional.only(end: KadiSpacing.s3),
+            child: unitText,
+          )
+        : Semantics(
+            container: true,
+            button: true,
+            label: unitSemanticsLabel,
+            onTap: onUnitTap,
+            excludeSemantics: unitSemanticsLabel != null,
+            child: InkWell(
+              onTap: onUnitTap,
+              customBorder: const StadiumBorder(),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minWidth: KadiSpacing.touchTarget,
+                  minHeight: KadiSpacing.touchTarget,
+                ),
+                child: Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: KadiSpacing.s2,
+                    end: KadiSpacing.s3,
+                  ),
+                  // Unité et flèche de choix ; passe à la ligne plutôt que
+                  // de déborder en très grande police.
+                  child: Center(
+                    widthFactor: 1,
+                    child: Text.rich(
+                      TextSpan(
+                        text: _suffix(unit),
+                        children: [
+                          WidgetSpan(
+                            alignment: PlaceholderAlignment.middle,
+                            child: Icon(
+                              Icons.arrow_drop_down,
+                              size: KadiSpacing.s4,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
 
     return SizedBox(
       height: KadiSpacing.touchTarget,
@@ -164,15 +232,7 @@ class QuantityField extends StatelessWidget {
           ),
           // En `suffixIcon` : un `suffixText` reste masqué tant que le champ
           // est vide et sans focus, et l'unité doit toujours se voir.
-          suffixIcon: Padding(
-            padding: const EdgeInsetsDirectional.only(end: KadiSpacing.s3),
-            child: Text(
-              _suffix(unit),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
+          suffixIcon: suffix,
           suffixIconConstraints: const BoxConstraints(),
         ),
       ),

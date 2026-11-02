@@ -19,7 +19,8 @@ import 'recipe_card.dart';
 /// désélectionne une recette pour la semaine (R3) ; Bouton d'action
 /// « Valider (n) » tant que n recettes sélectionnées ne sont pas validées,
 /// qui ouvre la Revue ; Action Nouvelle liste dans la Barre d'application
-/// (R8). Sans recette, son message d'état vide.
+/// (R8). Sans recette, son message d'état vide. FAB + : nouvelle recette ;
+/// icône « modifier » d'une carte : sa Fiche recette (R1).
 class RecettesScreen extends ConsumerWidget {
   const RecettesScreen({super.key});
 
@@ -133,7 +134,8 @@ class RecettesScreen extends ConsumerWidget {
                 KadiSpacing.margin,
                 KadiSpacing.s2,
                 KadiSpacing.margin,
-                KadiSpacing.s4,
+                // La dernière rangée défile au-dessus du FAB +.
+                KadiSpacing.listBottomInset,
               ),
               itemCount: (cards.length + 1) ~/ 2,
               separatorBuilder: (_, _) =>
@@ -176,6 +178,17 @@ class RecettesScreen extends ConsumerWidget {
                   ),
                 )
               : null,
+          // FAB + (DESIGN `fab`, argile) : ouvre une Fiche recette vide ;
+          // empilé au-dessus du Bouton d'action quand il est là. Sans Hero :
+          // le FAB de la Liste vit dans la même coque.
+          floatingActionButton: FloatingActionButton(
+            heroTag: null,
+            onPressed: () => context.push(AppRoutes.nouvelleRecette),
+            child: const Icon(
+              Icons.add,
+              semanticLabel: StringsFr.nouvelleRecette,
+            ),
+          ),
         ),
       ),
     );
@@ -186,6 +199,7 @@ class RecettesScreen extends ConsumerWidget {
         key: ValueKey(card.recipeId),
         card: card,
         onTap: () => _toggle(context, ref, card),
+        onEdit: () => context.push(AppRoutes.recette(card.recipeId)),
       );
 }
 

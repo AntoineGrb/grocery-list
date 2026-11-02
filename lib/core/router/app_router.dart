@@ -10,6 +10,15 @@ abstract final class AppRoutes {
 
   /// Revue : poussée hors de la coque, sans Barre de navigation.
   static const revue = '/revue';
+
+  /// Fiche recette vide (FAB + de Recettes) : poussée hors de la coque.
+  static const nouvelleRecette = '/recette';
+
+  /// Fiche d'une recette existante, par son id : motif de la route.
+  static const recettePattern = '/recette/:id';
+
+  /// Fiche de la recette [id] (icône « modifier » de sa carte).
+  static String recette(String id) => '/recette/$id';
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,
