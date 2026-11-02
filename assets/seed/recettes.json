@@ -1,0 +1,161 @@
+{
+  "seed_version": 1,
+  "recettes": [
+    {
+      "id": "0d44ac0c-c91e-4c30-be13-29dbe0b31149",
+      "name": "Pâtes carbonara",
+      "ingredients": [
+        {
+          "id": "27fc84e8-f336-46d8-996e-ba07d32a9da2",
+          "article_id": "615fcd7d-e1e7-4f8d-810e-706baccb099a",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "id": "e2cd42a6-0913-412b-95ef-646b57b56d2a",
+          "article_id": "02fe5b31-2754-4e5e-858b-f34811560f0c",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "id": "133ea249-f042-42d3-9e48-3db08b15b82b",
+          "article_id": "0ed8bc06-24ce-4c68-96b9-462ff6798ccf",
+          "quantity": 3000,
+          "unit": "piece"
+        },
+        {
+          "id": "4b35d48a-af48-401f-8b06-1c8d7d24eae2",
+          "article_id": "6ef25bed-155f-4462-8218-58d665ed0dab",
+          "quantity": 60,
+          "unit": "g"
+        },
+        {
+          "id": "9e30a9ea-efce-418b-bc25-500cdd6675d2",
+          "article_id": "bbcff956-c443-4a7e-941f-70cc1bf254ff",
+          "quantity": null,
+          "unit": null
+        }
+      ]
+    },
+    {
+      "id": "5f54fade-264b-49b5-be79-2e8b75f19d84",
+      "name": "Chili con carne",
+      "ingredients": [
+        {
+          "id": "f8b06aab-3e28-4ce8-bd0e-0ed3f45754f6",
+          "article_id": "2de8b058-0ba2-4f13-a47f-81438b47b966",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "id": "20412569-97c6-46e5-82ab-d9bec360ae53",
+          "article_id": "be6140d9-2886-4397-b038-952bf8612a5b",
+          "quantity": 2000,
+          "unit": "piece"
+        },
+        {
+          "id": "77241715-fc4b-45fe-ba4b-f75576753500",
+          "article_id": "1741d283-ab53-4bae-a7ff-9bbd4efc65c2",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "id": "09a61ea8-566e-43d1-bd81-ba714f75f67d",
+          "article_id": "46534d57-80f6-41b1-92fd-f5d849f39553",
+          "quantity": 1000,
+          "unit": "piece"
+        },
+        {
+          "id": "72425c9a-9771-45d3-a5cc-b3fdb3c89d88",
+          "article_id": "d92eff2c-67fd-42bf-83d6-5f34033dc5e9",
+          "quantity": 300,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "id": "c4e99641-6f8f-4362-92d9-b09ee20d511f",
+      "name": "Quiche lorraine",
+      "ingredients": [
+        {
+          "id": "3088f301-0cbf-4eab-9ddb-fa2dbed96994",
+          "article_id": "af287166-6d56-4061-9070-e900bf883165",
+          "quantity": 1000,
+          "unit": "piece"
+        },
+        {
+          "id": "0019390d-b8b5-4814-9f13-89811e191606",
+          "article_id": "02fe5b31-2754-4e5e-858b-f34811560f0c",
+          "quantity": 200,
+          "unit": "g"
+        },
+        {
+          "id": "98eb794b-6356-4e6a-95ff-428d46da59c6",
+          "article_id": "0ed8bc06-24ce-4c68-96b9-462ff6798ccf",
+          "quantity": 3000,
+          "unit": "piece"
+        },
+        {
+          "id": "ae2771cf-e410-4b26-8854-a942e40d88d7",
+          "article_id": "1299ccac-8698-4764-817f-6a8c3c1b8c2e",
+          "quantity": 200,
+          "unit": "ml"
+        },
+        {
+          "id": "d2d6bde3-1d89-461e-a20a-5847a352cc9c",
+          "article_id": "3dc7650b-d35b-49f8-b664-247c76532f82",
+          "quantity": 100,
+          "unit": "g"
+        }
+      ]
+    },
+    {
+      "id": "561f866d-5b41-4cab-bc7e-41cd7de47b20",
+      "name": "Ratatouille",
+      "ingredients": [
+        {
+          "id": "2eba9813-20f2-4c09-9d41-e332a1425d67",
+          "article_id": "61915f5f-59ee-4562-b1ad-51adb74ece4a",
+          "quantity": 400,
+          "unit": "g"
+        },
+        {
+          "id": "6da253ff-2847-4999-b4bf-9773b7b23607",
+          "article_id": "1351e247-371a-4cff-9df6-7829668848a5",
+          "quantity": 2000,
+          "unit": "piece"
+        },
+        {
+          "id": "744257b3-c15b-417b-a5ea-371e53cc2806",
+          "article_id": "46534d57-80f6-41b1-92fd-f5d849f39553",
+          "quantity": 2000,
+          "unit": "piece"
+        },
+        {
+          "id": "fef9b514-2957-4547-8cd7-66d7dff15f5b",
+          "article_id": "90664cd2-59db-4657-acc7-d1e6115bf0a4",
+          "quantity": 500,
+          "unit": "g"
+        },
+        {
+          "id": "7786a847-9279-4620-8c33-c4e4612c782a",
+          "article_id": "be6140d9-2886-4397-b038-952bf8612a5b",
+          "quantity": 1000,
+          "unit": "piece"
+        },
+        {
+          "id": "c0fff5c6-6057-4539-9959-dfc91dc753e9",
+          "article_id": "bf2ead38-ffc3-4c29-bd8d-f2272e1372e6",
+          "quantity": null,
+          "unit": null
+        },
+        {
+          "id": "0d62c2ff-8127-43e6-8c21-668d4e9782a8",
+          "article_id": "fba5744c-2cd4-45a0-b0b8-c13b899c6994",
+          "quantity": null,
+          "unit": null
+        }
+      ]
+    }
+  ]
+}

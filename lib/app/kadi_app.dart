@@ -6,6 +6,7 @@ import 'package:kadi/core/theme/kadi_theme.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
+import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'startup.dart';
@@ -25,6 +26,12 @@ class _KadiAppState extends ConsumerState<KadiApp> {
   late final GoRouter _router = createAppRouter(
     recettes: (_) => const RecettesScreen(),
     liste: (_) => const ListeScreen(),
+    pushed: [
+      GoRoute(
+        path: AppRoutes.revue,
+        builder: (context, state) => const RevueScreen(),
+      ),
+    ],
   );
 
   @override

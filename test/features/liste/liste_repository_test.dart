@@ -1174,4 +1174,67 @@ void main() {
       expect((await repo.firstUnchecked(SeedIds.tomates))!.lineId, smallest);
     });
   });
+
+  group('contribution de recette (AD-4)', () {
+    test('une contribution week_selection par appel, fusionnée avec la '
+        'ligne de son unité', () async {
+      await repo.addArticle(SeedIds.lardons, quantity: 100, unit: Unit.g);
+      await db.transaction(() async {
+        await repo.addRecipeContribution(
+          SeedIds.lardons,
+          weekSelectionId: 'selection-1',
+          quantity: 200,
+          unit: Unit.g,
+        );
+        await repo.addRecipeContribution(
+          SeedIds.lardons,
+          weekSelectionId: 'selection-2',
+          quantity: 200,
+          unit: Unit.g,
+        );
+      });
+
+      final items = await repo.watchUnchecked().first;
+      expect(items, hasLength(1));
+      expect((items.single.quantity, items.single.unit), (500, Unit.g));
+      final contributions = await (db.select(
+        db.listContributions,
+      )..where((c) => c.source.equals(ContributionSource.weekSelection))).get();
+      expect(contributions.map((c) => c.weekSelectionId).toSet(), {
+        'selection-1',
+        'selection-2',
+      });
+      expect(
+        contributions.every((c) => c.lineId == items.single.lineId),
+        isTrue,
+      );
+    });
+
+    test('sans quantité : rejoint la ligne de l’article ; ligne cochée : '
+        'nouvelle ligne', () async {
+      final checked = await repo.addArticle(
+        SeedIds.oeufs,
+        quantity: 6000,
+        unit: Unit.piece,
+      );
+      await repo.check(checked.lineId);
+      final added = await repo.addRecipeContribution(
+        SeedIds.oeufs,
+        weekSelectionId: 'selection-1',
+        quantity: 3000,
+        unit: Unit.piece,
+      );
+      expect(added.lineId, isNot(checked.lineId));
+      final poivre = await repo.addRecipeContribution(
+        SeedIds.oeufs,
+        weekSelectionId: 'selection-2',
+      );
+      expect(poivre.lineId, added.lineId);
+      final line = (await repo.watchUnchecked().first).single;
+      expect(
+        (line.quantity, line.unit, line.rayon),
+        (3000, Unit.piece, Rayon.cremerie),
+      );
+    });
+  });
 }

@@ -19,6 +19,12 @@ typedef SeedAssetLoader = Future<String> Function(String path);
 /// défaut ont `updated_at = 0`. Tout se fait en une transaction : un échec
 /// n'écrit rien.
 ///
+/// Les recettes exemples s'insèrent avec leurs ingrédients, après articles et
+/// fréquents : un ingrédient dont l'article n'est pas en base est sauté, une
+/// recette qui n'a plus d'ingrédient aussi. Les ingrédients d'une recette
+/// déjà présente ne sont jamais complétés. Le chargeur ne touche pas au
+/// drapeau de premier lancement.
+///
 /// Un article fourni dont le nom normalisé est porté par un article actif
 /// hors catalogue (AD-17) est inséré, les lignes de liste de l'article hors
 /// catalogue lui sont reportées et celui-ci est supprimé logiquement, par
@@ -37,6 +43,8 @@ class SeedLoader {
   static const articlesPath = 'assets/seed/articles.json';
   static const frequentsFile = 'frequents';
   static const frequentsPath = 'assets/seed/frequents.json';
+  static const recettesFile = 'recettes';
+  static const recettesPath = 'assets/seed/recettes.json';
 
   final AppDatabase _db;
   final SettingsRepository _settings;
@@ -55,6 +63,7 @@ class SeedLoader {
       await _loadAsset(frequentsPath),
       articleIds: {for (final a in articles.rows) a.id.value},
     );
+    final recettes = _parseRecettes(await _loadAsset(recettesPath));
 
     await _db.transaction(() async {
       final hasSettings = await _settings.exists();
@@ -71,6 +80,11 @@ class SeedLoader {
       if (frequents.version > (current[frequentsFile] ?? 0)) {
         await _insertFrequents(frequents.rows);
         next[frequentsFile] = frequents.version;
+      }
+      // Après les articles : la clé étrangère des ingrédients est satisfaite.
+      if (recettes.version > (current[recettesFile] ?? 0)) {
+        await _insertRecettes(recettes.rows);
+        next[recettesFile] = recettes.version;
       }
 
       if (!hasSettings) {
@@ -149,6 +163,34 @@ class SeedLoader {
     }
   }
 
+  Future<void> _insertRecettes(List<_SeedRecipe> recipes) async {
+    // Une recette ou un article supprimé compte comme présent (AD-8).
+    final existingIds = (await _db.select(_db.recipes).get())
+        .map((r) => r.id)
+        .toSet();
+    final existingIngredientIds =
+        (await _db.select(_db.recipeIngredients).get())
+            .map((i) => i.id)
+            .toSet();
+    final articleIds = (await _db.select(_db.articles).get())
+        .map((a) => a.id)
+        .toSet();
+    for (final recipe in recipes) {
+      if (existingIds.contains(recipe.row.id.value)) continue;
+      final ingredients = [
+        for (final i in recipe.ingredients)
+          if (articleIds.contains(i.articleId.value) &&
+              !existingIngredientIds.contains(i.id.value))
+            i,
+      ];
+      if (ingredients.isEmpty) continue;
+      await _db.into(_db.recipes).insert(recipe.row);
+      for (final i in ingredients) {
+        await _db.into(_db.recipeIngredients).insert(i);
+      }
+    }
+  }
+
   _SeedFile<ArticlesCompanion> _parseArticles(String source) {
     final json = jsonDecode(source) as Map<String, dynamic>;
     final version = json['seed_version'] as int;
@@ -206,6 +248,66 @@ class SeedLoader {
     return _SeedFile(version, rows);
   }
 
+  /// Recettes exemples et leurs ingrédients ; la position d'un ingrédient
+  /// est son index dans sa recette. Lève une [FormatException] pour un UUID
+  /// en double (recettes et ingrédients), une recette sans nom, une unité
+  /// inconnue, ou une quantité et une unité qui ne sont pas nulles ensemble.
+  _SeedFile<_SeedRecipe> _parseRecettes(String source) {
+    final json = jsonDecode(source) as Map<String, dynamic>;
+    final version = json['seed_version'] as int;
+    final ids = <String>{};
+    String uniqueId(Map<String, dynamic> raw) {
+      final id = raw['id'] as String;
+      if (!ids.add(id)) throw FormatException('UUID en double : $id');
+      return id;
+    }
+
+    final rows = <_SeedRecipe>[];
+    for (final raw in json['recettes'] as List<dynamic>) {
+      final r = raw as Map<String, dynamic>;
+      final id = uniqueId(r);
+      final name = ((r['name'] as String?) ?? '').trim();
+      if (name.isEmpty) throw FormatException('Recette sans nom : $id');
+      final ingredients = <RecipeIngredientsCompanion>[];
+      for (final (position, rawIngredient)
+          in (r['ingredients'] as List<dynamic>).indexed) {
+        final i = rawIngredient as Map<String, dynamic>;
+        final ingredientId = uniqueId(i);
+        final quantity = i['quantity'] as int?;
+        final unit = Unit.fromCode(i['unit'] as String?);
+        if ((quantity == null) != (unit == null) ||
+            (quantity != null && quantity <= 0)) {
+          throw FormatException(
+            'Quantité et unité nulles ensemble (AD-6) : $ingredientId',
+          );
+        }
+        ingredients.add(
+          RecipeIngredientsCompanion.insert(
+            id: ingredientId,
+            updatedAt: 0,
+            recipeId: id,
+            articleId: i['article_id'] as String,
+            position: position,
+            quantity: Value(quantity),
+            unit: Value(unit?.code),
+          ),
+        );
+      }
+      rows.add(
+        _SeedRecipe(
+          RecipesCompanion.insert(
+            id: id,
+            updatedAt: 0,
+            name: name,
+            link: Value(r['link'] as String?),
+          ),
+          ingredients,
+        ),
+      );
+    }
+    return _SeedFile(version, rows);
+  }
+
   static bool _sameVersions(Map<String, int> a, Map<String, int> b) =>
       a.length == b.length && a.entries.every((e) => b[e.key] == e.value);
 }
@@ -214,4 +316,10 @@ class _SeedFile<T> {
   const _SeedFile(this.version, this.rows);
   final int version;
   final List<T> rows;
+}
+
+class _SeedRecipe {
+  const _SeedRecipe(this.row, this.ingredients);
+  final RecipesCompanion row;
+  final List<RecipeIngredientsCompanion> ingredients;
 }

@@ -8,6 +8,7 @@ import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
+import 'generated/schema_v3.dart' as v3;
 
 /// Un test par étape de migration (AD-14). Chaque version est figée dans
 /// `drift_schemas/app_database/`.
@@ -22,6 +23,240 @@ void main() {
     final db = AppDatabase.forTesting(schema.newConnection());
     await verifier.migrateAndValidate(db, 2);
     await db.close();
+  });
+
+  test('v3 : schéma créé conforme au dump', () async {
+    final schema = await verifier.schemaAt(3);
+    final db = AppDatabase.forTesting(schema.newConnection());
+    await verifier.migrateAndValidate(db, 3);
+    await db.close();
+  });
+
+  for (final from in [1, 2]) {
+    test('v$from → v3 : schéma conforme au dump', () async {
+      final schema = await verifier.schemaAt(from);
+      final db = AppDatabase.forTesting(schema.newConnection());
+      await verifier.migrateAndValidate(db, 3);
+      await db.close();
+    });
+  }
+
+  test('v2 → v3 : articles, lignes et contributions intacts, tables de '
+      'recettes créées vides', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 2,
+      newVersion: 3,
+      createOld: v2.DatabaseAtV2.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.forTesting,
+      createItems: (batch, oldDb) {
+        batch.insertAll(oldDb.articles, [
+          v2.ArticlesCompanion.insert(
+            id: _laitId,
+            updatedAt: 0,
+            name: 'Lait',
+            normalizedName: 'lait',
+            rayon: 'cremerie',
+            unit: const Value('piece'),
+            pictoKey: 'lait',
+          ),
+          v2.ArticlesCompanion.insert(
+            id: _pilesId,
+            updatedAt: 12,
+            name: 'Piles',
+            normalizedName: 'piles',
+            rayon: 'divers',
+            pictoKey: 'piles',
+            inCatalogue: const Value(0),
+          ),
+        ]);
+        batch.insertAll(oldDb.listLines, [
+          v2.ListLinesCompanion.insert(
+            id: _lineId,
+            updatedAt: 20,
+            articleId: _laitId,
+            rayon: 'cremerie',
+            unit: const Value('piece'),
+            addedAt: 20,
+          ),
+          v2.ListLinesCompanion.insert(
+            id: _checkedLineId,
+            updatedAt: 31,
+            articleId: _pilesId,
+            rayon: 'entretien',
+            addedAt: 21,
+            checkedAt: const Value(30),
+            manualAt: const Value(25),
+          ),
+        ]);
+        batch.insertAll(oldDb.listContributions, [
+          v2.ListContributionsCompanion.insert(
+            id: _contributionId,
+            updatedAt: 20,
+            lineId: _lineId,
+            source: 'ajout',
+            quantity: const Value(2000),
+            unit: const Value('piece'),
+          ),
+          v2.ListContributionsCompanion.insert(
+            id: _editionId,
+            updatedAt: 25,
+            lineId: _checkedLineId,
+            source: 'edition',
+          ),
+        ]);
+      },
+      validateItems: (newDb) async {
+        final articles = await (newDb.select(
+          newDb.articles,
+        )..orderBy([(a) => OrderingTerm.asc(a.id)])).get();
+        expect(articles, [
+          const v3.ArticlesData(
+            id: _laitId,
+            updatedAt: 0,
+            name: 'Lait',
+            normalizedName: 'lait',
+            rayon: 'cremerie',
+            unit: 'piece',
+            pictoKey: 'lait',
+            inCatalogue: 1,
+          ),
+          const v3.ArticlesData(
+            id: _pilesId,
+            updatedAt: 12,
+            name: 'Piles',
+            normalizedName: 'piles',
+            rayon: 'divers',
+            pictoKey: 'piles',
+            inCatalogue: 0,
+          ),
+        ]);
+        expect(
+          await (newDb.select(
+            newDb.listLines,
+          )..orderBy([(l) => OrderingTerm.asc(l.id)])).get(),
+          [
+            const v3.ListLinesData(
+              id: _lineId,
+              updatedAt: 20,
+              articleId: _laitId,
+              rayon: 'cremerie',
+              unit: 'piece',
+              addedAt: 20,
+            ),
+            const v3.ListLinesData(
+              id: _checkedLineId,
+              updatedAt: 31,
+              articleId: _pilesId,
+              rayon: 'entretien',
+              addedAt: 21,
+              checkedAt: 30,
+              manualAt: 25,
+            ),
+          ],
+        );
+        expect(
+          await (newDb.select(
+            newDb.listContributions,
+          )..orderBy([(c) => OrderingTerm.asc(c.id)])).get(),
+          [
+            const v3.ListContributionsData(
+              id: _contributionId,
+              updatedAt: 20,
+              lineId: _lineId,
+              source: 'ajout',
+              quantity: 2000,
+              unit: 'piece',
+            ),
+            const v3.ListContributionsData(
+              id: _editionId,
+              updatedAt: 25,
+              lineId: _checkedLineId,
+              source: 'edition',
+            ),
+          ],
+        );
+        expect(await newDb.select(newDb.recipes).get(), isEmpty);
+        expect(await newDb.select(newDb.recipeIngredients).get(), isEmpty);
+        expect(await newDb.select(newDb.weekSelections).get(), isEmpty);
+      },
+    );
+  });
+
+  test('v1 → v3 : articles et liste conservés, tables de recettes '
+      'créées vides', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 1,
+      newVersion: 3,
+      createOld: v1.DatabaseAtV1.new,
+      createNew: v3.DatabaseAtV3.new,
+      openTestedDatabase: AppDatabase.forTesting,
+      createItems: (batch, oldDb) {
+        batch.insert(
+          oldDb.articles,
+          v1.ArticlesCompanion.insert(
+            id: _laitId,
+            updatedAt: 0,
+            name: 'Lait',
+            normalizedName: 'lait',
+            rayon: 'cremerie',
+            pictoKey: 'lait',
+          ),
+        );
+        batch.insert(
+          oldDb.listLines,
+          v1.ListLinesCompanion.insert(
+            id: _lineId,
+            updatedAt: 20,
+            articleId: _laitId,
+            rayon: 'cremerie',
+            addedAt: 20,
+          ),
+        );
+        batch.insert(
+          oldDb.listContributions,
+          v1.ListContributionsCompanion.insert(
+            id: _contributionId,
+            updatedAt: 20,
+            lineId: _lineId,
+            source: 'ajout',
+          ),
+        );
+      },
+      validateItems: (newDb) async {
+        expect(await newDb.select(newDb.articles).get(), [
+          const v3.ArticlesData(
+            id: _laitId,
+            updatedAt: 0,
+            name: 'Lait',
+            normalizedName: 'lait',
+            rayon: 'cremerie',
+            pictoKey: 'lait',
+            inCatalogue: 1,
+          ),
+        ]);
+        expect(await newDb.select(newDb.listLines).get(), [
+          const v3.ListLinesData(
+            id: _lineId,
+            updatedAt: 20,
+            articleId: _laitId,
+            rayon: 'cremerie',
+            addedAt: 20,
+          ),
+        ]);
+        expect(await newDb.select(newDb.listContributions).get(), [
+          const v3.ListContributionsData(
+            id: _contributionId,
+            updatedAt: 20,
+            lineId: _lineId,
+            source: 'ajout',
+          ),
+        ]);
+        expect(await newDb.select(newDb.recipes).get(), isEmpty);
+        expect(await newDb.select(newDb.recipeIngredients).get(), isEmpty);
+        expect(await newDb.select(newDb.weekSelections).get(), isEmpty);
+      },
+    );
   });
 
   test('v1 → v2 : schéma conforme au dump', () async {
@@ -163,6 +398,13 @@ void main() {
     expect(db.schemaVersion, GeneratedHelper.versions.last);
   });
 }
+
+const _laitId = 'a0000000-0000-4000-8000-000000000001';
+const _pilesId = 'a0000000-0000-4000-8000-000000000002';
+const _lineId = 'b0000000-0000-4000-8000-000000000001';
+const _checkedLineId = 'b0000000-0000-4000-8000-000000000002';
+const _contributionId = 'c0000000-0000-4000-8000-000000000001';
+const _editionId = 'c0000000-0000-4000-8000-000000000002';
 
 final _unused = LazyDatabase(
   () => throw UnsupportedError('base jamais ouverte'),

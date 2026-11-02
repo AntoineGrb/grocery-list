@@ -23,7 +23,11 @@ class RayonHeader extends StatelessWidget {
           KadiSpacing.margin,
           KadiSpacing.s1,
         ),
-        child: Row(children: [RayonPastille(rayon: rayon)]),
+        // Flexible : en très grande police, le nom passe à la ligne dans la
+        // pastille au lieu de déborder.
+        child: Row(
+          children: [Flexible(child: RayonPastille(rayon: rayon))],
+        ),
       ),
     );
   }

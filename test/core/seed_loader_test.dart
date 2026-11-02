@@ -100,7 +100,12 @@ void main() {
     expect(settings.id, SettingsRepository.rowId);
     expect(settings.updatedAt, 0);
     expect(settings.routeOrder.split(',').length, 13);
-    expect(jsonDecode(settings.seedVersions), {'articles': 2, 'frequents': 1});
+    expect(jsonDecode(settings.seedVersions), {
+      'articles': 2,
+      'frequents': 1,
+      'recettes': 1,
+    });
+    expect(settings.firstLaunch, isFalse);
   });
 
   test('montée de version depuis la v1 : rien d’écrasé ni de recréé', () async {
@@ -112,6 +117,7 @@ void main() {
       loadAsset: assetLoaderWith({
         SeedLoader.articlesPath: v1,
         SeedLoader.frequentsPath: _frequentsFile(0, const []),
+        SeedLoader.recettesPath: emptyRecettesFile(0),
       }),
     ).run();
     expect(await db.select(db.articles).get(), hasLength(7));
@@ -164,9 +170,21 @@ void main() {
       (await _realFrequentArticleIds()).toSet(),
     );
     expect(await db.select(db.listLines).get(), linesBefore);
+    // Les recettes exemples arrivent sur un téléphone qui tournait l'epic 1 ;
+    // l'ingrédient Riz (article supprimé) compte comme présent.
+    expect(await db.select(db.recipes).get(), hasLength(4));
+    final chiliIngredients = await (db.select(
+      db.recipeIngredients,
+    )..where((i) => i.recipeId.equals(SeedRecipeIds.chili))).get();
+    expect(chiliIngredients.map((i) => i.articleId), contains(SeedIds.riz));
     final settings = await db.select(db.settings).getSingle();
-    expect(jsonDecode(settings.seedVersions), {'articles': 2, 'frequents': 1});
+    expect(jsonDecode(settings.seedVersions), {
+      'articles': 2,
+      'frequents': 1,
+      'recettes': 1,
+    });
     expect(settings.updatedAt, 5000);
+    expect(settings.firstLaunch, isFalse);
   });
 
   test('redémarrage : rien inséré ni modifié, supprimés compris', () async {
@@ -237,7 +255,7 @@ void main() {
     expect((lait.deletedAt, lait.updatedAt), (30, 30));
     expect(
       jsonDecode((await db.select(db.settings).getSingle()).seedVersions),
-      {'articles': 2, 'frequents': 2},
+      {'articles': 2, 'frequents': 2, 'recettes': 1},
     );
   });
 
@@ -319,6 +337,7 @@ void main() {
       expect(jsonDecode(settings.seedVersions), {
         'articles': 3,
         'frequents': 1,
+        'recettes': 1,
       });
       expect(settings.updatedAt, 5000);
     },
@@ -426,6 +445,177 @@ void main() {
     expect(await db.select(db.articles).get(), before);
   });
 
+  group('recettes exemples', () {
+    test('installation neuve : 4 recettes et leurs ingrédients, à '
+        'updated_at 0', () async {
+      await seedLoader(db).run();
+
+      final recipes = await db.select(db.recipes).get();
+      expect(recipes.map((r) => r.id).toSet(), {
+        SeedRecipeIds.carbonara,
+        SeedRecipeIds.chili,
+        SeedRecipeIds.quiche,
+        SeedRecipeIds.ratatouille,
+      });
+      expect(recipes.every((r) => r.updatedAt == 0), isTrue);
+      expect(recipes.every((r) => r.photo == null), isTrue);
+      final carbonara = recipes.singleWhere(
+        (r) => r.id == SeedRecipeIds.carbonara,
+      );
+      expect(carbonara.name, 'Pâtes carbonara');
+
+      final ingredients =
+          await (db.select(db.recipeIngredients)
+                ..where((i) => i.recipeId.equals(SeedRecipeIds.carbonara))
+                ..orderBy([(i) => OrderingTerm.asc(i.position)]))
+              .get();
+      expect(
+        [for (final i in ingredients) (i.articleId, i.quantity, i.unit)],
+        [
+          (SeedIds.pates, 500, 'g'),
+          (SeedIds.lardons, 200, 'g'),
+          (SeedIds.oeufs, 3000, 'piece'),
+          (_parmesan, 60, 'g'),
+          (SeedIds.poivre, null, null),
+        ],
+      );
+      expect([for (final i in ingredients) i.position], [0, 1, 2, 3, 4]);
+      expect(
+        (await db.select(db.recipeIngredients).get()).every(
+          (i) => i.updatedAt == 0,
+        ),
+        isTrue,
+      );
+      expect(await db.select(db.weekSelections).get(), isEmpty);
+    });
+
+    test('redémarrage et version supérieure : recette modifiée ou supprimée '
+        'jamais réécrite ni recréée', () async {
+      await seedLoader(db).run();
+      await (db.update(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).write(
+        const RecipesCompanion(
+          name: Value('Chili maison'),
+          updatedAt: Value(10),
+        ),
+      );
+      await (db.update(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.quiche))).write(
+        const RecipesCompanion(deletedAt: Value(20), updatedAt: Value(20)),
+      );
+      await (db.update(db.recipeIngredients)..where(
+            (i) =>
+                i.recipeId.equals(SeedRecipeIds.carbonara) &
+                i.articleId.equals(SeedIds.poivre),
+          ))
+          .write(
+            const RecipeIngredientsCompanion(
+              deletedAt: Value(30),
+              updatedAt: Value(30),
+            ),
+          );
+      final recipesBefore = await db.select(db.recipes).get();
+      final ingredientsBefore = await db.select(db.recipeIngredients).get();
+
+      await seedLoader(db).run();
+      expect(await db.select(db.recipes).get(), recipesBefore);
+      expect(await db.select(db.recipeIngredients).get(), ingredientsBefore);
+
+      final file = await diskAssetLoader(SeedLoader.recettesPath);
+      final v2 = (jsonDecode(file) as Map<String, dynamic>)
+        ..['seed_version'] = 2;
+      await seedLoader(
+        db,
+        loadAsset: assetLoaderWith({SeedLoader.recettesPath: jsonEncode(v2)}),
+      ).run();
+      expect(await db.select(db.recipes).get(), recipesBefore);
+      expect(await db.select(db.recipeIngredients).get(), ingredientsBefore);
+      expect(
+        jsonDecode((await db.select(db.settings).getSingle()).seedVersions),
+        {'articles': 2, 'frequents': 1, 'recettes': 2},
+      );
+    });
+
+    test('ingrédient dont l’article est absent : sauté ; recette sans '
+        'ingrédient : sautée', () async {
+      final file = jsonEncode({
+        'seed_version': 1,
+        'recettes': [
+          {
+            'id': _recipeA,
+            'name': 'Riz au lait',
+            'ingredients': [
+              _ingredient(_ingredientA1, SeedIds.riz, 200, 'g'),
+              _ingredient(_ingredientA2, _unknownArticle, 1000, 'piece'),
+              _ingredient(_ingredientA3, SeedIds.lait, 1000, 'piece'),
+            ],
+          },
+          {
+            'id': _recipeB,
+            'name': 'Mystère',
+            'ingredients': [
+              _ingredient(_ingredientB1, _unknownArticle, null, null),
+            ],
+          },
+        ],
+      });
+      await seedLoader(
+        db,
+        loadAsset: assetLoaderWith({SeedLoader.recettesPath: file}),
+      ).run();
+
+      expect((await db.select(db.recipes).get()).map((r) => r.id), [_recipeA]);
+      final ingredients = await (db.select(
+        db.recipeIngredients,
+      )..orderBy([(i) => OrderingTerm.asc(i.position)])).get();
+      expect(
+        [for (final i in ingredients) (i.id, i.position)],
+        [(_ingredientA1, 0), (_ingredientA3, 2)],
+      );
+    });
+
+    for (final (label, ingredient, name) in [
+      ('UUID en double', _ingredient(_recipeA, SeedIds.riz, null, null), 'A'),
+      (
+        'recette sans nom',
+        _ingredient(_ingredientA1, SeedIds.riz, null, null),
+        '  ',
+      ),
+      (
+        'quantité sans unité',
+        _ingredient(_ingredientA1, SeedIds.riz, 200, null),
+        'A',
+      ),
+      ('unité inconnue', _ingredient(_ingredientA1, SeedIds.riz, 2, 'kg'), 'A'),
+    ]) {
+      test('fichier de recettes invalide ($label) : rien d’écrit', () async {
+        await expectLater(
+          seedLoader(
+            db,
+            loadAsset: assetLoaderWith({
+              SeedLoader.recettesPath: jsonEncode({
+                'seed_version': 1,
+                'recettes': [
+                  {
+                    'id': _recipeA,
+                    'name': name,
+                    'ingredients': [ingredient],
+                  },
+                ],
+              }),
+            }),
+          ).run(),
+          throwsFormatException,
+        );
+        expect(await db.select(db.articles).get(), isEmpty);
+        expect(await db.select(db.recipes).get(), isEmpty);
+        expect(await db.select(db.settings).get(), isEmpty);
+      });
+    }
+  });
+
   test('fichier d’articles invalide : erreur et rien d’écrit', () async {
     final bad = jsonEncode({
       'seed_version': 1,
@@ -478,6 +668,20 @@ void main() {
 }
 
 const _unknownArticle = '22222222-2222-4222-8222-222222222222';
+const _parmesan = '6ef25bed-155f-4462-8218-58d665ed0dab';
+const _recipeA = '55555555-5555-4555-8555-555555555551';
+const _recipeB = '55555555-5555-4555-8555-555555555552';
+const _ingredientA1 = '66666666-6666-4666-8666-666666666661';
+const _ingredientA2 = '66666666-6666-4666-8666-666666666662';
+const _ingredientA3 = '66666666-6666-4666-8666-666666666663';
+const _ingredientB1 = '66666666-6666-4666-8666-666666666664';
+
+Map<String, Object?> _ingredient(
+  String id,
+  String articleId,
+  int? quantity,
+  String? unit,
+) => {'id': id, 'article_id': articleId, 'quantity': quantity, 'unit': unit};
 
 /// `frequentId(SeedIds.lait)`, figé.
 const _laitFrequentId = '1265e470-f634-566b-a103-339309569e28';

@@ -76,8 +76,29 @@ class ListeRepository {
     );
   }
 
+  /// Ajoute l'ingrédient [articleId] d'une recette validée : une contribution
+  /// `week_selection` portant [weekSelectionId], fusionnée comme toute
+  /// contribution (AD-4). À appeler dans la transaction de l'action Ajouter à
+  /// la liste (AD-3) : pas de transaction propre. Mêmes erreurs que
+  /// [addArticle].
+  Future<AddedContribution> addRecipeContribution(
+    String articleId, {
+    required String weekSelectionId,
+    int? quantity,
+    Unit? unit,
+  }) {
+    return _contribute(
+      articleId: articleId,
+      source: ContributionSource.weekSelection,
+      weekSelectionId: weekSelectionId,
+      quantity: quantity,
+      unit: unit,
+    );
+  }
+
   /// Écrit une contribution de [source] pour [articleId] selon les règles de
-  /// fusion d'AD-4, à appeler dans une transaction.
+  /// fusion d'AD-4, à appeler dans une transaction. [weekSelectionId] est la
+  /// sélection source d'une contribution `week_selection`.
   ///
   /// Sans quantité, elle rejoint la plus ancienne ligne non cochée de
   /// l'article, quelle que soit son unité, sinon crée une ligne sans unité.
@@ -89,6 +110,7 @@ class ListeRepository {
   Future<AddedContribution> _contribute({
     required String articleId,
     required String source,
+    String? weekSelectionId,
     int? quantity,
     Unit? unit,
   }) async {
@@ -175,6 +197,7 @@ class ListeRepository {
             updatedAt: now,
             lineId: lineId,
             source: source,
+            weekSelectionId: Value(weekSelectionId),
             quantity: Value(quantity),
             unit: Value(unit?.code),
           ),

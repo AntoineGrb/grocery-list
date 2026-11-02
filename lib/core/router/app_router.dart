@@ -3,20 +3,25 @@ import 'package:material_ui/material_ui.dart';
 
 import '../strings/strings_fr.dart';
 
-/// Chemins des onglets (AD-13).
+/// Chemins des onglets et des routes poussées (AD-13).
 abstract final class AppRoutes {
   static const recettes = '/recettes';
   static const liste = '/liste';
+
+  /// Revue : poussée hors de la coque, sans Barre de navigation.
+  static const revue = '/revue';
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,
 /// Recettes et Liste, qui gardent leur état ; ouverture sur Liste.
 ///
 /// Les écrans sont fournis par l'appelant : `core` ne dépend d'aucune
-/// fonctionnalité.
+/// fonctionnalité. [pushed] sont les routes poussées (Revue…), sur le
+/// navigateur racine, au-dessus de la coque : plein écran, flèche retour.
 GoRouter createAppRouter({
   required WidgetBuilder recettes,
   required WidgetBuilder liste,
+  List<RouteBase> pushed = const [],
   String initialLocation = AppRoutes.liste,
 }) {
   return GoRouter(
@@ -43,6 +48,7 @@ GoRouter createAppRouter({
           ),
         ],
       ),
+      ...pushed,
     ],
   );
 }

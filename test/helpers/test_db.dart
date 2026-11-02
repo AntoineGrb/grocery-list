@@ -18,7 +18,11 @@ AppDatabase memoryDatabase() => AppDatabase.forTesting(
 Future<String> diskAssetLoader(String path) => File(path).readAsString();
 
 /// Chemins des assets du contenu fourni lus par le chargeur.
-const seedAssetPaths = [SeedLoader.articlesPath, SeedLoader.frequentsPath];
+const seedAssetPaths = [
+  SeedLoader.articlesPath,
+  SeedLoader.frequentsPath,
+  SeedLoader.recettesPath,
+];
 
 /// Chargeur par chemin : le contenu de [overrides] pour ses chemins, le
 /// disque pour les autres.
@@ -40,7 +44,23 @@ abstract final class SeedIds {
   static const oignons = 'be6140d9-2886-4397-b038-952bf8612a5b';
   static const riz = 'd92eff2c-67fd-42bf-83d6-5f34033dc5e9';
   static const lardons = '02fe5b31-2754-4e5e-858b-f34811560f0c';
+  static const pates = '615fcd7d-e1e7-4f8d-810e-706baccb099a';
+  static const poivre = 'bbcff956-c443-4a7e-941f-70cc1bf254ff';
+  static const poivrons = '46534d57-80f6-41b1-92fd-f5d849f39553';
+  static const viandeHachee = '2de8b058-0ba2-4f13-a47f-81438b47b966';
 }
+
+/// Ids figés des recettes exemples de `assets/seed/recettes.json`.
+abstract final class SeedRecipeIds {
+  static const carbonara = '0d44ac0c-c91e-4c30-be13-29dbe0b31149';
+  static const chili = '5f54fade-264b-49b5-be79-2e8b75f19d84';
+  static const quiche = 'c4e99641-6f8f-4362-92d9-b09ee20d511f';
+  static const ratatouille = '561f866d-5b41-4cab-bc7e-41cd7de47b20';
+}
+
+/// Fichier de recettes vide, à la [version] donnée.
+String emptyRecettesFile([int version = 1]) =>
+    '{"seed_version": $version, "recettes": []}';
 
 /// Les 7 articles de la story 1 (`seed_version` 1), à garder à l'identique.
 const originalArticles = <Map<String, Object?>>[

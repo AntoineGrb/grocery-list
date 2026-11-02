@@ -13,6 +13,7 @@ import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/liste_repository.dart';
+import '../state/liste_notice.dart';
 import '../state/liste_panel.dart';
 import '../state/liste_providers.dart';
 import 'add_sheet.dart';
@@ -42,6 +43,10 @@ class ListeScreen extends ConsumerStatefulWidget {
 class _ListeScreenState extends ConsumerState<ListeScreen> {
   final _scroll = ScrollController();
   final _viewportKey = GlobalKey();
+
+  /// Messager propre à la Liste, qui montre aussi son avis (« Ta liste est
+  /// prête. »).
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   late final ListePanel _panel;
 
   /// Clé de chaque ligne non cochée, pour la mesurer.
@@ -69,6 +74,24 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
   void initState() {
     super.initState();
     _panel = ref.read(listePanelProvider)..addListener(_onPanelChanged);
+    ref.listenManual(listeNoticeProvider, (_, message) {
+      if (message != null) _showNotice();
+    }, fireImmediately: true);
+  }
+
+  /// Montre l'avis en attente sous le messager de la Liste, puis le vide,
+  /// après la frame : l'avis peut arriver avant que la Liste soit montée.
+  void _showNotice() {
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        final messenger = _messengerKey.currentState;
+        if (!mounted || messenger == null) return;
+        final message = ref.read(listeNoticeProvider.notifier).take();
+        if (message != null) {
+          messenger.showSnackBar(SnackBar(content: Text(message)));
+        }
+      })
+      ..scheduleFrame();
   }
 
   @override
@@ -266,6 +289,7 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     // Le Builder donne un contexte sous ce messager, qui reste monté quand le
     // Bouton d'action disparaît.
     return ScaffoldMessenger(
+      key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
           appBar: AppBar(title: const Text(StringsFr.tabListe)),

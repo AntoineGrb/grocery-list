@@ -21,9 +21,8 @@ Future<AppDatabase> _pumpApp(
 }
 
 void main() {
-  testWidgets('installation neuve : Liste vide, puis Recettes vide', (
-    tester,
-  ) async {
+  testWidgets('installation neuve : Liste vide, puis Recettes et ses '
+      'recettes exemples', (tester) async {
     await _pumpApp(tester);
 
     expect(find.text(StringsFr.listeVide), findsOneWidget);
@@ -31,7 +30,8 @@ void main() {
 
     await tester.tap(find.text(StringsFr.tabRecettes));
     await tester.pumpAndSettle();
-    expect(find.text(StringsFr.recettesVide), findsOneWidget);
+    expect(find.text(StringsFr.recettesVide), findsNothing);
+    expect(find.text('Chili con carne'), findsOneWidget);
   });
 
   testWidgets(

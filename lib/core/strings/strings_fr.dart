@@ -14,6 +14,22 @@ abstract final class StringsFr {
   static const recettesVide =
       'Pas encore de recette. Ajoute ta première avec +.';
 
+  // Recettes : sélection et Bouton d'action.
+  /// Bouton d'action de Recettes : « Valider (2) ».
+  static String validerN(int n) => 'Valider ($n)';
+
+  /// Carte recette lue par TalkBack : « Chili, sélectionnée ».
+  static String recetteSelectionnee(String name, {required bool selected}) =>
+      '$name, ${selected ? 'sélectionnée' : 'non sélectionnée'}';
+
+  // Revue.
+  static const revue = 'Revue';
+  static const revueConsigne = 'Décoche ce que tu as déjà.';
+  static const ajouterALaListe = 'Ajouter à la liste';
+
+  /// Avis de la Liste à l'arrivée depuis la Revue.
+  static const listePrete = 'Ta liste est prête.';
+
   // FAB + de la Liste.
   static const ajouterUnArticle = 'Ajouter un article';
 
