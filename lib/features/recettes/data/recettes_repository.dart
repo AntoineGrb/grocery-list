@@ -44,6 +44,7 @@ class RevueSource {
     required this.rayon,
     this.quantity,
     this.unit,
+    this.articleUnit,
   });
 
   /// Sélection de la recette (`week_selections.id`).
@@ -58,6 +59,9 @@ class RevueSource {
   /// Quantité stockée (AD-6), nulle avec [unit].
   final int? quantity;
   final Unit? unit;
+
+  /// Unité par défaut de l'article (`articles.unit`), nulle sans unité.
+  final Unit? articleUnit;
 }
 
 /// Sélections à valider et leurs ingrédients, dans l'ordre des recettes
@@ -250,6 +254,7 @@ class RecettesRepository {
       rayon: Rayon.tryFromCode(article.rayon) ?? Rayon.divers,
       quantity: quantity == null || quantity <= 0 ? null : quantity,
       unit: quantity == null || quantity <= 0 ? null : unit,
+      articleUnit: Unit.tryFromCode(article.unit),
     );
   }
 

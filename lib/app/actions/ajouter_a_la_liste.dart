@@ -8,9 +8,10 @@ import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:kadi/features/recettes/state/revue.dart';
 
 /// Ajouter à la liste, depuis la Revue (R5, AD-3, AD-16), en une
-/// transaction : une contribution `week_selection` par part de recette de
-/// chaque ligne, fusionnée par `ListeRepository` (AD-4), puis `validated_at`
-/// sur toutes les sélections de la Revue, même sans ligne.
+/// transaction : les contributions `week_selection` des lignes cochées, avec
+/// leurs quantités corrigées ([revueWrites]), fusionnées par
+/// `ListeRepository` (AD-4), puis `validated_at` sur toutes les sélections
+/// de la Revue, même sans contribution.
 class AjouterALaListe {
   AjouterALaListe(this._db, this._liste, this._recettes);
 
@@ -18,21 +19,18 @@ class AjouterALaListe {
   final ListeRepository _liste;
   final RecettesRepository _recettes;
 
-  /// Ajoute les lignes de [revue] à la liste en cours et valide ses
-  /// sélections. Un échec lève et n'écrit rien.
-  Future<void> call(Revue revue) {
+  /// Ajoute les lignes cochées de [revue], corrigées par [draft], à la liste
+  /// en cours et valide ses sélections. Un échec lève et n'écrit rien.
+  Future<void> call(Revue revue, {RevueDraft draft = const RevueDraft()}) {
+    final writes = revueWrites(revue, draft);
     return _db.transaction(() async {
-      for (final group in revue.groups) {
-        for (final line in group.lines) {
-          for (final c in line.contributions) {
-            await _liste.addRecipeContribution(
-              line.articleId,
-              weekSelectionId: c.selectionId,
-              quantity: c.quantity,
-              unit: c.unit,
-            );
-          }
-        }
+      for (final w in writes) {
+        await _liste.addRecipeContribution(
+          w.articleId,
+          weekSelectionId: w.selectionId,
+          quantity: w.quantity,
+          unit: w.unit,
+        );
       }
       await _recettes.markValidated(revue.selectionIds);
     });

@@ -5,6 +5,8 @@ import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/quantity_field.dart';
+import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/state/liste_notice.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:material_ui/material_ui.dart';
@@ -15,8 +17,9 @@ import 'revue_row.dart';
 
 /// Revue : écran poussé plein écran, flèche retour, sans Barre de
 /// navigation. Les ingrédients des recettes à valider, groupés par rayon
-/// dans l'ordre du parcours, tous cochés (R4) ; Bouton d'action « Ajouter à
-/// la liste » (R5).
+/// dans l'ordre du parcours, cochés à l'ouverture (R4) ; on y décoche ce
+/// qu'on a déjà et corrige une quantité ; Bouton d'action « Ajouter à la
+/// liste » (R5).
 ///
 /// La Revue lit les sélections à valider à son ouverture et garde cet
 /// instantané (AD-1) : « Ajouter à la liste » valide exactement celles-là.
@@ -31,8 +34,54 @@ class RevueScreen extends ConsumerStatefulWidget {
 class _RevueScreenState extends ConsumerState<RevueScreen> {
   late final Future<Revue> _revue = ref.read(revueLoaderProvider)();
 
+  /// Brouillon d'écran (AD-1), jamais persisté : il meurt avec l'écran, et
+  /// un retour n'écrit rien. Clés des lignes décochées.
+  final _unchecked = <String>{};
+
+  /// Texte du Champ quantité de chaque ligne, par clé de ligne.
+  final _controllers = <String, TextEditingController>{};
+
   /// Écriture en cours : le bouton ne réagit plus.
   bool _adding = false;
+
+  @override
+  void dispose() {
+    for (final c in _controllers.values) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  /// Texte d'origine du champ de [line] : sa quantité exacte dans son unité,
+  /// vide sans quantité.
+  static String _originalText(RevueLine line) =>
+      quantityFieldText(line.quantity, InputUnit.of(line.fieldUnit));
+
+  TextEditingController _controllerFor(RevueLine line) =>
+      _controllers.putIfAbsent(
+        line.key,
+        () => TextEditingController(text: _originalText(line)),
+      );
+
+  void _toggle(RevueLine line) => setState(() {
+    if (!_unchecked.remove(line.key)) _unchecked.add(line.key);
+  });
+
+  /// Le brouillon : lignes décochées et champs dont le texte a changé.
+  RevueDraft _draft(Revue revue) {
+    final corrections = <String, int?>{};
+    for (final group in revue.groups) {
+      for (final line in group.lines) {
+        final text = _controllers[line.key]?.text;
+        if (text == null || text == _originalText(line)) continue;
+        corrections[line.key] = quantityFromFieldText(
+          text,
+          InputUnit.of(line.fieldUnit),
+        )?.quantity;
+      }
+    }
+    return RevueDraft(unchecked: {..._unchecked}, corrections: corrections);
+  }
 
   Future<void> _ajouter(BuildContext context, Revue revue) async {
     if (_adding) return;
@@ -41,7 +90,7 @@ class _RevueScreenState extends ConsumerState<RevueScreen> {
     final router = GoRouter.of(context);
     final notice = ref.read(listeNoticeProvider.notifier);
     try {
-      await ref.read(ajouterALaListeProvider).call(revue);
+      await ref.read(ajouterALaListeProvider).call(revue, draft: _draft(revue));
     } catch (_) {
       if (mounted) setState(() => _adding = false);
       showErrorSnackBar(messenger, StringsFr.ajoutImpossible);
@@ -82,25 +131,39 @@ class _RevueScreenState extends ConsumerState<RevueScreen> {
                     ),
                     for (final group in revue.groups) ...[
                       RayonHeader(rayon: group.rayon),
-                      for (final line in group.lines) RevueRow(line: line),
+                      for (final line in group.lines)
+                        RevueRow(
+                          key: ValueKey(line.key),
+                          line: line,
+                          checked: !_unchecked.contains(line.key),
+                          controller: _controllerFor(line),
+                          onToggle: () => _toggle(line),
+                        ),
                     ],
                   ],
                 ),
+          // Clavier ouvert (saisie d'une quantité) : le bouton reste visible
+          // juste au-dessus ; fermé, il ne bouge pas.
           bottomNavigationBar: revue == null
               ? null
-              : SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      KadiSpacing.margin,
-                      KadiSpacing.s2,
-                      KadiSpacing.margin,
-                      KadiSpacing.s2,
-                    ),
-                    child: FilledButton(
-                      onPressed: _adding
-                          ? null
-                          : () => _ajouter(context, revue),
-                      child: const Text(StringsFr.ajouterALaListe),
+              : Padding(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.viewInsetsOf(context).bottom,
+                  ),
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        KadiSpacing.margin,
+                        KadiSpacing.s2,
+                        KadiSpacing.margin,
+                        KadiSpacing.s2,
+                      ),
+                      child: FilledButton(
+                        onPressed: _adding
+                            ? null
+                            : () => _ajouter(context, revue),
+                        child: const Text(StringsFr.ajouterALaListe),
+                      ),
                     ),
                   ),
                 ),

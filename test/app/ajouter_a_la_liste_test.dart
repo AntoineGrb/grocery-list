@@ -160,6 +160,89 @@ void main() {
     );
   });
 
+  group('brouillon de la Revue', () {
+    RevueLine lineOf(Revue revue, String articleId) =>
+        [for (final g in revue.groups) ...g.lines]
+            .singleWhere((l) => l.articleId == articleId);
+
+    test('Pâtes décochées, Œufs 6 → 4, Lardons 400 → 300 : ni Pâtes ni '
+        'ligne manuelle, parts au prorata', () async {
+      final revue = await revueOf([
+        SeedRecipeIds.carbonara,
+        SeedRecipeIds.quiche,
+      ]);
+      final oeufs = lineOf(revue, SeedIds.oeufs);
+      final lardons = lineOf(revue, SeedIds.lardons);
+      expect(oeufs.quantity, 6000);
+      await ajouter(
+        revue,
+        draft: RevueDraft(
+          unchecked: {lineOf(revue, SeedIds.pates).key},
+          corrections: {oeufs.key: 4000, lardons.key: 300},
+        ),
+      );
+
+      final ids = await selectionByRecipe();
+      final contributions = await db.select(db.listContributions).get();
+      final articleOf = {
+        for (final l in await db.select(db.listLines).get()) l.id: l.articleId,
+      };
+      Map<String?, int?> partsOf(String articleId) => {
+        for (final c in contributions)
+          if (articleOf[c.lineId] == articleId) c.weekSelectionId: c.quantity,
+      };
+      expect(contributions, hasLength(9));
+      expect(partsOf(SeedIds.pates), isEmpty);
+      expect(partsOf(SeedIds.oeufs), {
+        ids[SeedRecipeIds.carbonara]: 2000,
+        ids[SeedRecipeIds.quiche]: 2000,
+      });
+      expect(partsOf(SeedIds.lardons), {
+        ids[SeedRecipeIds.carbonara]: 150,
+        ids[SeedRecipeIds.quiche]: 150,
+      });
+
+      final items = await liste.watchUnchecked().first;
+      final byName = {for (final i in items) i.name: i};
+      expect(byName.containsKey('Pâtes'), isFalse);
+      expect(
+        (byName['Œufs']!.quantity, byName['Œufs']!.unit),
+        (4000, Unit.piece),
+      );
+      expect(byName['Lardons']!.quantity, 300);
+      // Une correction de Revue ne rend jamais une ligne manuelle.
+      expect(
+        (await db.select(db.listLines).get()).every((l) => l.manualAt == null),
+        isTrue,
+      );
+      final selections = await db.select(db.weekSelections).get();
+      expect(selections.every((s) => s.validatedAt != null), isTrue);
+    });
+
+    test(
+      'tout décoché : rien n’est écrit, les sélections sont validées',
+      () async {
+        final revue = await revueOf([SeedRecipeIds.carbonara]);
+        await ajouter(
+          revue,
+          draft: RevueDraft(
+            unchecked: {
+              for (final g in revue.groups)
+                for (final l in g.lines) l.key,
+            },
+          ),
+        );
+        expect(await db.select(db.listLines).get(), isEmpty);
+        expect(await db.select(db.listContributions).get(), isEmpty);
+        expect(
+          (await db.select(db.weekSelections).getSingle()).validatedAt,
+          isNotNull,
+        );
+        expect((await recettes.pendingSelections()).selectionIds, isEmpty);
+      },
+    );
+  });
+
   test('échec : rien n’est écrit', () async {
     final revue = await revueOf([SeedRecipeIds.carbonara]);
     final selectionsBefore = await db.select(db.weekSelections).get();
