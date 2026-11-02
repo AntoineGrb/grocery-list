@@ -105,7 +105,8 @@ void main() {
       'frequents': 1,
       'recettes': 1,
     });
-    expect(settings.firstLaunch, isFalse);
+    // Recettes exemples insérées : premier lancement (AD-13).
+    expect(settings.firstLaunch, isTrue);
   });
 
   test('montée de version depuis la v1 : rien d’écrasé ni de recréé', () async {
@@ -183,8 +184,9 @@ void main() {
       'frequents': 1,
       'recettes': 1,
     });
+    // Une seule écriture des réglages, qui lève le drapeau (AD-13).
     expect(settings.updatedAt, 5000);
-    expect(settings.firstLaunch, isFalse);
+    expect(settings.firstLaunch, isTrue);
   });
 
   test('redémarrage : rien inséré ni modifié, supprimés compris', () async {
@@ -443,6 +445,99 @@ void main() {
     ).run();
 
     expect(await db.select(db.articles).get(), before);
+  });
+
+  group('drapeau de premier lancement (AD-13)', () {
+    Future<bool> firstLaunch() async =>
+        (await db.select(db.settings).getSingle()).firstLaunch;
+
+    test('installation neuve sans recette exemple : non levé', () async {
+      await seedLoader(
+        db,
+        loadAsset: assetLoaderWith({
+          SeedLoader.recettesPath: emptyRecettesFile(),
+        }),
+      ).run();
+      expect(await firstLaunch(), isFalse);
+    });
+
+    test('baissé, puis redémarrage : reste baissé', () async {
+      await seedLoader(db).run();
+      await SettingsRepository(db, Clock()).setFirstLaunch(false);
+      await seedLoader(db).run();
+      expect(await firstLaunch(), isFalse);
+    });
+
+    test(
+      'recettes à jour, autre fichier en version supérieure : non levé',
+      () async {
+        await seedLoader(db).run();
+        await SettingsRepository(db, Clock()).setFirstLaunch(false);
+        await seedLoader(
+          db,
+          loadAsset: assetLoaderWith({
+            SeedLoader.frequentsPath: _frequentsFile(2, [SeedIds.lait]),
+          }),
+        ).run();
+        expect(await firstLaunch(), isFalse);
+      },
+    );
+
+    test('version de recettes supérieure, toutes déjà présentes (ou '
+        'supprimées) : non levé', () async {
+      await seedLoader(db).run();
+      await SettingsRepository(db, Clock()).setFirstLaunch(false);
+      await (db.update(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.quiche))).write(
+        const RecipesCompanion(deletedAt: Value(20), updatedAt: Value(20)),
+      );
+      final file = await diskAssetLoader(SeedLoader.recettesPath);
+      final v2 = (jsonDecode(file) as Map<String, dynamic>)
+        ..['seed_version'] = 2;
+      await seedLoader(
+        db,
+        loadAsset: assetLoaderWith({SeedLoader.recettesPath: jsonEncode(v2)}),
+      ).run();
+      expect(await firstLaunch(), isFalse);
+    });
+
+    test(
+      'version de recettes supérieure avec une recette nouvelle : insérée, '
+      'drapeau non levé (les lancements suivants s’ouvrent sur la Liste)',
+      () async {
+        await seedLoader(db).run();
+        await SettingsRepository(db, Clock()).setFirstLaunch(false);
+        final file = await diskAssetLoader(SeedLoader.recettesPath);
+        final v2 = (jsonDecode(file) as Map<String, dynamic>)
+          ..['seed_version'] = 2;
+        (v2['recettes'] as List).add({
+          'id': _recipeA,
+          'name': 'Riz nature',
+          'ingredients': [_ingredient(_ingredientA1, SeedIds.riz, 200, 'g')],
+        });
+        await seedLoader(
+          db,
+          loadAsset: assetLoaderWith({SeedLoader.recettesPath: jsonEncode(v2)}),
+        ).run();
+        expect(
+          (await db.select(db.recipes).get()).map((r) => r.id),
+          contains(_recipeA),
+        );
+        expect(await firstLaunch(), isFalse);
+      },
+    );
+
+    test('échec du chargement : non levé, rien d’écrit', () async {
+      await expectLater(
+        seedLoader(
+          db,
+          loadAsset: assetLoaderWith({SeedLoader.articlesPath: '{pas du json'}),
+        ).run(),
+        throwsFormatException,
+      );
+      expect(await db.select(db.settings).get(), isEmpty);
+    });
   });
 
   group('recettes exemples', () {

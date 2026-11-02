@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kadi/app/actions/deselectionner_une_recette.dart';
 import 'package:kadi/app/actions/nouvelle_liste.dart';
+import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -16,6 +17,7 @@ import 'package:material_ui/material_ui.dart';
 import '../data/recettes_repository.dart';
 import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
+import 'fiche_recette_screen.dart';
 import 'recipe_card.dart';
 
 /// Recettes : cartes sur 2 colonnes (R2) ; un tap sélectionne ou
@@ -23,9 +25,27 @@ import 'recipe_card.dart';
 /// « Valider (n) » tant que n recettes sélectionnées ne sont pas validées,
 /// qui ouvre la Revue ; Action Nouvelle liste dans la Barre d'application
 /// (R8). Sans recette, son message d'état vide. FAB + : nouvelle recette ;
-/// icône « modifier » d'une carte : sa Fiche recette (R1).
+/// icône « modifier » d'une carte : sa Fiche recette (R1) ; une fiche fermée
+/// par « Supprimer la recette » donne ici le snackbar Annuler.
+///
+/// Au premier lancement, la ligne d'accueil au-dessus des cartes (R11), le
+/// temps de la session et tant qu'il y a des recettes.
 class RecettesScreen extends ConsumerWidget {
   const RecettesScreen({super.key});
+
+  /// Ouvre la Fiche recette [location] ; fermée par « Supprimer la recette »,
+  /// montre « Recette supprimée : … » · « Annuler » (AD-10).
+  ///
+  /// [context] est celui du `Builder` de Recettes, sous son messager.
+  Future<void> _openFiche(BuildContext context, String location) async {
+    final deletion = await context.push<RecipeDeletion>(location);
+    if (deletion == null || !context.mounted) return;
+    showUndoSnackBar(
+      context,
+      StringsFr.recetteSupprimee(deletion.name),
+      deletion.entry,
+    );
+  }
 
   /// Sélectionne ou désélectionne [card]. Une carte validée passe par
   /// l'action transverse qui retire ses ingrédients de la liste (R6, AD-3),
@@ -91,6 +111,13 @@ class RecettesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cards = ref.watch(recipeCardsProvider).value;
     final toValidate = ref.watch(toValidateCountProvider);
+    // Plus aucune recette : la ligne d'accueil ne revient pas de la session.
+    ref.listen(recipeCardsProvider, (_, next) {
+      if (next.value?.isEmpty ?? false) {
+        ref.read(welcomeProvider.notifier).dismiss();
+      }
+    });
+    final welcome = ref.watch(welcomeProvider);
     // Le dossier des photos n'est lu que si une carte en a une.
     final photosDir = (cards ?? const []).any((c) => c.photo != null)
         ? ref.watch(photosDirectoryProvider).value
@@ -144,12 +171,16 @@ class RecettesScreen extends ConsumerWidget {
                 // La dernière rangée défile au-dessus du FAB +.
                 KadiSpacing.listBottomInset,
               ),
-              itemCount: (cards.length + 1) ~/ 2,
+              itemCount: (cards.length + 1) ~/ 2 + (welcome ? 1 : 0),
               separatorBuilder: (_, _) =>
                   const SizedBox(height: KadiSpacing.gutter),
               // Rangées de deux cartes à hauteur égale : la plus haute
               // (police système) donne la hauteur de la rangée.
-              itemBuilder: (_, row) {
+              // Le contexte du Builder, pas celui de la rangée : il reste
+              // monté quand la carte disparaît (suppression).
+              itemBuilder: (_, index) {
+                if (welcome && index == 0) return const _WelcomeLine();
+                final row = welcome ? index - 1 : index;
                 final left = cards[row * 2];
                 final right = row * 2 + 1 < cards.length
                     ? cards[row * 2 + 1]
@@ -190,7 +221,7 @@ class RecettesScreen extends ConsumerWidget {
           // le FAB de la Liste vit dans la même coque.
           floatingActionButton: FloatingActionButton(
             heroTag: null,
-            onPressed: () => context.push(AppRoutes.nouvelleRecette),
+            onPressed: () => _openFiche(context, AppRoutes.nouvelleRecette),
             child: const Icon(
               Icons.add,
               semanticLabel: StringsFr.nouvelleRecette,
@@ -213,8 +244,25 @@ class RecettesScreen extends ConsumerWidget {
         ? null
         : RecipePhotos.fileIn(photosDir, card.photo!),
     onTap: () => _toggle(context, ref, card),
-    onEdit: () => context.push(AppRoutes.recette(card.recipeId)),
+    onEdit: () => _openFiche(context, AppRoutes.recette(card.recipeId)),
   );
+}
+
+/// Ligne d'accueil du premier lancement : une phrase, non interactive, lue
+/// par TalkBack ; elle passe à la ligne avec la police système.
+class _WelcomeLine extends StatelessWidget {
+  const _WelcomeLine();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(
+      StringsFr.recettesAccueil,
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
+      ),
+    );
+  }
 }
 
 /// Dialogue de confirmation de Nouvelle liste (DESIGN `confirm-dialog`) :

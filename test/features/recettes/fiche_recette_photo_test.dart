@@ -594,4 +594,32 @@ void main() {
       expect(_openLink.hitTestable(), findsOneWidget);
     });
   }
+  testWidgets('photo choisie puis « Supprimer la recette » : la photo est '
+      'enregistrée puis gardée ; Annuler rend la carte avec sa photo', (
+    tester,
+  ) async {
+    final env = await _openRecettes(tester);
+    await _edit(tester, 'Chili con carne');
+    env.picker.results.add(env.source.path);
+    await _pick(tester);
+
+    await _tap(
+      tester,
+      find.widgetWithText(TextButton, StringsFr.supprimerLaRecette),
+    );
+
+    expect(find.byType(FicheRecetteScreen), findsNothing);
+    expect(_card('Chili con carne'), findsNothing);
+    final recipe = await (env.db.select(
+      env.db.recipes,
+    )..where((r) => r.name.equals('Chili con carne'))).getSingle();
+    expect((recipe.photo, recipe.deletedAt != null), ('photo-1.jpg', true));
+    expect(env.photos.files, {'photo-1.jpg'});
+
+    await tester.tap(find.widgetWithText(SnackBarAction, StringsFr.annuler));
+    await tester.pumpAndSettle();
+    await _loadImages(tester);
+    expect(_cardImage(tester, 'Chili con carne'), isNotNull);
+    expect(env.photos.files, {'photo-1.jpg'});
+  });
 }

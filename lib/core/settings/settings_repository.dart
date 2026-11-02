@@ -40,8 +40,13 @@ class SettingsRepository {
   }
 
   /// Insère les réglages par défaut avec [seedVersions], `updated_at = 0`
-  /// (AD-8). Sans effet si la ligne existe déjà.
-  Future<void> insertDefaults({required Map<String, int> seedVersions}) async {
+  /// (AD-8), et le drapeau de premier lancement levé si [firstLaunch] (des
+  /// recettes exemples viennent d'être insérées, AD-13). Sans effet si la
+  /// ligne existe déjà.
+  Future<void> insertDefaults({
+    required Map<String, int> seedVersions,
+    bool firstLaunch = false,
+  }) async {
     final d = AppSettings.defaults;
     await _db
         .into(_db.settings)
@@ -52,21 +57,42 @@ class SettingsRepository {
             routeOrder: encodeRouteOrder(d.routeOrder),
             groupByRayon: d.groupByRayon,
             keepScreenOn: d.keepScreenOn,
-            firstLaunch: d.firstLaunch,
+            firstLaunch: firstLaunch || d.firstLaunch,
             seedVersions: jsonEncode(seedVersions),
           ),
           mode: InsertMode.insertOrIgnore,
         );
   }
 
-  /// Enregistre les `seed_version` après un chargement du contenu fourni.
-  Future<void> setSeedVersions(Map<String, int> seedVersions) async {
+  /// Enregistre les `seed_version` après un chargement du contenu fourni,
+  /// et lève dans la même écriture le drapeau de premier lancement si
+  /// [raiseFirstLaunch] (AD-13).
+  Future<void> setSeedVersions(
+    Map<String, int> seedVersions, {
+    bool raiseFirstLaunch = false,
+  }) async {
     final r = await (_db.select(
       _db.settings,
     )..where((s) => s.id.equals(rowId))).getSingle();
     await (_db.update(_db.settings)..where((s) => s.id.equals(rowId))).write(
       SettingsCompanion(
         seedVersions: Value(jsonEncode(seedVersions)),
+        firstLaunch: raiseFirstLaunch
+            ? const Value(true)
+            : const Value.absent(),
+        updatedAt: Value(_clock.stamp(r.updatedAt)),
+      ),
+    );
+  }
+
+  /// Fixe le drapeau de premier lancement (AD-13) ; sans ligne de réglages,
+  /// ou drapeau déjà à [value], rien n'est écrit.
+  Future<void> setFirstLaunch(bool value) async {
+    final r = await _row.getSingleOrNull();
+    if (r == null || r.firstLaunch == value) return;
+    await (_db.update(_db.settings)..where((s) => s.id.equals(rowId))).write(
+      SettingsCompanion(
+        firstLaunch: Value(value),
         updatedAt: Value(_clock.stamp(r.updatedAt)),
       ),
     );

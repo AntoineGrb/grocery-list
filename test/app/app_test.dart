@@ -14,14 +14,32 @@ Future<AppDatabase> _pumpApp(
   WidgetTester tester, {
   Brightness platformBrightness = Brightness.light,
   Map<String, String> assetOverrides = const {},
+  bool firstLaunch = false,
 }) async {
   tester.platformDispatcher.platformBrightnessTestValue = platformBrightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
-  return pumpKadi(tester, assetOverrides: assetOverrides);
+  return pumpKadi(
+    tester,
+    assetOverrides: assetOverrides,
+    firstLaunch: firstLaunch,
+  );
 }
 
 void main() {
-  testWidgets('installation neuve : Liste vide, puis Recettes et ses '
+  testWidgets('installation neuve : Recettes et ses recettes exemples, puis '
+      'la Liste vide', (tester) async {
+    await _pumpApp(tester, firstLaunch: true);
+
+    expect(find.text(StringsFr.recettesVide), findsNothing);
+    expect(find.text(StringsFr.recettesAccueil), findsOneWidget);
+    expect(find.text('Chili con carne'), findsOneWidget);
+
+    await tester.tap(find.text(StringsFr.tabListe));
+    await tester.pumpAndSettle();
+    expect(find.text(StringsFr.listeVide), findsOneWidget);
+  });
+
+  testWidgets('lancement suivant : la Liste vide, puis Recettes et ses '
       'recettes exemples', (tester) async {
     await _pumpApp(tester);
 
@@ -31,7 +49,18 @@ void main() {
     await tester.tap(find.text(StringsFr.tabRecettes));
     await tester.pumpAndSettle();
     expect(find.text(StringsFr.recettesVide), findsNothing);
+    expect(find.text(StringsFr.recettesAccueil), findsNothing);
     expect(find.text('Chili con carne'), findsOneWidget);
+  });
+
+  testWidgets('premier lancement : contenu fourni illisible, écran d’erreur '
+      'bloquant', (tester) async {
+    await _pumpApp(
+      tester,
+      firstLaunch: true,
+      assetOverrides: {SeedLoader.recettesPath: '{pas du json'},
+    );
+    expect(find.byType(BlockingErrorScreen), findsOneWidget);
   });
 
   testWidgets(

@@ -182,6 +182,10 @@ typedef DeselectedSelections = ({
   List<UndoRow> undoRows,
 });
 
+/// Recette supprimée par [RecettesRepository.deleteRecipe] : son nom, pour le
+/// snackbar, et son état d'avant pour Annuler (AD-10).
+typedef DeletedRecipe = ({String name, UndoRow undoRow});
+
 /// Propriétaire de `recipes`, `recipe_ingredients` et `week_selections`
 /// (AD-2).
 class RecettesRepository {
@@ -413,6 +417,30 @@ class RecettesRepository {
         );
       }
       return true;
+    });
+  }
+
+  /// Supprime logiquement la recette [recipeId] en une transaction (R1,
+  /// AD-7) : seule sa ligne est écrite ; ses ingrédients et ses sélections
+  /// comptent comme supprimés par leur parent. La liste en cours ne change
+  /// pas (R7) et le fichier de sa photo est gardé, pour Annuler.
+  ///
+  /// Rend son nom et son état d'avant (AD-10), ou `null` sans rien écrire si
+  /// la recette est absente ou déjà supprimée.
+  Future<DeletedRecipe?> deleteRecipe(String recipeId) {
+    return _db.transaction(() async {
+      final recipe =
+          await (_db.select(_db.recipes)
+                ..where((r) => r.id.equals(recipeId) & r.deletedAt.isNull()))
+              .getSingleOrNull();
+      if (recipe == null) return null;
+      final stamp = _clock.stamp(recipe.updatedAt);
+      await (_db.update(
+        _db.recipes,
+      )..where((r) => r.id.equals(recipe.id))).write(
+        RecipesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+      return (name: recipe.name, undoRow: UndoRow.before(_db.recipes, recipe));
     });
   }
 

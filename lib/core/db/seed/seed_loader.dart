@@ -22,8 +22,10 @@ typedef SeedAssetLoader = Future<String> Function(String path);
 /// Les recettes exemples s'insèrent avec leurs ingrédients, après articles et
 /// fréquents : un ingrédient dont l'article n'est pas en base est sauté, une
 /// recette qui n'a plus d'ingrédient aussi. Les ingrédients d'une recette
-/// déjà présente ne sont jamais complétés. Le chargeur ne touche pas au
-/// drapeau de premier lancement.
+/// déjà présente ne sont jamais complétés. Quand le fichier de recettes est
+/// chargé pour la première fois et insère au moins une recette, le chargeur
+/// lève le drapeau de premier lancement dans la même transaction (AD-13) ;
+/// il ne le baisse jamais.
 ///
 /// Un article fourni dont le nom normalisé est porté par un article actif
 /// hors catalogue (AD-17) est inséré, les lignes de liste de l'article hors
@@ -82,15 +84,26 @@ class SeedLoader {
         next[frequentsFile] = frequents.version;
       }
       // Après les articles : la clé étrangère des ingrédients est satisfaite.
+      var recipesInserted = false;
       if (recettes.version > (current[recettesFile] ?? 0)) {
-        await _insertRecettes(recettes.rows);
+        recipesInserted = await _insertRecettes(recettes.rows);
         next[recettesFile] = recettes.version;
       }
 
+      // Fichier de recettes chargé pour la première fois (installation
+      // neuve, ou téléphone de l'epic 1) avec au moins une recette insérée :
+      // premier lancement (AD-13). Une version suivante ne le lève jamais.
+      recipesInserted = recipesInserted && !current.containsKey(recettesFile);
       if (!hasSettings) {
-        await _settings.insertDefaults(seedVersions: next);
+        await _settings.insertDefaults(
+          seedVersions: next,
+          firstLaunch: recipesInserted,
+        );
       } else if (!_sameVersions(current, next)) {
-        await _settings.setSeedVersions(next);
+        await _settings.setSeedVersions(
+          next,
+          raiseFirstLaunch: recipesInserted,
+        );
       }
     });
   }
@@ -163,7 +176,9 @@ class SeedLoader {
     }
   }
 
-  Future<void> _insertRecettes(List<_SeedRecipe> recipes) async {
+  /// Rend `true` si au moins une recette a été insérée.
+  Future<bool> _insertRecettes(List<_SeedRecipe> recipes) async {
+    var inserted = false;
     // Une recette ou un article supprimé compte comme présent (AD-8).
     final existingIds = (await _db.select(_db.recipes).get())
         .map((r) => r.id)
@@ -185,10 +200,12 @@ class SeedLoader {
       ];
       if (ingredients.isEmpty) continue;
       await _db.into(_db.recipes).insert(recipe.row);
+      inserted = true;
       for (final i in ingredients) {
         await _db.into(_db.recipeIngredients).insert(i);
       }
     }
+    return inserted;
   }
 
   _SeedFile<ArticlesCompanion> _parseArticles(String source) {

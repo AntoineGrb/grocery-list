@@ -313,4 +313,129 @@ void main() {
       expect((await repo.pendingSelections()).selectionIds, isEmpty);
     });
   });
+  group('supprimer une recette', () {
+    test('Chili validé : seule la recette est supprimée, par l’horloge ; '
+        'ingrédients, sélection et liste inchangés ; Annuler la rend '
+        'sélectionnée et validée', () async {
+      await repo.select(SeedRecipeIds.chili);
+      final selection = (await selections(SeedRecipeIds.chili)).single.id;
+      await db.transaction(() => repo.markValidated([selection]));
+      await db
+          .into(db.listLines)
+          .insert(
+            ListLinesCompanion.insert(
+              id: 'ligne-1',
+              updatedAt: 1,
+              articleId: SeedIds.viandeHachee,
+              rayon: 'viande-poisson',
+              addedAt: 1,
+            ),
+          );
+      final recipeBefore = await (db.select(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).getSingle();
+      final ingredientsBefore = await db.select(db.recipeIngredients).get();
+      final selectionsBefore = await db.select(db.weekSelections).get();
+      final linesBefore = await db.select(db.listLines).get();
+      final contributionsBefore = await db.select(db.listContributions).get();
+      final otherRecipesBefore = await (db.select(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili).not())).get();
+
+      now = 5000;
+      final deleted = await repo.deleteRecipe(SeedRecipeIds.chili);
+
+      expect(deleted?.name, 'Chili con carne');
+      final recipe = await (db.select(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).getSingle();
+      expect((recipe.deletedAt, recipe.updatedAt), (5000, 5000));
+      expect(
+        await (db.select(
+          db.recipes,
+        )..where((r) => r.id.equals(SeedRecipeIds.chili).not())).get(),
+        otherRecipesBefore,
+      );
+      expect(await db.select(db.recipeIngredients).get(), ingredientsBefore);
+      expect(await db.select(db.weekSelections).get(), selectionsBefore);
+      expect(await db.select(db.listLines).get(), linesBefore);
+      expect(await db.select(db.listContributions).get(), contributionsBefore);
+      expect(
+        (await repo.watchCards().first).map((c) => c.recipeId),
+        isNot(contains(SeedRecipeIds.chili)),
+      );
+      expect(await repo.readSheet(SeedRecipeIds.chili), isNull);
+
+      final undo = Undo(db, clock);
+      final entry = undo.record([deleted!.undoRow]);
+      now = 6000;
+      expect(await undo.undo(entry), isTrue);
+
+      final restored = await (db.select(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).getSingle();
+      expect(restored.deletedAt, isNull);
+      expect(restored.updatedAt, 6000);
+      expect(
+        (restored.name, restored.link, restored.photo),
+        (recipeBefore.name, recipeBefore.link, recipeBefore.photo),
+      );
+      final chili = (await repo.watchCards().first).singleWhere(
+        (c) => c.recipeId == SeedRecipeIds.chili,
+      );
+      expect((chili.selected, chili.validated), (true, true));
+      expect(await db.select(db.listLines).get(), linesBefore);
+    });
+
+    test('recette sélectionnée non validée supprimée : absente de la Revue ; '
+        'Annuler : de nouveau à valider', () async {
+      await repo.select(SeedRecipeIds.quiche);
+      final deleted = await repo.deleteRecipe(SeedRecipeIds.quiche);
+      expect((await repo.pendingSelections()).selectionIds, isEmpty);
+
+      final undo = Undo(db, clock);
+      await undo.undo(undo.record([deleted!.undoRow]));
+      expect(
+        (await repo.pendingSelections()).selectionIds,
+        (await selections(SeedRecipeIds.quiche)).map((s) => s.id),
+      );
+    });
+
+    test('photo gardée : le nom du fichier reste sur la recette', () async {
+      await (db.update(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).write(
+        const RecipesCompanion(photo: Value('chili.jpg'), updatedAt: Value(9)),
+      );
+      await repo.deleteRecipe(SeedRecipeIds.chili);
+      final recipe = await (db.select(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).getSingle();
+      expect(recipe.photo, 'chili.jpg');
+    });
+
+    test('absente ou déjà supprimée : null, rien d’écrit', () async {
+      await repo.deleteRecipe(SeedRecipeIds.chili);
+      final before = await db.select(db.recipes).get();
+      final last = clock.last;
+
+      expect(await repo.deleteRecipe(SeedRecipeIds.chili), isNull);
+      expect(await repo.deleteRecipe('inconnue'), isNull);
+      expect(clock.last, last);
+      expect(await db.select(db.recipes).get(), before);
+    });
+
+    test('autre écriture entre-temps : Annuler sans effet (AD-10)', () async {
+      final deleted = await repo.deleteRecipe(SeedRecipeIds.chili);
+      final undo = Undo(db, clock);
+      final entry = undo.record([deleted!.undoRow]);
+      await repo.select(SeedRecipeIds.quiche);
+
+      expect(await undo.undo(entry), isFalse);
+      final recipe = await (db.select(
+        db.recipes,
+      )..where((r) => r.id.equals(SeedRecipeIds.chili))).getSingle();
+      expect(recipe.deletedAt, isNotNull);
+    });
+  });
 }

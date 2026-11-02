@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
@@ -38,6 +40,11 @@ import 'fiche_recette_rows.dart';
 /// Sinon rien n'est écrit : une nouvelle fiche incomplète ne crée rien, une
 /// recette existante garde sa dernière version valide. Modifier une recette
 /// ne change jamais la liste en cours ni la sélection (R7).
+///
+/// En bas, « Supprimer la recette », seulement pour une recette enregistrée :
+/// un tap, sans confirmation (C9), la supprime logiquement et ferme la fiche
+/// en rendant une [RecipeDeletion] à Recettes, qui montre le snackbar
+/// Annuler. Un échec montre un snackbar et la fiche reste ouverte.
 class FicheRecetteScreen extends ConsumerStatefulWidget {
   const FicheRecetteScreen({super.key, this.recipeId});
 
@@ -46,6 +53,15 @@ class FicheRecetteScreen extends ConsumerStatefulWidget {
 
   @override
   ConsumerState<FicheRecetteScreen> createState() => _FicheRecetteState();
+}
+
+/// Résultat d'une Fiche recette fermée par « Supprimer la recette » : le nom
+/// de la recette supprimée et son entrée Annuler (AD-10).
+class RecipeDeletion {
+  const RecipeDeletion(this.name, this.entry);
+
+  final String name;
+  final UndoEntry entry;
 }
 
 class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
@@ -105,6 +121,15 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   RecipeDraft? _pendingSave;
   bool _saving = false;
 
+  /// Écritures en cours, attendues avant une suppression.
+  Future<void>? _flushing;
+
+  /// La recette est en base : « Supprimer la recette » est montré.
+  bool _saved = false;
+
+  /// Une suppression est en cours : un second tap est ignoré.
+  bool _deleting = false;
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +151,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
         _missing = true;
         return;
       }
+      _saved = true;
       _nameController.text = sheet.name;
       _linkController.text = sheet.link ?? '';
       _photo = _savedPhoto = sheet.photo;
@@ -172,7 +198,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   void _changed() {
     if (!_loaded || _missing) return;
     _pendingSave = _snapshot();
-    if (!_saving) unawaited(_flush());
+    if (!_saving) _flushing = _flush();
   }
 
   Future<void> _flush() async {
@@ -182,7 +208,10 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       final draft = _pendingSave!;
       _pendingSave = null;
       try {
-        if (await _repository.saveDraft(draft)) _savedPhoto = draft.photo;
+        if (await _repository.saveDraft(draft)) {
+          _savedPhoto = draft.photo;
+          if (!_saved && mounted) setState(() => _saved = true);
+        }
       } catch (_) {
         if (messenger != null) {
           showErrorSnackBar(messenger, StringsFr.enregistrementImpossible);
@@ -240,6 +269,33 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   void _removePhoto() {
     setState(() => _photo = null);
     _changed();
+  }
+
+  /// « Supprimer la recette » : les écritures en cours finies, la recette est
+  /// supprimée logiquement et la fiche se ferme en rendant son nom et son
+  /// entrée Annuler. Un échec montre un snackbar ; la fiche reste ouverte.
+  Future<void> _delete() async {
+    if (_deleting) return;
+    _deleting = true;
+    final messenger = ScaffoldMessenger.of(context);
+    final undo = ref.read(undoProvider);
+    final DeletedRecipe? deleted;
+    try {
+      // Les écritures en cours finies : Annuler rend la dernière version
+      // enregistrée de la recette.
+      await _flushing;
+      deleted = await _repository.deleteRecipe(_recipeId);
+    } catch (_) {
+      _deleting = false;
+      showErrorSnackBar(messenger, StringsFr.suppressionImpossible);
+      return;
+    }
+    if (!mounted) return;
+    context.pop(
+      deleted == null
+          ? null
+          : RecipeDeletion(deleted.name, undo.record([deleted.undoRow])),
+    );
   }
 
   /// Ouvre le lien dans le navigateur, `https://` ajouté sans schéma ; un
@@ -537,6 +593,30 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                     ),
                   ),
                 ),
+                if (_saved)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      KadiSpacing.margin,
+                      KadiSpacing.s4,
+                      KadiSpacing.margin,
+                      0,
+                    ),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TextButton.icon(
+                        onPressed: _delete,
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text(StringsFr.supprimerLaRecette),
+                        style: TextButton.styleFrom(
+                          foregroundColor: scheme.error,
+                          minimumSize: const Size(
+                            KadiSpacing.touchTarget,
+                            KadiSpacing.touchTarget,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );

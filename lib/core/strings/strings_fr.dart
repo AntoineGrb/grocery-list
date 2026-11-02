@@ -14,6 +14,10 @@ abstract final class StringsFr {
   static const recettesVide =
       'Pas encore de recette. Ajoute ta première avec +.';
 
+  /// Ligne d'accueil de Recettes au premier lancement.
+  static const recettesAccueil =
+      'Voici quelques recettes pour essayer. Supprime-les quand tu veux.';
+
   // Recettes : sélection et Bouton d'action.
   /// Bouton d'action de Recettes : « Valider (2) ».
   static String validerN(int n) => 'Valider ($n)';
@@ -56,6 +60,13 @@ abstract final class StringsFr {
   static String uniteDe(String value) => '$unite, $value';
   static const enregistrementImpossible =
       'Enregistrement impossible. Réessaie.';
+
+  /// Bouton du bas de la fiche d'une recette enregistrée.
+  static const supprimerLaRecette = 'Supprimer la recette';
+
+  /// Snackbar Annuler de Recettes après une suppression :
+  /// « Recette supprimée : Chili ».
+  static String recetteSupprimee(String name) => 'Recette supprimée : $name';
 
   // Photo et lien de la Fiche recette.
   static const ajouterUnePhoto = 'Ajouter une photo';

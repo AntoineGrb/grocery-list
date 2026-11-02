@@ -22,7 +22,8 @@ abstract final class AppRoutes {
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,
-/// Recettes et Liste, qui gardent leur état ; ouverture sur Liste.
+/// Recettes et Liste, qui gardent leur état ; ouverture sur [initialLocation],
+/// la Liste sauf au premier lancement (Recettes).
 ///
 /// Les écrans sont fournis par l'appelant : `core` ne dépend d'aucune
 /// fonctionnalité. [pushed] sont les routes poussées (Revue…), sur le

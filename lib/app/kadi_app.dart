@@ -24,29 +24,35 @@ class KadiApp extends ConsumerStatefulWidget {
 }
 
 class _KadiAppState extends ConsumerState<KadiApp> {
-  late final GoRouter _router = createAppRouter(
-    recettes: (_) => const RecettesScreen(),
-    liste: (_) => const ListeScreen(),
-    pushed: [
-      GoRoute(
-        path: AppRoutes.revue,
-        builder: (context, state) => const RevueScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.nouvelleRecette,
-        builder: (context, state) => const FicheRecetteScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.recettePattern,
-        builder: (context, state) =>
-            FicheRecetteScreen(recipeId: state.pathParameters['id']),
-      ),
-    ],
-  );
+  /// Créé une fois, après le démarrage : il ouvre sur Recettes au premier
+  /// lancement, sur la Liste sinon (AD-13).
+  GoRouter? _router;
+
+  GoRouter _routerFor({required bool firstLaunch}) =>
+      _router ??= createAppRouter(
+        initialLocation: firstLaunch ? AppRoutes.recettes : AppRoutes.liste,
+        recettes: (_) => const RecettesScreen(),
+        liste: (_) => const ListeScreen(),
+        pushed: [
+          GoRoute(
+            path: AppRoutes.revue,
+            builder: (context, state) => const RevueScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.nouvelleRecette,
+            builder: (context, state) => const FicheRecetteScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.recettePattern,
+            builder: (context, state) =>
+                FicheRecetteScreen(recipeId: state.pathParameters['id']),
+          ),
+        ],
+      );
 
   @override
   void dispose() {
-    _router.dispose();
+    _router?.dispose();
     super.dispose();
   }
 
@@ -54,7 +60,7 @@ class _KadiAppState extends ConsumerState<KadiApp> {
   Widget build(BuildContext context) {
     final startup = ref.watch(appStartupProvider);
     return switch (startup) {
-      AsyncData() => MaterialApp.router(
+      AsyncData(value: final firstLaunch) => MaterialApp.router(
         title: StringsFr.appName,
         debugShowCheckedModeBanner: false,
         theme: KadiTheme.light,
@@ -62,7 +68,7 @@ class _KadiAppState extends ConsumerState<KadiApp> {
         locale: _locale,
         supportedLocales: const [_locale],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        routerConfig: _router,
+        routerConfig: _routerFor(firstLaunch: firstLaunch),
       ),
       AsyncError() => const _StaticApp(child: BlockingErrorScreen()),
       _ => const _StaticApp(child: Scaffold()),
