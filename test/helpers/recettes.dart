@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
+import 'package:kadi/features/recettes/ui/ingredient_sheet.dart';
 import 'package:kadi/features/recettes/ui/recipe_card.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -65,6 +67,53 @@ Finder get ficheNameField => find
       matching: find.byType(TextField),
     )
     .first;
+
+/// Le bouton « Ajouter un ingrédient » de la fiche.
+Finder get addIngredientButton => find.ancestor(
+  of: find.text(StringsFr.ajouterUnIngredient),
+  matching: find.byWidgetPredicate((w) => w is TextButton),
+);
+
+/// Ouvre la popup d'ajout d'ingrédient par le bouton de la fiche.
+Future<void> openIngredientSheet(WidgetTester tester) async {
+  await tester.ensureVisible(addIngredientButton);
+  await tester.pumpAndSettle();
+  await tester.tap(addIngredientButton);
+  await tester.pumpAndSettle();
+  expect(find.byType(IngredientSheet), findsOneWidget);
+}
+
+/// Champ « Ajouter un ingrédient » de la popup.
+Finder get ingredientSheetField => find.descendant(
+  of: find.byType(IngredientSheet),
+  matching: find.byType(TextField),
+);
+
+/// Ligne de résultat de [name] dans la popup.
+Finder ingredientResult(String name) => find.byWidgetPredicate(
+  (w) => w is IngredientResultRow && w.article.name == name,
+);
+
+/// Ferme la popup par le retour.
+Future<void> closeIngredientSheet(WidgetTester tester) async {
+  await tester.binding.handlePopRoute();
+  await tester.pumpAndSettle();
+  expect(find.byType(IngredientSheet), findsNothing);
+}
+
+/// Ouvre la popup, cherche [query], touche le résultat [name] et referme.
+Future<void> addIngredientBySheet(
+  WidgetTester tester,
+  String query,
+  String name,
+) async {
+  await openIngredientSheet(tester);
+  await tester.enterText(ingredientSheetField, query);
+  await tester.pumpAndSettle();
+  await tester.tap(ingredientResult(name));
+  await tester.pumpAndSettle();
+  await closeIngredientSheet(tester);
+}
 
 /// La recette nommée [name], supprimée ou non ; `null` sans elle.
 Future<Recipe?> recipeNamed(AppDatabase db, String name) => (db.select(

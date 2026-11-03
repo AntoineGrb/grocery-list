@@ -52,6 +52,10 @@ abstract final class StringsFr {
   /// recette ».
   static const dansLaRecette = 'dans la recette';
 
+  /// Annonce d'un ajout depuis la popup d'ingrédient de la Fiche recette :
+  /// « Haricots rouges ajouté ».
+  static String ingredientAjoute(String name) => '$name ajouté';
+
   /// Icône de retrait d'une Ligne d'ingrédient : « Retirer Haricots rouges ».
   static String retirerIngredient(String name) => 'Retirer $name';
 

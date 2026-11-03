@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,8 +9,6 @@ import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
-import 'package:kadi/features/catalogue/data/normalize_name.dart';
-import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/recettes_repository.dart';
@@ -18,18 +17,21 @@ import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
 import 'fiche_recette_photo.dart';
 import 'fiche_recette_rows.dart';
+import 'ingredient_sheet.dart';
+
+/// Durée du défilement qui montre un ingrédient ajouté.
+const _revealDuration = Duration(milliseconds: 200);
 
 /// Fiche recette (R1) : écran poussé plein écran, flèche retour, sans Barre
 /// de navigation. Ouverte vide par le FAB + de Recettes ([recipeId] nul : nom
 /// focalisé, clavier ouvert), ou sur une recette par l'icône « modifier » de
 /// sa carte.
 ///
-/// Nom, Champ de recherche sur tout le catalogue (un tap sur un résultat
-/// ajoute l'article comme ingrédient en dernière position ; sans article de
-/// ce nom exact, « Créer « … » » le crée au catalogue), puis les Lignes
-/// d'ingrédient. Après un ajout, la recherche se vide et le Champ quantité
-/// du nouvel ingrédient prend le focus ; Entrée y rend le focus à la
-/// recherche.
+/// Nom, Lignes d'ingrédient, puis le bouton « Ajouter un ingrédient », qui
+/// ouvre la popup d'ajout ([showIngredientSheet]) au-dessus de la fiche :
+/// chaque article ajouté y entre en dernière position et la fiche défile
+/// pour montrer sa ligne au-dessus de la popup. La quantité est facultative :
+/// aucun Champ quantité ne prend le focus après un ajout.
 ///
 /// Sous les ingrédients, la zone photo (galerie ou appareil photo, copiée
 /// sous `photos/`, AD-18 ; remplacer, retirer) et le champ « Lien », avec
@@ -78,9 +80,17 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
 
   final _nameController = TextEditingController();
   final _nameFocus = FocusNode();
-  final _searchController = TextEditingController();
-  final _searchFocus = FocusNode();
   final _linkController = TextEditingController();
+  final _scroll = ScrollController();
+
+  /// Zone défilante de la fiche, pour la mesurer.
+  final _viewportKey = GlobalKey();
+
+  /// La popup d'ajout est ouverte : un second tap sur le bouton est ignoré.
+  bool _sheetOpen = false;
+
+  /// Haut de la popup d'ajout ouverte, en coordonnées globales.
+  double? _sheetTop;
 
   /// Photo du brouillon (nom de fichier dans `photos/`), nulle sans photo.
   String? _photo;
@@ -111,11 +121,6 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
 
   /// Ingrédient dont le Choix d'unité est ouvert.
   String? _unitOpenFor;
-
-  List<CatalogueArticle> _lastResults = const [];
-
-  /// Une création « Créer « … » » est en cours : un second tap est ignoré.
-  bool _creating = false;
 
   /// Brouillon à écrire après l'écriture en cours, et écriture en cours.
   RecipeDraft? _pendingSave;
@@ -164,9 +169,8 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   void dispose() {
     _nameController.dispose();
     _nameFocus.dispose();
-    _searchController.dispose();
-    _searchFocus.dispose();
     _linkController.dispose();
+    _scroll.dispose();
     for (final ingredient in _ingredients) {
       ingredient.dispose();
     }
@@ -312,46 +316,105 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     if (!opened) showErrorSnackBar(messenger, StringsFr.lienImpossible);
   }
 
+  /// Le bouton « Ajouter un ingrédient » : ouvre la popup d'ajout au-dessus
+  /// de la fiche. Le champ qui avait le focus le rend : à la fermeture, aucun
+  /// champ de la fiche ne le reprend.
+  Future<void> _openSheet() async {
+    if (_sheetOpen) return;
+    _sheetOpen = true;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() => _unitOpenFor = null);
+    await showIngredientSheet(
+      context,
+      inRecipe: (articleId) =>
+          _ingredients.any((i) => i.articleId == articleId),
+      onAdd: _addArticle,
+      onCreate: _create,
+      onTop: _onSheetTop,
+      ficheMessenger: ScaffoldMessenger.maybeOf(context),
+    );
+    _sheetOpen = false;
+    if (mounted) setState(() => _sheetTop = null);
+  }
+
+  /// La popup d'ajout a changé de hauteur : la fiche garde de quoi défiler
+  /// sous elle.
+  void _onSheetTop(double top) {
+    if (!mounted || !_sheetOpen || top == _sheetTop) return;
+    setState(() => _sheetTop = top);
+  }
+
   /// Ajoute [article] comme ingrédient en dernière position, sauf s'il l'est
-  /// déjà ; vide la recherche et donne le focus à son Champ quantité.
-  void _addArticle(CatalogueArticle article) {
-    if (_ingredients.any((i) => i.articleId == article.id)) return;
+  /// déjà (rend alors `false`) ; sa ligne est montrée au-dessus de la popup.
+  /// Aucun Champ quantité ne prend le focus : la quantité est facultative.
+  bool _addArticle(CatalogueArticle article) {
+    if (_ingredients.any((i) => i.articleId == article.id)) return false;
     final ingredient = IngredientDraft.added(_repository.newId(), article);
     setState(() {
       _ingredients.add(ingredient);
-      _searchController.clear();
       _unitOpenFor = null;
     });
     _changed();
+    // La popup change de hauteur dans la même frame et la publie après
+    // elle : la ligne est montrée une frame plus tard, sous sa géométrie à
+    // jour.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focus(ingredient.focusNode);
+      if (!mounted) return;
+      WidgetsBinding.instance
+        ..addPostFrameCallback((_) => _reveal(ingredient))
+        ..scheduleFrame();
     });
+    return true;
   }
 
-  /// Donne le focus au champ de [node] et le fait défiler à l'écran.
-  void _focus(FocusNode node) {
-    node.requestFocus();
-    final context = node.context;
-    if (context != null) unawaited(Scrollable.ensureVisible(context));
-  }
+  /// Fait défiler la fiche jusqu'à montrer la ligne de [ingredient], juste
+  /// au-dessus de la popup si elle la masquait ; rien si elle est visible.
+  void _reveal(IngredientDraft ingredient) {
+    if (!mounted || !_scroll.hasClients) return;
+    final row = ingredient.rowKey.currentContext?.findRenderObject();
+    final viewport = _viewportKey.currentContext?.findRenderObject();
+    if (row is! RenderBox || viewport is! RenderBox) return;
 
-  /// « Créer « … » » : l'article au catalogue, puis ajouté comme
-  /// ingrédient. Un échec montre un snackbar et n'écrit rien.
-  Future<void> _create(String text) async {
-    if (_creating) return;
-    _creating = true;
-    final messenger = ScaffoldMessenger.of(context);
-    final CatalogueArticle article;
-    try {
-      article = await ref.read(creerArticleProvider)(text);
-    } catch (_) {
-      showErrorSnackBar(messenger, StringsFr.ajoutImpossible);
+    final rowTop = row.localToGlobal(Offset.zero).dy;
+    final rowBottom = rowTop + row.size.height;
+    final viewportTop = viewport.localToGlobal(Offset.zero).dy;
+    final viewportBottom = viewportTop + viewport.size.height;
+    final limit = math.min(viewportBottom, _sheetTop ?? viewportBottom);
+
+    final double delta;
+    if (rowBottom > limit) {
+      delta = rowBottom - limit;
+    } else if (rowTop < viewportTop) {
+      delta = rowTop - viewportTop;
+    } else {
       return;
-    } finally {
-      _creating = false;
     }
-    if (!mounted) return;
-    _addArticle(article);
+    final position = _scroll.position;
+    final offset = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _scroll.jumpTo(offset);
+    } else {
+      unawaited(
+        _scroll.animateTo(
+          offset,
+          duration: _revealDuration,
+          curve: Curves.easeOut,
+        ),
+      );
+    }
+  }
+
+  /// Entrée ou « Créer « … » » dans la popup : l'article actif de ce nom,
+  /// sinon créé au catalogue (Divers, sans unité, AD-17), puis ajouté comme
+  /// ingrédient. Rend l'article ajouté, nul s'il l'était déjà ; un échec
+  /// lève une erreur et n'écrit rien.
+  Future<CatalogueArticle?> _create(String text) async {
+    final article = await ref.read(creerArticleProvider)(text);
+    if (!mounted) return null;
+    return _addArticle(article) ? article : null;
   }
 
   void _remove(IngredientDraft ingredient) {
@@ -372,30 +435,17 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     _changed();
   }
 
-  /// Article du catalogue au nom exact de [text] (casse et accents ignorés),
-  /// parmi [results].
-  static bool _hasExact(List<CatalogueArticle> results, String text) {
-    final normalized = normalizeName(text);
-    return results.any((a) => normalizeName(a.name) == normalized);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final query = _searchController.text;
-    final searching = query.trim().isNotEmpty;
-    // Les derniers résultats restent tant que la saisie n'a pas les siens.
-    final fresh = searching
-        ? ref.watch(articleSearchProvider(query)).value
-        : null;
-    final results = searching
-        ? fresh ?? _lastResults
-        : const <CatalogueArticle>[];
-    _lastResults = results;
-    // « Créer « … » » attend les résultats de cette saisie.
-    final showCreate = fresh != null && !_hasExact(fresh, query);
-    final ingredientIds = {for (final i in _ingredients) i.articleId};
+    final media = MediaQuery.of(context);
+    // Sous la popup ouverte, la fiche garde de quoi faire défiler sa
+    // dernière ligne au-dessus d'elle ; le surplus reste caché.
+    final sheetTop = _sheetTop;
+    final covered = sheetTop == null
+        ? 0.0
+        : math.max(0.0, media.size.height - media.viewInsets.bottom - sheetTop);
     final photo = _photo;
     final photosDir = photo == null
         ? null
@@ -405,10 +455,12 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     final nameStyle = theme.textTheme.titleLarge;
     final body = !_loaded || _missing
         ? const SizedBox.shrink()
-        // Toutes les lignes sont bâties : le champ visé par un saut de focus
-        // existe toujours, même hors de l'écran.
+        // Toutes les lignes sont bâties : la ligne ajoutée se mesure et se
+        // montre, même hors de l'écran.
         : SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: KadiSpacing.s6),
+            key: _viewportKey,
+            controller: _scroll,
+            padding: EdgeInsets.only(bottom: KadiSpacing.s6 + covered),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -426,14 +478,13 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                       focusNode: _nameFocus,
                       autofocus: widget.recipeId == null,
                       textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.next,
+                      textInputAction: TextInputAction.done,
                       style: nameStyle?.copyWith(color: scheme.onSurface),
                       onChanged: (_) {
                         // L'aperçu de la photo est lu avec le nom.
                         if (_photo != null) setState(() {});
                         _changed();
                       },
-                      onSubmitted: (_) => _focus(_searchFocus),
                       decoration: InputDecoration(
                         filled: false,
                         contentPadding: EdgeInsets.zero,
@@ -450,69 +501,9 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                     ),
                   ),
                 ),
-                // Champ de recherche (DESIGN `search-field`) : pilule du
-                // thème, loupe, × d'effacement, curseur `on-surface`.
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: KadiSpacing.margin,
-                    vertical: KadiSpacing.s2,
-                  ),
-                  child: Semantics(
-                    label: StringsFr.ajouterUnIngredient,
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocus,
-                      textInputAction: TextInputAction.search,
-                      onChanged: (_) => setState(() {}),
-                      // Le clavier reste ouvert ; Entrée n'ajoute rien.
-                      onEditingComplete: () {},
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: scheme.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        hint: ExcludeSemantics(
-                          child: Text(
-                            StringsFr.ajouterUnIngredient,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        prefixIcon: const Icon(Icons.search),
-                        constraints: const BoxConstraints(
-                          minHeight: KadiSpacing.touchTarget,
-                        ),
-                        suffixIcon: query.isEmpty
-                            ? null
-                            : IconButton(
-                                tooltip: StringsFr.effacerLeTexte,
-                                icon: const Icon(Icons.close),
-                                onPressed: () =>
-                                    setState(_searchController.clear),
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (searching) ...[
-                  for (final article in results)
-                    IngredientResultRow(
-                      key: ValueKey('result-${article.id}'),
-                      article: article,
-                      inRecipe: ingredientIds.contains(article.id),
-                      onTap: () => _addArticle(article),
-                    ),
-                  if (showCreate)
-                    CreateArticleRow(
-                      key: const ValueKey(CreateArticleRow),
-                      name: query.trim(),
-                      onTap: () => _create(query),
-                    ),
-                  const Divider(height: KadiSpacing.s4),
-                ],
                 for (final ingredient in _ingredients)
                   IngredientRow(
-                    key: ValueKey(ingredient.id),
+                    key: ingredient.rowKey,
                     ingredient: ingredient,
                     unitOpen: _unitOpenFor == ingredient.id,
                     onUnitTap: () => setState(
@@ -522,9 +513,32 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                     ),
                     onUnitSelected: (unit) => _selectUnit(ingredient, unit),
                     onChanged: _changed,
-                    onSubmitted: () => _focus(_searchFocus),
                     onRemove: () => _remove(ingredient),
                   ),
+                // « Ajouter un ingrédient » : icône + et texte `on-surface`,
+                // jamais d'argile ; l'icône s'aligne sur les Pictos.
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: KadiSpacing.margin - KadiSpacing.s3,
+                    end: KadiSpacing.margin,
+                    top: KadiSpacing.s1,
+                  ),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: TextButton.icon(
+                      onPressed: _openSheet,
+                      icon: const Icon(Icons.add),
+                      label: const Text(StringsFr.ajouterUnIngredient),
+                      style: TextButton.styleFrom(
+                        foregroundColor: scheme.onSurface,
+                        minimumSize: const Size(
+                          KadiSpacing.touchTarget,
+                          KadiSpacing.touchTarget,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     KadiSpacing.margin,

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' hide isNull, isNotNull;
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
@@ -11,9 +12,12 @@ import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/quantity_input.dart';
+import 'package:kadi/features/liste/ui/quantity_tag.dart';
+import 'package:kadi/features/liste/ui/rayon_tag.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
+import 'package:kadi/features/recettes/ui/ingredient_sheet.dart';
 import 'package:kadi/features/recettes/ui/recipe_card.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -45,11 +49,10 @@ Future<AppDatabase> _openRecettes(
 
 Finder get _fab => find.byType(FloatingActionButton);
 
-/// Champ de recherche de la fiche.
-Finder get _searchField => find.ancestor(
-  of: find.text(StringsFr.ajouterUnIngredient),
-  matching: find.byType(TextField),
-);
+/// Champ « Ajouter un ingrédient » de la popup.
+Finder get _sheetField => ingredientSheetField;
+
+Finder get _sheet => find.byType(IngredientSheet);
 
 TextField _textField(WidgetTester tester, Finder finder) =>
     tester.widget<TextField>(finder);
@@ -57,14 +60,23 @@ TextField _textField(WidgetTester tester, Finder finder) =>
 bool _focused(WidgetTester tester, Finder field) =>
     _textField(tester, field).focusNode!.hasFocus;
 
+String _sheetText(WidgetTester tester) =>
+    _textField(tester, _sheetField).controller!.text;
+
+/// Tape [text] dans le champ de la popup ouverte.
 Future<void> _search(WidgetTester tester, String text) async {
-  await tester.enterText(_searchField, text);
+  await tester.enterText(_sheetField, text);
   await tester.pumpAndSettle();
 }
 
-Finder _result(String name) => find.byWidgetPredicate(
-  (w) => w is IngredientResultRow && w.article.name == name,
-);
+/// Tape [text] dans la popup puis Entrée.
+Future<void> _submit(WidgetTester tester, String text) async {
+  await _search(tester, text);
+  await tester.testTextInput.receiveAction(TextInputAction.done);
+  await tester.pumpAndSettle();
+}
+
+Finder _result(String name) => ingredientResult(name);
 
 Finder _row(String name) => find.byWidgetPredicate(
   (w) => w is IngredientRow && w.ingredient.name == name,
@@ -74,6 +86,11 @@ Finder _row(String name) => find.byWidgetPredicate(
 Finder _quantity(String name) =>
     find.descendant(of: _row(name), matching: find.byType(TextField));
 
+/// Aucun Champ quantité de la fiche n'a le focus.
+bool _noQuantityFocused(WidgetTester tester) => tester
+    .widgetList<IngredientRow>(find.byType(IngredientRow))
+    .every((row) => !row.ingredient.focusNode.hasFocus);
+
 /// Liste défilante de la fiche (les champs ont aussi les leurs).
 Finder get _ficheScrollable => find
     .descendant(
@@ -82,24 +99,48 @@ Finder get _ficheScrollable => find
     )
     .first;
 
+/// Haut de la carte de la popup.
+double _sheetTop(WidgetTester tester) =>
+    tester.getRect(find.byType(PanelHandle)).top;
+
 /// Suffixe tappable [unit] d'un Champ quantité (unité et flèche de choix).
 Finder _unitText(String unit) =>
     find.textContaining(RegExp('^$unit￼\$'), findRichText: true);
 
-/// Cherche [query], touche le résultat [name] et saisit [quantity].
+/// Ajoute [name] par la popup (cherché par [query]) et saisit [quantity].
 Future<void> _addIngredient(
   WidgetTester tester,
   String query,
   String name, [
   String? quantity,
 ]) async {
-  await _search(tester, query);
-  await tester.tap(_result(name));
-  await tester.pumpAndSettle();
+  await addIngredientBySheet(tester, query, name);
   if (quantity != null) {
     await tester.enterText(_quantity(name), quantity);
     await tester.pumpAndSettle();
   }
+}
+
+/// Annonces TalkBack envoyées pendant le test.
+List<String> _recordAnnouncements(WidgetTester tester) {
+  final announcements = <String>[];
+  tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<dynamic>(
+    SystemChannels.accessibility,
+    (message) async {
+      final map = message as Map<dynamic, dynamic>;
+      if (map['type'] == 'announce') {
+        announcements.add((map['data'] as Map)['message'] as String);
+      }
+    },
+  );
+  addTearDown(
+    () => tester.binding.defaultBinaryMessenger
+        .setMockDecodedMessageHandler<dynamic>(
+          SystemChannels.accessibility,
+          null,
+        ),
+  );
+  return announcements;
 }
 
 Future<List<RecipeIngredient>> _ingredients(AppDatabase db, String recipeId) =>
@@ -112,9 +153,9 @@ Future<Article> _article(AppDatabase db, String name) =>
     (db.select(db.articles)..where((a) => a.name.equals(name))).getSingle();
 
 void main() {
-  testWidgets('Flux 4 : FAB +, « Chili », « hari » → Haricots rouges 500, '
-      'quatre autres dont un créé, retour : la carte « Chili » avec le picto '
-      'des haricots', (tester) async {
+  testWidgets('Flux 4 : FAB +, « Chili », popup : « hari » → Haricots '
+      'rouges, quatre autres dont un créé ; quantités ensuite, retour : la '
+      'carte « Chili » avec le picto des haricots', (tester) async {
     final db = await _openRecettes(tester);
     final recipesBefore = (await db.select(db.recipes).get()).length;
 
@@ -134,18 +175,55 @@ void main() {
     // Un nom sans ingrédient : rien d'écrit.
     expect(await db.select(db.recipes).get(), hasLength(recipesBefore));
 
+    // Plus de champ de recherche dans la fiche : le bouton, `on-surface`.
+    expect(
+      find.descendant(
+        of: find.byType(FicheRecetteScreen),
+        matching: find.text(StringsFr.ajouterUnIngredient),
+      ),
+      findsOneWidget,
+    );
+    expect(addIngredientButton, findsOneWidget);
+    final scheme = Theme.of(tester.element(addIngredientButton)).colorScheme;
+    expect(
+      tester
+          .widget<TextButton>(addIngredientButton)
+          .style!
+          .foregroundColor!
+          .resolve({}),
+      scheme.onSurface,
+    );
+    expect(
+      tester.getSize(addIngredientButton).height,
+      greaterThanOrEqualTo(KadiSpacing.touchTarget),
+    );
+
+    // Popup basse, champ focalisé, clavier ouvert, fiche visible derrière.
+    await openIngredientSheet(tester);
+    expect(_focused(tester, _sheetField), isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    expect(ficheNameField, findsOneWidget);
+    expect(_sheetTop(tester), greaterThan(1400 / 2));
+    expect(find.byType(QuantityTag), findsNothing);
+    expect(find.byType(RayonTag), findsNothing);
+
     await _search(tester, 'hari');
     expect(_result('Haricots rouges'), findsOneWidget);
     expect(_result('Haricots verts'), findsOneWidget);
     await tester.tap(_result('Haricots rouges'));
     await tester.pumpAndSettle();
 
-    // La recherche se vide, le Champ quantité du nouvel ingrédient a le
-    // focus, dans l'unité de l'article.
-    expect(_textField(tester, _searchField).controller!.text, isEmpty);
-    expect(find.byType(IngredientResultRow), findsNothing);
+    // La ligne apparaît derrière, dans l'unité de l'article ; le champ se
+    // vide, la popup reste ouverte et garde le focus ; aucun Champ quantité
+    // ne le prend.
     expect(_row('Haricots rouges'), findsOneWidget);
-    expect(_focused(tester, _quantity('Haricots rouges')), isTrue);
+    expect(_sheet, findsOneWidget);
+    expect(_sheetText(tester), isEmpty);
+    expect(find.byType(IngredientResultRow), findsNothing);
+    expect(_focused(tester, _sheetField), isTrue);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(_noQuantityFocused(tester), isTrue);
     expect(
       find.descendant(
         of: _row('Haricots rouges'),
@@ -156,17 +234,20 @@ void main() {
     // Enregistrée dès le nom et le premier ingrédient.
     expect(await recipeNamed(db, 'Chili'), isNotNull);
 
-    await tester.enterText(_quantity('Haricots rouges'), '500');
-    await tester.testTextInput.receiveAction(TextInputAction.done);
-    await tester.pumpAndSettle();
-    // Entrée rend le focus à la recherche.
-    expect(_focused(tester, _searchField), isTrue);
+    // On enchaîne sans fermer la popup.
+    for (final (query, name) in [
+      ('oign', 'Oignons'),
+      ('viande h', 'Viande hachée'),
+      ('tomates conc', 'Tomates concassées'),
+    ]) {
+      await _search(tester, query);
+      await tester.tap(_result(name));
+      await tester.pumpAndSettle();
+      expect(_row(name), findsOneWidget);
+      expect(_sheetText(tester), isEmpty);
+    }
 
-    await _addIngredient(tester, 'oign', 'Oignons', '2');
-    await _addIngredient(tester, 'viande h', 'Viande hachée', '400');
-    await _addIngredient(tester, 'tomates conc', 'Tomates concassées');
-
-    // Un ingrédient inconnu : « Créer « … » », sans quitter la fiche.
+    // Un ingrédient inconnu : « Créer « … » », sans quitter la popup.
     await _search(tester, "piment d'Espelette");
     expect(find.byType(IngredientResultRow), findsNothing);
     expect(
@@ -177,9 +258,10 @@ void main() {
     expect(create, findsOneWidget);
     await tester.tap(create);
     await tester.pumpAndSettle();
-    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    expect(_sheet, findsOneWidget);
     expect(_row("Piment d'Espelette"), findsOneWidget);
-    expect(_focused(tester, _quantity("Piment d'Espelette")), isTrue);
+    expect(_sheetText(tester), isEmpty);
+    expect(_noQuantityFocused(tester), isTrue);
 
     // Trouvable ensuite par la recherche, déjà ingrédient.
     await _search(tester, 'piment');
@@ -191,6 +273,40 @@ void main() {
     );
     await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
     await tester.pumpAndSettle();
+    expect(_sheetText(tester), isEmpty);
+
+    // Popup fermée : les cinq lignes dans l'ordre, rien de focalisé.
+    await closeIngredientSheet(tester);
+    expect(
+      [
+        for (final row in tester.widgetList<IngredientRow>(
+          find.byType(IngredientRow),
+        ))
+          row.ingredient.name,
+      ],
+      [
+        'Haricots rouges',
+        'Oignons',
+        'Viande hachée',
+        'Tomates concassées',
+        "Piment d'Espelette",
+      ],
+    );
+    expect(_noQuantityFocused(tester), isTrue);
+
+    // La quantité se saisit en touchant le champ de la ligne.
+    for (final (name, quantity) in [
+      ('Haricots rouges', '500'),
+      ('Oignons', '2'),
+      ('Viande hachée', '400'),
+    ]) {
+      // Un toucher sur la zone de saisie du champ.
+      await tester.showKeyboard(_quantity(name));
+      await tester.pumpAndSettle();
+      expect(_focused(tester, _quantity(name)), isTrue);
+      await tester.enterText(_quantity(name), quantity);
+      await tester.pumpAndSettle();
+    }
 
     await backFromFiche(tester);
 
@@ -310,6 +426,7 @@ void main() {
     final handle = tester.ensureSemantics();
     final db = await _openRecettes(tester);
     await editRecipe(tester, 'Chili con carne');
+    await openIngredientSheet(tester);
     await _search(tester, 'riz');
 
     final indicator = tester.widget<InListIndicator>(
@@ -328,7 +445,12 @@ void main() {
     await tester.tap(_result('Riz'));
     await tester.pumpAndSettle();
     expect(find.byType(IngredientRow), findsNWidgets(5));
-    expect(_textField(tester, _searchField).controller!.text, 'riz');
+    expect(_sheetText(tester), 'riz');
+    // Entrée sur son nom exact : rien non plus.
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.byType(IngredientRow), findsNWidgets(5));
+    await closeIngredientSheet(tester);
     await backFromFiche(tester);
     expect(await _ingredients(db, SeedRecipeIds.chili), hasLength(5));
     handle.dispose();
@@ -476,11 +598,13 @@ void main() {
       () => CatalogueRepository(db, Clock()).resolveTypedArticle('Pilou'),
     );
     await editRecipe(tester, 'Chili con carne');
+    await openIngredientSheet(tester);
     await _search(tester, 'pilou');
     expect(find.byType(IngredientResultRow), findsNothing);
     await tester.tap(find.text(StringsFr.creerNom('pilou')));
     await tester.pumpAndSettle();
     expect(_row('Pilou'), findsOneWidget);
+    await closeIngredientSheet(tester);
     await backFromFiche(tester);
 
     final row = await (db.select(
@@ -492,9 +616,8 @@ void main() {
     expect(ingredients.last.articleId, pilou.id);
   });
 
-  testWidgets('échec de « Créer « … » » : snackbar d’erreur, rien d’écrit', (
-    tester,
-  ) async {
+  testWidgets('échec de « Créer « … » » ou d’Entrée : snackbar d’erreur dans '
+      'la popup, saisie gardée, rien d’écrit', (tester) async {
     final db = await _openRecettes(
       tester,
       overrides: [
@@ -506,15 +629,113 @@ void main() {
     final articles = await db.select(db.articles).get();
     final ingredients = await db.select(db.recipeIngredients).get();
     await editRecipe(tester, 'Chili con carne');
+    await openIngredientSheet(tester);
     await _search(tester, 'Piment');
     await tester.tap(find.text(StringsFr.creerNom('Piment')));
     await tester.pumpAndSettle();
 
-    expect(find.text(StringsFr.ajoutImpossible), findsOneWidget);
+    expect(
+      find.descendant(
+        of: _sheet,
+        matching: find.text(StringsFr.ajoutImpossible),
+      ),
+      findsOneWidget,
+    );
+    expect(_sheetText(tester), 'Piment');
+    expect(find.byType(IngredientRow), findsNWidgets(5));
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(
+        of: _sheet,
+        matching: find.text(StringsFr.ajoutImpossible),
+      ),
+      findsOneWidget,
+    );
     expect(find.byType(IngredientRow), findsNWidgets(5));
     expect(find.byType(FicheRecetteScreen), findsOneWidget);
     expect(await db.select(db.articles).get(), articles);
     expect(await db.select(db.recipeIngredients).get(), ingredients);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('Entrée : nom exact = l’article du catalogue ; nom inconnu = '
+      'article créé au catalogue ; texte vide = rien', (tester) async {
+    final db = await _openRecettes(tester);
+    final articlesBefore = (await db.select(db.articles).get()).length;
+    await tester.tap(_fab);
+    await tester.pumpAndSettle();
+    await tester.enterText(ficheNameField, 'Salade');
+    await tester.pumpAndSettle();
+    await openIngredientSheet(tester);
+
+    // Texte vide : rien.
+    await _submit(tester, '   ');
+    expect(find.byType(IngredientRow), findsNothing);
+
+    await _submit(tester, 'tomates');
+    expect(_row('Tomates'), findsOneWidget);
+    expect(_sheetText(tester), isEmpty);
+    expect(_focused(tester, _sheetField), isTrue);
+    expect(_noQuantityFocused(tester), isTrue);
+    expect((await db.select(db.articles).get()).length, articlesBefore);
+
+    await _submit(tester, "Piment d'Espelette");
+    expect(_row("Piment d'Espelette"), findsOneWidget);
+    expect(_sheet, findsOneWidget);
+    expect(_sheetText(tester), isEmpty);
+    expect(_noQuantityFocused(tester), isTrue);
+    final piment = await _article(db, "Piment d'Espelette");
+    expect(
+      (piment.rayon, piment.unit, piment.inCatalogue),
+      ('divers', null, true),
+    );
+
+    await closeIngredientSheet(tester);
+    await backFromFiche(tester);
+    final salade = (await recipeNamed(db, 'Salade'))!;
+    expect(
+      [for (final i in await _ingredients(db, salade.id)) i.articleId],
+      [(await _article(db, 'Tomates')).id, piment.id],
+    );
+  });
+
+  testWidgets('la popup se ferme par glissement, tap hors du panneau ou '
+      'retour ; les ajouts restent dans la fiche', (tester) async {
+    await _openRecettes(tester);
+    await editRecipe(tester, 'Chili con carne');
+
+    await openIngredientSheet(tester);
+    await _search(tester, 'lait');
+    await tester.tap(_result('Lait'));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(PanelHandle), const Offset(0, 500));
+    await tester.pumpAndSettle();
+    expect(_sheet, findsNothing);
+    expect(_row('Lait'), findsOneWidget);
+
+    await openIngredientSheet(tester);
+    await _search(tester, 'lard');
+    await tester.tap(_result('Lardons'));
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(200, 100));
+    await tester.pumpAndSettle();
+    expect(_sheet, findsNothing);
+    expect(_row('Lardons'), findsOneWidget);
+
+    await openIngredientSheet(tester);
+    await _search(tester, 'pâtes');
+    await tester.tap(_result('Pâtes'));
+    await tester.pumpAndSettle();
+    await closeIngredientSheet(tester);
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    expect(_row('Pâtes'), findsOneWidget);
+    expect(find.byType(IngredientRow), findsNWidgets(8));
+    expect(_noQuantityFocused(tester), isTrue);
   });
 
   testWidgets('échec d’enregistrement : snackbar d’erreur, la dernière '
@@ -536,25 +757,31 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('clavier ouvert, nombreux ingrédients : le nouveau Champ '
-      'quantité prend le focus à l’écran, Entrée rend le focus à la '
-      'recherche, à l’écran', (tester) async {
+  testWidgets('clavier ouvert, nombreux ingrédients : chaque ligne ajoutée '
+      'est visible juste au-dessus de la popup, sans focus quantité', (
+    tester,
+  ) async {
     const height = 700.0;
     const keyboard = 400.0;
     await _openRecettes(tester, size: const Size(400, height));
     tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
     addTearDown(tester.view.resetViewInsets);
     await editRecipe(tester, 'Ratatouille');
-
-    /// [finder] tient dans la partie visible, sous la Barre d'application.
-    void expectOnScreen(Finder finder) {
-      final rect = tester.getRect(finder);
-      expect(
-        rect.top,
-        greaterThanOrEqualTo(tester.getRect(find.byType(AppBar)).bottom),
-      );
-      expect(rect.bottom, lessThanOrEqualTo(height - keyboard));
-    }
+    await openIngredientSheet(tester);
+    // La popup tient au-dessus du clavier.
+    expect(
+      tester
+          .getRect(
+            find
+                .descendant(
+                  of: find.byType(IngredientSheet),
+                  matching: find.byType(Material),
+                )
+                .first,
+          )
+          .bottom,
+      lessThanOrEqualTo(height - keyboard),
+    );
 
     for (final (query, name) in [
       ('riz', 'Riz'),
@@ -562,31 +789,33 @@ void main() {
       ('pâtes', 'Pâtes'),
       ('lait', 'Lait'),
     ]) {
-      await tester.scrollUntilVisible(
-        _searchField,
-        -100,
-        scrollable: _ficheScrollable,
-      );
       await _search(tester, query);
       await tester.tap(_result(name));
       await tester.pumpAndSettle();
 
-      expect(_focused(tester, _quantity(name)), isTrue);
-      expectOnScreen(_quantity(name));
-
-      await tester.enterText(_quantity(name), '2');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      expect(_focused(tester, _searchField), isTrue);
-      expectOnScreen(_searchField);
+      // Sous la Barre d'application, au-dessus de la popup.
+      final rect = tester.getRect(_row(name));
+      expect(
+        rect.top,
+        greaterThanOrEqualTo(tester.getRect(find.byType(AppBar)).bottom),
+      );
+      expect(rect.bottom, lessThanOrEqualTo(_sheetTop(tester)));
+      // La dernière, masquée sans défilement, s'arrête juste au-dessus : la
+      // fiche n'a pas défilé plus que nécessaire.
+      if (name == 'Lait') {
+        expect(rect.bottom, greaterThan(_sheetTop(tester) - KadiSpacing.s4));
+      }
+      expect(_noQuantityFocused(tester), isTrue);
+      expect(_focused(tester, _sheetField), isTrue);
     }
     expect(find.byType(IngredientRow), findsNWidgets(11));
   });
 
-  testWidgets('TalkBack : FAB, icône « modifier », nom, recherche, '
-      'résultats, « Créer », ingrédients, quantités, unité et « Retirer » '
-      'sont lus', (tester) async {
+  testWidgets('TalkBack : FAB, icône « modifier », nom, bouton « Ajouter un '
+      'ingrédient », champ de la popup, résultats, « Créer », ajout annoncé, '
+      'ingrédients, quantités, unité et « Retirer » sont lus', (tester) async {
     final handle = tester.ensureSemantics();
+    final announcements = _recordAnnouncements(tester);
     await _openRecettes(tester);
 
     expect(find.bySemanticsLabel(StringsFr.nouvelleRecette), findsOneWidget);
@@ -612,8 +841,12 @@ void main() {
       findsWidgets,
     );
     expect(
-      find.bySemanticsLabel(RegExp(StringsFr.ajouterUnIngredient)),
-      findsWidgets,
+      tester.getSemantics(addIngredientButton),
+      isSemantics(
+        label: StringsFr.ajouterUnIngredient,
+        isButton: true,
+        hasTapAction: true,
+      ),
     );
     expect(find.bySemanticsLabel('Riz, 300${_nbsp}g'), findsOneWidget);
     expect(
@@ -633,27 +866,35 @@ void main() {
       findsWidgets,
     );
 
+    // Ouverture par TalkBack.
+    tester.semantics.tap(find.semantics.byLabel(StringsFr.ajouterUnIngredient));
+    await tester.pumpAndSettle();
+    expect(_sheet, findsOneWidget);
+    expect(
+      tester.getSemantics(_sheetField),
+      isSemantics(label: StringsFr.ajouterUnIngredient, isTextField: true),
+    );
+
     await _search(tester, 'hari');
     expect(
       find.bySemanticsLabel('Haricots rouges, ${StringsFr.rayonEpicerieSalee}'),
       findsOneWidget,
     );
-    // Ajout par TalkBack.
+    // Ajout par TalkBack, annoncé : la fiche est inaccessible sous la popup.
     tester.semantics.tap(
       find.semantics.byLabel(
         'Haricots rouges, ${StringsFr.rayonEpicerieSalee}',
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Haricots rouges'), findsOneWidget);
+    expect(announcements, [StringsFr.ingredientAjoute('Haricots rouges')]);
+    expect(announcements.single, 'Haricots rouges ajouté');
+
+    await _search(tester, 'riz');
     expect(
-      find.bySemanticsLabel('Quantité de Haricots rouges, aucune'),
-      findsOneWidget,
-    );
-    await tester.enterText(_quantity('Haricots rouges'), '500');
-    await tester.pumpAndSettle();
-    expect(
-      find.bySemanticsLabel('Haricots rouges, 500${_nbsp}g'),
+      find.bySemanticsLabel(
+        'Riz, ${StringsFr.rayonEpicerieSalee}, ${StringsFr.dansLaRecette}',
+      ),
       findsOneWidget,
     );
 
@@ -666,12 +907,28 @@ void main() {
         hasTapAction: true,
       ),
     );
+    tester.semantics.tap(find.semantics.byLabel(StringsFr.creerNom('Piment')));
+    await tester.pumpAndSettle();
+    expect(announcements.last, StringsFr.ingredientAjoute('Piment'));
+
+    await closeIngredientSheet(tester);
+    expect(find.bySemanticsLabel('Haricots rouges'), findsOneWidget);
+    expect(
+      find.bySemanticsLabel('Quantité de Haricots rouges, aucune'),
+      findsOneWidget,
+    );
+    await tester.enterText(_quantity('Haricots rouges'), '500');
+    await tester.pumpAndSettle();
+    expect(
+      find.bySemanticsLabel('Haricots rouges, 500${_nbsp}g'),
+      findsOneWidget,
+    );
     handle.dispose();
   });
 
   for (final scale in [1.3, 2.0, 3.0]) {
-    testWidgets('police ×$scale sur 360 dp : fiche, résultats et Choix '
-        'd’unité sans débordement ni troncature', (tester) async {
+    testWidgets('police ×$scale sur 360 dp : fiche, bouton, popup, résultats '
+        'et Choix d’unité sans débordement ni troncature', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await _openRecettes(tester, size: const Size(360, 800));
@@ -712,14 +969,27 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byType(UnitChoice), findsOneWidget);
 
-      await tester.scrollUntilVisible(
-        _searchField,
-        -100,
-        scrollable: _ficheScrollable,
+      final label = tester.widget<Text>(
+        find.descendant(
+          of: addIngredientButton,
+          matching: find.text(StringsFr.ajouterUnIngredient),
+        ),
       );
+      expect(label.maxLines, isNull);
+      expect(label.overflow, isNull);
+
+      await openIngredientSheet(tester);
+      expect(tester.takeException(), isNull);
       await _search(tester, 'haricots');
       expect(tester.takeException(), isNull);
       expect(_result('Haricots rouges'), findsOneWidget);
+      // En grande police, les résultats défilent sous le champ.
+      await tester.ensureVisible(_result('Haricots rouges'));
+      await tester.pumpAndSettle();
+      await tester.tap(_result('Haricots rouges'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(_row('Haricots rouges'), findsOneWidget);
       await _search(tester, 'Piment d’Espelette fumé du Pays basque');
       expect(tester.takeException(), isNull);
       expect(find.byType(CreateArticleRow), findsOneWidget);

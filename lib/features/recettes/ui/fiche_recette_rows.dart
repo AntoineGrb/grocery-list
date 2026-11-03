@@ -84,6 +84,9 @@ class IngredientDraft {
   late final TextEditingController controller;
   final focusNode = FocusNode();
 
+  /// Clé de sa Ligne d'ingrédient, pour la mesurer et la faire défiler.
+  final rowKey = GlobalKey();
+
   /// Unité de saisie du Champ quantité.
   InputUnit unit;
 
@@ -138,7 +141,6 @@ class IngredientRow extends StatelessWidget {
     required this.onUnitTap,
     required this.onUnitSelected,
     required this.onChanged,
-    required this.onSubmitted,
     required this.onRemove,
   });
 
@@ -149,9 +151,6 @@ class IngredientRow extends StatelessWidget {
   final VoidCallback onUnitTap;
   final ValueChanged<InputUnit> onUnitSelected;
   final VoidCallback onChanged;
-
-  /// Entrée sur le Champ quantité.
-  final VoidCallback onSubmitted;
   final VoidCallback onRemove;
 
   @override
@@ -203,7 +202,6 @@ class IngredientRow extends StatelessWidget {
         focusNode: ingredient.focusNode,
         unit: ingredient.unit,
         onChanged: (_) => onChanged(),
-        onSubmitted: (_) => onSubmitted(),
         onUnitTap: onUnitTap,
         unitSemanticsLabel: StringsFr.uniteDe(_unitLabel(ingredient.unit)),
       ),
@@ -274,7 +272,8 @@ class IngredientRow extends StatelessWidget {
   }
 }
 
-/// Ligne de résultat de la Fiche recette (DESIGN `search-result-row`) :
+/// Ligne de résultat de la popup d'ajout d'ingrédient (DESIGN
+/// `search-result-row`, comme les Lignes de résultat du Panneau +) :
 /// Picto, nom, rayon et indicateur : signe + hors de la recette, coche à
 /// l'accent du rayon déjà ingrédient. Lue « Haricots rouges, Épicerie
 /// salée », avec « dans la recette » si elle y est.
@@ -362,8 +361,9 @@ class IngredientResultRow extends StatelessWidget {
   }
 }
 
-/// Ligne « Créer « … » » sous les résultats, quand aucun article ne porte
-/// exactement ce nom : signe + neutre ; lue « Créer « Piment » ».
+/// Ligne « Créer « … » » sous les résultats de la popup d'ajout, quand aucun
+/// article ne porte exactement ce nom : signe + neutre, fait comme Entrée ;
+/// lue « Créer « Piment » ».
 class CreateArticleRow extends StatelessWidget {
   const CreateArticleRow({super.key, required this.name, required this.onTap});
 

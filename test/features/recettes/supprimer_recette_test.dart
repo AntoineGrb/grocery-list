@@ -278,15 +278,9 @@ void main() {
       await openTab(tester, StringsFr.tabRecettes);
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
-      final fields = find.descendant(
-        of: find.byType(FicheRecetteScreen),
-        matching: find.byType(TextField),
-      );
-      await tester.enterText(fields.first, 'Omelette');
-      await tester.enterText(fields.at(1), 'œufs');
+      await tester.enterText(ficheNameField, 'Omelette');
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Œufs').first);
-      await tester.pumpAndSettle();
+      await addIngredientBySheet(tester, 'œufs', 'Œufs');
       expect(_deleteButton, findsOneWidget);
 
       await _delete(tester);

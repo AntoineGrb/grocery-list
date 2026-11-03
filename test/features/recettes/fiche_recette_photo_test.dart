@@ -12,7 +12,6 @@ import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/recettes/data/recipe_photos.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_photo.dart';
-import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -378,20 +377,7 @@ void main() {
     await _pick(tester);
     await tester.enterText(ficheNameField, 'Soupe');
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.ancestor(
-        of: find.text(StringsFr.ajouterUnIngredient),
-        matching: find.byType(TextField),
-      ),
-      'riz',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byWidgetPredicate(
-        (w) => w is IngredientResultRow && w.article.name == 'Riz',
-      ),
-    );
-    await tester.pumpAndSettle();
+    await addIngredientBySheet(tester, 'riz', 'Riz');
     expect((await recipeNamed(env.db, 'Soupe'))!.photo, 'photo-3.jpg');
     await backFromFiche(tester);
     expect(env.photos.files, {'photo-3.jpg'});
