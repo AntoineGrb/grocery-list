@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/ingredient_sheet.dart';
@@ -53,9 +54,40 @@ Future<void> editRecipe(WidgetTester tester, String name) async {
   expect(find.byType(FicheRecetteScreen), findsOneWidget);
 }
 
-/// Quitte la Fiche recette par le bouton retour.
+/// Quitte une Fiche recette non modifiée par le bouton retour : elle se
+/// ferme sans question.
 Future<void> backFromFiche(WidgetTester tester) async {
   await tester.tap(find.byType(BackButton));
+  await tester.pumpAndSettle();
+  expect(find.byType(FicheRecetteScreen), findsNothing);
+}
+
+/// Le bouton « Enregistrer » de la fiche.
+Finder get saveButton =>
+    find.widgetWithText(FilledButton, StringsFr.enregistrer);
+
+/// « Enregistrer » est actif.
+bool saveEnabled(WidgetTester tester) =>
+    tester.widget<FilledButton>(saveButton).onPressed != null;
+
+/// Touche « Enregistrer » : la fiche s'écrit et se ferme.
+Future<void> saveFiche(WidgetTester tester) async {
+  expect(saveEnabled(tester), isTrue);
+  await tester.tap(saveButton);
+  await tester.pumpAndSettle();
+  expect(find.byType(FicheRecetteScreen), findsNothing);
+}
+
+/// Dialogue « Quitter sans enregistrer ? ».
+Finder get quitDialog => find.byType(ConfirmDialog);
+
+/// Quitte une fiche modifiée par le retour, puis « Quitter » dans le
+/// dialogue : elle se ferme sans rien écrire.
+Future<void> quitFiche(WidgetTester tester) async {
+  await tester.tap(find.byType(BackButton));
+  await tester.pumpAndSettle();
+  expect(find.text(StringsFr.quitterSansEnregistrerTitre), findsOneWidget);
+  await tester.tap(find.widgetWithText(TextButton, StringsFr.quitter));
   await tester.pumpAndSettle();
   expect(find.byType(FicheRecetteScreen), findsNothing);
 }

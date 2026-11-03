@@ -140,7 +140,6 @@ class IngredientRow extends StatelessWidget {
     required this.unitOpen,
     required this.onUnitTap,
     required this.onUnitSelected,
-    required this.onChanged,
     required this.onRemove,
   });
 
@@ -150,7 +149,6 @@ class IngredientRow extends StatelessWidget {
   final bool unitOpen;
   final VoidCallback onUnitTap;
   final ValueChanged<InputUnit> onUnitSelected;
-  final VoidCallback onChanged;
   final VoidCallback onRemove;
 
   @override
@@ -201,7 +199,6 @@ class IngredientRow extends StatelessWidget {
         controller: ingredient.controller,
         focusNode: ingredient.focusNode,
         unit: ingredient.unit,
-        onChanged: (_) => onChanged(),
         onUnitTap: onUnitTap,
         unitSemanticsLabel: StringsFr.uniteDe(_unitLabel(ingredient.unit)),
       ),

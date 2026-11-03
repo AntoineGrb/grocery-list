@@ -154,8 +154,8 @@ Future<Article> _article(AppDatabase db, String name) =>
 
 void main() {
   testWidgets('Flux 4 : FAB +, « Chili », popup : « hari » → Haricots '
-      'rouges, quatre autres dont un créé ; quantités ensuite, retour : la '
-      'carte « Chili » avec le picto des haricots', (tester) async {
+      'rouges, quatre autres dont un créé ; quantités ensuite, « Enregistrer » '
+      ': la carte « Chili » avec le picto des haricots', (tester) async {
     final db = await _openRecettes(tester);
     final recipesBefore = (await db.select(db.recipes).get()).length;
 
@@ -170,9 +170,19 @@ void main() {
     expect(_focused(tester, ficheNameField), isTrue);
     expect(tester.testTextInput.isVisible, isTrue);
 
+    // « Enregistrer » en bas, plein, argile, pleine largeur, grisé.
+    expect(saveButton, findsOneWidget);
+    expect(saveEnabled(tester), isFalse);
+    expect(
+      tester.getRect(saveButton).bottom,
+      greaterThan(1400 - KadiSpacing.s2 - KadiSpacing.touchTarget),
+    );
+    expect(tester.getSize(saveButton).width, 400 - 2 * KadiSpacing.margin);
+
     await tester.enterText(ficheNameField, 'Chili');
     await tester.pumpAndSettle();
-    // Un nom sans ingrédient : rien d'écrit.
+    // Un nom sans ingrédient : grisé, rien d'écrit.
+    expect(saveEnabled(tester), isFalse);
     expect(await db.select(db.recipes).get(), hasLength(recipesBefore));
 
     // Plus de champ de recherche dans la fiche : le bouton, `on-surface`.
@@ -231,8 +241,8 @@ void main() {
       ),
       findsOneWidget,
     );
-    // Enregistrée dès le nom et le premier ingrédient.
-    expect(await recipeNamed(db, 'Chili'), isNotNull);
+    // Rien d'écrit avant « Enregistrer ».
+    expect(await recipeNamed(db, 'Chili'), isNull);
 
     // On enchaîne sans fermer la popup.
     for (final (query, name) in [
@@ -307,8 +317,23 @@ void main() {
       await tester.enterText(_quantity(name), quantity);
       await tester.pumpAndSettle();
     }
+    expect(await recipeNamed(db, 'Chili'), isNull);
+    expect(await db.select(db.recipes).get(), hasLength(recipesBefore));
+    // Actif, argile.
+    expect(saveEnabled(tester), isTrue);
+    expect(
+      tester
+          .widget<Material>(
+            find
+                .descendant(of: saveButton, matching: find.byType(Material))
+                .first,
+          )
+          .color,
+      scheme.primary,
+    );
 
-    await backFromFiche(tester);
+    // Un tap : tout est écrit, la fiche se ferme sur Recettes.
+    await saveFiche(tester);
 
     final chili = (await recipeNamed(db, 'Chili'))!;
     final haricots = await _article(db, 'Haricots rouges');
@@ -340,7 +365,8 @@ void main() {
   });
 
   testWidgets('nouvelle fiche avec un nom sans ingrédient, ou des '
-      'ingrédients sans nom : aucune recette', (tester) async {
+      'ingrédients sans nom : « Enregistrer » grisé ; quittée, aucune '
+      'recette', (tester) async {
     final db = await _openRecettes(tester);
     final before = await db.select(db.recipes).get();
 
@@ -348,7 +374,12 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(ficheNameField, 'Chili');
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    expect(saveEnabled(tester), isFalse);
+    // Grisé, un tap n'écrit rien.
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    await quitFiche(tester);
 
     await tester.tap(_fab);
     await tester.pumpAndSettle();
@@ -356,19 +387,29 @@ void main() {
     expect(_textField(tester, ficheNameField).controller!.text, isEmpty);
     await _addIngredient(tester, 'riz', 'Riz', '300');
     await _addIngredient(tester, 'lard', 'Lardons');
+    expect(saveEnabled(tester), isFalse);
     await tester.enterText(ficheNameField, '   ');
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    expect(saveEnabled(tester), isFalse);
+    await tester.enterText(ficheNameField, 'Riz au lard');
+    await tester.pumpAndSettle();
+    expect(saveEnabled(tester), isTrue);
+    await quitFiche(tester);
 
     expect(await db.select(db.recipes).get(), before);
     expect(find.byType(RecipeCard), findsNWidgets(4));
   });
 
-  testWidgets('recette existante : nom effacé, puis tous ses ingrédients '
-      'retirés : sa dernière version valide reste', (tester) async {
+  testWidgets('recette existante : nom effacé, ou tous ses ingrédients '
+      'retirés : « Enregistrer » grisé ; quittée, elle reste telle '
+      'quelle', (tester) async {
     final db = await _openRecettes(tester);
     final recipes = await db.select(db.recipes).get();
-    final ingredients = await _ingredients(db, SeedRecipeIds.carbonara);
+    final ingredients = await db.select(db.recipeIngredients).get();
+    final picto = tester
+        .widget<RecipeCard>(recipeCard('Pâtes carbonara'))
+        .card
+        .pictoKey;
 
     await editRecipe(tester, 'Pâtes carbonara');
     expect(find.text(StringsFr.recette), findsOneWidget);
@@ -377,12 +418,14 @@ void main() {
       'Pâtes carbonara',
     );
     expect(find.byType(IngredientRow), findsNWidgets(5));
-    // Ouverte sans focus : pas de clavier.
+    // Ouverte sans focus : pas de clavier ; valide, « Enregistrer » actif.
     expect(_focused(tester, ficheNameField), isFalse);
+    expect(saveEnabled(tester), isTrue);
 
     await tester.enterText(ficheNameField, '');
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    expect(saveEnabled(tester), isFalse);
+    await quitFiche(tester);
     expect(await db.select(db.recipes).get(), recipes);
     expect(recipeCard('Pâtes carbonara'), findsOneWidget);
 
@@ -390,16 +433,150 @@ void main() {
     for (final name in ['Pâtes', 'Lardons', 'Œufs', 'Parmesan', 'Poivre']) {
       await tester.tap(find.byTooltip(StringsFr.retirerIngredient(name)));
       await tester.pumpAndSettle();
+      expect(saveEnabled(tester), name != 'Poivre');
     }
     expect(find.byType(IngredientRow), findsNothing);
-    await backFromFiche(tester);
-    // Le dernier retrait n'est pas écrit : Poivre reste, seul.
-    final kept = await _ingredients(db, SeedRecipeIds.carbonara);
-    expect(kept.map((i) => i.id), [ingredients.last.id]);
+    await quitFiche(tester);
+    expect(await db.select(db.recipeIngredients).get(), ingredients);
     expect(
       tester.widget<RecipeCard>(recipeCard('Pâtes carbonara')).card.pictoKey,
-      'poivre',
+      picto,
     );
+  });
+
+  testWidgets('rien avant « Enregistrer » : frappes, ajouts, quantités, '
+      'retrait, lien, puis Quitter : aucune ligne écrite, l’article créé '
+      'reste au catalogue', (tester) async {
+    final db = await _openRecettes(tester);
+    final recipes = await db.select(db.recipes).get();
+    final ingredients = await db.select(db.recipeIngredients).get();
+
+    await tester.tap(_fab);
+    await tester.pumpAndSettle();
+    await tester.enterText(ficheNameField, 'Chili');
+    await tester.pumpAndSettle();
+    await _addIngredient(tester, 'hari', 'Haricots rouges', '500');
+    await _addIngredient(tester, 'oign', 'Oignons', '2');
+    await openIngredientSheet(tester);
+    await _search(tester, 'Piment');
+    await tester.tap(find.text(StringsFr.creerNom('Piment')));
+    await tester.pumpAndSettle();
+    await closeIngredientSheet(tester);
+    await tester.tap(find.byTooltip(StringsFr.retirerIngredient('Oignons')));
+    await tester.pumpAndSettle();
+    final link = find
+        .descendant(
+          of: find.byType(FicheRecetteScreen),
+          matching: find.byType(TextField),
+        )
+        .last;
+    await tester.ensureVisible(link);
+    await tester.enterText(link, 'marmiton.org');
+    await tester.pumpAndSettle();
+    expect(await db.select(db.recipes).get(), recipes);
+    expect(await db.select(db.recipeIngredients).get(), ingredients);
+
+    await quitFiche(tester);
+    expect(await db.select(db.recipes).get(), recipes);
+    expect(await db.select(db.recipeIngredients).get(), ingredients);
+    expect(recipeCard('Chili'), findsNothing);
+    // « Piment », créé par la popup, reste au catalogue.
+    final piment = await _article(db, 'Piment');
+    expect(piment.inCatalogue, isTrue);
+
+    // Quantité changée sur une recette existante, Quitter : rien.
+    await editRecipe(tester, 'Chili con carne');
+    await tester.enterText(_quantity('Riz'), '400');
+    await tester.pumpAndSettle();
+    await quitFiche(tester);
+    expect(await db.select(db.recipeIngredients).get(), ingredients);
+  });
+
+  testWidgets('retour sur une fiche modifiée : « Quitter sans enregistrer ? » ;'
+      ' Garder, tap dehors et retour Android laissent la fiche et son '
+      'brouillon ; non modifiée, ou modifiée puis rétablie, pas de '
+      'dialogue', (tester) async {
+    final db = await _openRecettes(tester);
+    final ingredients = await db.select(db.recipeIngredients).get();
+
+    // Ouverte puis retour : pas de dialogue.
+    await editRecipe(tester, 'Chili con carne');
+    await backFromFiche(tester);
+    // Quantité changée puis rétablie : pas de dialogue.
+    await editRecipe(tester, 'Chili con carne');
+    await tester.enterText(_quantity('Riz'), '400');
+    await tester.pumpAndSettle();
+    await tester.enterText(_quantity('Riz'), '300');
+    await tester.pumpAndSettle();
+    await backFromFiche(tester);
+
+    await editRecipe(tester, 'Chili con carne');
+    await tester.enterText(_quantity('Riz'), '400');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsOneWidget);
+    expect(find.text(StringsFr.quitterSansEnregistrerTitre), findsOneWidget);
+    expect(
+      StringsFr.quitterSansEnregistrerTitre,
+      'Quitter sans enregistrer$_nbsp?',
+    );
+    expect(find.text(StringsFr.quitterSansEnregistrerTexte), findsOneWidget);
+    expect(
+      StringsFr.quitterSansEnregistrerTexte,
+      'Tes modifications seront perdues.',
+    );
+    final garder = find.widgetWithText(TextButton, StringsFr.garder);
+    final quitter = find.widgetWithText(TextButton, StringsFr.quitter);
+    final scheme = Theme.of(tester.element(garder)).colorScheme;
+    expect(
+      tester.widget<TextButton>(garder).style!.foregroundColor!.resolve({}),
+      scheme.onSurface,
+    );
+    expect(
+      tester.widget<TextButton>(quitter).style!.foregroundColor!.resolve({}),
+      scheme.error,
+    );
+    for (final button in [garder, quitter]) {
+      expect(
+        tester.getSize(button).height,
+        greaterThanOrEqualTo(KadiSpacing.touchTarget),
+      );
+    }
+
+    // Garder : la fiche, son brouillon.
+    await tester.tap(garder);
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsNothing);
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    expect(_textField(tester, _quantity('Riz')).controller!.text, '400');
+
+    // Retour Android : le dialogue ; un tap dehors vaut Garder.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsNothing);
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+
+    // Le retour dans le dialogue vaut Garder.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsNothing);
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    expect(_textField(tester, _quantity('Riz')).controller!.text, '400');
+
+    // Quitter, par le retour Android : fermée, rien d'écrit.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.tap(quitter);
+    await tester.pumpAndSettle();
+    expect(find.byType(FicheRecetteScreen), findsNothing);
+    expect(await db.select(db.recipeIngredients).get(), ingredients);
   });
 
   testWidgets('retirer un ingrédient : supprimé logiquement, la carte prend '
@@ -408,7 +585,7 @@ void main() {
     await editRecipe(tester, 'Pâtes carbonara');
     await tester.tap(find.byTooltip(StringsFr.retirerIngredient('Pâtes')));
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    await saveFiche(tester);
 
     final rows = await (db.select(
       db.recipeIngredients,
@@ -492,7 +669,7 @@ void main() {
     );
     await tester.enterText(_quantity('Riz'), '1,5');
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    await saveFiche(tester);
 
     final riz = (await _ingredients(
       db,
@@ -505,7 +682,7 @@ void main() {
     expect(_textField(tester, _quantity('Riz')).controller!.text, '1500');
     await tester.enterText(_quantity('Riz'), '');
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    await saveFiche(tester);
     final empty = (await _ingredients(
       db,
       SeedRecipeIds.chili,
@@ -533,7 +710,7 @@ void main() {
     await editRecipe(tester, 'Chili con carne');
     await tester.enterText(_quantity('Riz'), '400');
     await tester.pumpAndSettle();
-    await backFromFiche(tester);
+    await saveFiche(tester);
 
     expect(
       (await _ingredients(
@@ -605,7 +782,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_row('Pilou'), findsOneWidget);
     await closeIngredientSheet(tester);
-    await backFromFiche(tester);
+    await saveFiche(tester);
 
     final row = await (db.select(
       db.articles,
@@ -696,7 +873,7 @@ void main() {
     );
 
     await closeIngredientSheet(tester);
-    await backFromFiche(tester);
+    await saveFiche(tester);
     final salade = (await recipeNamed(db, 'Salade'))!;
     expect(
       [for (final i in await _ingredients(db, salade.id)) i.articleId],
@@ -738,23 +915,63 @@ void main() {
     expect(_noQuantityFocused(tester), isTrue);
   });
 
-  testWidgets('échec d’enregistrement : snackbar d’erreur, la dernière '
-      'version écrite reste', (tester) async {
+  testWidgets('échec d’« Enregistrer » : snackbar d’erreur, la fiche reste '
+      'ouverte avec son brouillon, rien d’écrit ; réessai réussi', (
+    tester,
+  ) async {
     final db = await _openRecettes(tester);
+    final recipes = await db.select(db.recipes).get();
     final before = await db.select(db.recipeIngredients).get();
     await db.customStatement(
       'CREATE TRIGGER no_save BEFORE UPDATE ON recipe_ingredients '
       "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
     );
     await editRecipe(tester, 'Chili con carne');
+    await tester.enterText(ficheNameField, 'Chili maison');
+    await tester.pumpAndSettle();
     await tester.enterText(_quantity('Riz'), '400');
     await tester.pumpAndSettle();
+    // Rien écrit par la saisie : pas d'échec avant « Enregistrer ».
+    expect(find.text(StringsFr.enregistrementImpossible), findsNothing);
 
+    await tester.tap(saveButton);
+    await tester.pumpAndSettle();
     expect(find.text(StringsFr.enregistrementImpossible), findsOneWidget);
     expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    expect(_textField(tester, _quantity('Riz')).controller!.text, '400');
+    expect(saveEnabled(tester), isTrue);
+    // Une transaction : le nom n'est pas écrit non plus.
+    expect(await db.select(db.recipes).get(), recipes);
     expect(await db.select(db.recipeIngredients).get(), before);
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
+
+    await db.customStatement('DROP TRIGGER no_save');
+    await saveFiche(tester);
+    expect(recipeCard('Chili maison'), findsOneWidget);
+    expect(
+      (await _ingredients(
+        db,
+        SeedRecipeIds.chili,
+      )).singleWhere((i) => i.articleId == SeedIds.riz).quantity,
+      400,
+    );
+  });
+
+  testWidgets('clavier ouvert : « Enregistrer » juste au-dessus du clavier, '
+      'pleine largeur', (tester) async {
+    const height = 700.0;
+    const keyboard = 300.0;
+    await _openRecettes(tester, size: const Size(400, height));
+    tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
+    addTearDown(tester.view.resetViewInsets);
+    await editRecipe(tester, 'Chili con carne');
+    final rect = tester.getRect(saveButton);
+    expect(rect.bottom, lessThanOrEqualTo(height - keyboard));
+    expect(rect.bottom, greaterThan(height - keyboard - KadiSpacing.s4));
+    expect(rect.width, 400 - 2 * KadiSpacing.margin);
+    expect(saveButton.hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('clavier ouvert, nombreux ingrédients : chaque ligne ajoutée '
@@ -926,6 +1143,67 @@ void main() {
     handle.dispose();
   });
 
+  testWidgets('TalkBack : « Enregistrer » lu avec son état, désactivé puis '
+      'actif ; le dialogue de sortie est lu, ses actions agissent', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await _openRecettes(tester);
+    await tester.tap(_fab);
+    await tester.pumpAndSettle();
+    expect(
+      tester.getSemantics(saveButton),
+      isSemantics(
+        label: StringsFr.enregistrer,
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: false,
+        hasTapAction: false,
+      ),
+    );
+
+    await tester.enterText(ficheNameField, 'Omelette');
+    await tester.pumpAndSettle();
+    await _addIngredient(tester, 'œufs', 'Œufs');
+    expect(
+      tester.getSemantics(saveButton),
+      isSemantics(
+        label: StringsFr.enregistrer,
+        isButton: true,
+        hasEnabledState: true,
+        isEnabled: true,
+        hasTapAction: true,
+      ),
+    );
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(
+      find.bySemanticsLabel(StringsFr.quitterSansEnregistrerTitre),
+      findsOneWidget,
+    );
+    expect(
+      find.bySemanticsLabel(StringsFr.quitterSansEnregistrerTexte),
+      findsOneWidget,
+    );
+    for (final label in [StringsFr.garder, StringsFr.quitter]) {
+      expect(
+        tester.getSemantics(find.widgetWithText(TextButton, label)),
+        isSemantics(label: label, isButton: true, hasTapAction: true),
+      );
+    }
+    tester.semantics.tap(find.semantics.byLabel(StringsFr.garder));
+    await tester.pumpAndSettle();
+    expect(quitDialog, findsNothing);
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+
+    tester.semantics.tap(find.semantics.byLabel(StringsFr.enregistrer));
+    await tester.pumpAndSettle();
+    expect(find.byType(FicheRecetteScreen), findsNothing);
+    expect(recipeCard('Omelette'), findsOneWidget);
+    handle.dispose();
+  });
+
   for (final scale in [1.3, 2.0, 3.0]) {
     testWidgets('police ×$scale sur 360 dp : fiche, bouton, popup, résultats '
         'et Choix d’unité sans débordement ni troncature', (tester) async {
@@ -993,6 +1271,39 @@ void main() {
       await _search(tester, 'Piment d’Espelette fumé du Pays basque');
       expect(tester.takeException(), isNull);
       expect(find.byType(CreateArticleRow), findsOneWidget);
+      await closeIngredientSheet(tester);
+
+      // « Enregistrer » entier, et le dialogue de sortie.
+      final save = tester.widget<Text>(
+        find.descendant(
+          of: saveButton,
+          matching: find.text(StringsFr.enregistrer),
+        ),
+      );
+      expect(save.maxLines, isNull);
+      expect(save.overflow, isNull);
+      expect(saveButton.hitTestable(), findsOneWidget);
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(quitDialog, findsOneWidget);
+      for (final text in [
+        StringsFr.quitterSansEnregistrerTitre,
+        StringsFr.quitterSansEnregistrerTexte,
+        StringsFr.garder,
+        StringsFr.quitter,
+      ]) {
+        final widget = tester.widget<Text>(find.text(text));
+        expect(widget.maxLines, isNull);
+        expect(widget.overflow, isNull);
+        // Au-delà de ×2, le titre et le texte défilent ; les actions
+        // restent à portée.
+        if (scale <= 2 ||
+            text == StringsFr.garder ||
+            text == StringsFr.quitter) {
+          expect(find.text(text).hitTestable(), findsOneWidget);
+        }
+      }
     });
   }
 }

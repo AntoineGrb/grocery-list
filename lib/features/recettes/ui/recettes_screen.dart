@@ -8,6 +8,7 @@ import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/undo/undo.dart';
@@ -92,11 +93,14 @@ class RecettesScreen extends ConsumerWidget {
   /// [context] est celui du `Builder` de Recettes, sous son messager.
   Future<void> _nouvelleListe(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (_) => const _NouvelleListeDialog(),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: StringsFr.nouvelleListeTitre,
+      message: StringsFr.nouvelleListeTexte,
+      keepLabel: StringsFr.garder,
+      confirmLabel: StringsFr.effacerEtRecommencer,
     );
-    if (confirmed != true || !context.mounted) return;
+    if (!confirmed || !context.mounted) return;
     try {
       await ref.read(nouvelleListeProvider).call();
     } catch (_) {
@@ -261,53 +265,6 @@ class _WelcomeLine extends StatelessWidget {
       style: theme.textTheme.bodyLarge?.copyWith(
         color: theme.colorScheme.onSurfaceVariant,
       ),
-    );
-  }
-}
-
-/// Dialogue de confirmation de Nouvelle liste (DESIGN `confirm-dialog`) :
-/// rend `true` sur « Effacer et recommencer », `false` sur « Garder » ; le
-/// retour et un tap hors du dialogue rendent `null`, comme « Garder ».
-class _NouvelleListeDialog extends StatelessWidget {
-  const _NouvelleListeDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    const target = Size(KadiSpacing.touchTarget, KadiSpacing.touchTarget);
-    return AlertDialog(
-      backgroundColor: scheme.surfaceContainer,
-      surfaceTintColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(KadiRadius.xl)),
-      ),
-      title: const Text(StringsFr.nouvelleListeTitre),
-      titleTextStyle: theme.textTheme.headlineSmall?.copyWith(
-        color: scheme.onSurface,
-      ),
-      content: const Text(StringsFr.nouvelleListeTexte),
-      contentTextStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: scheme.onSurfaceVariant,
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          style: TextButton.styleFrom(
-            foregroundColor: scheme.onSurface,
-            minimumSize: target,
-          ),
-          child: const Text(StringsFr.garder),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: TextButton.styleFrom(
-            foregroundColor: scheme.error,
-            minimumSize: target,
-          ),
-          child: const Text(StringsFr.effacerEtRecommencer),
-        ),
-      ],
     );
   }
 }

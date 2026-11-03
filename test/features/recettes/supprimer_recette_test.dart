@@ -270,9 +270,8 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('fiche neuve enregistrée, puis supprimée : Annuler la rend', (
-      tester,
-    ) async {
+    testWidgets('fiche neuve enregistrée, rouverte, puis supprimée : Annuler '
+        'la rend', (tester) async {
       tallPhone(tester);
       final db = await pumpKadi(tester);
       await openTab(tester, StringsFr.tabRecettes);
@@ -281,6 +280,10 @@ void main() {
       await tester.enterText(ficheNameField, 'Omelette');
       await tester.pumpAndSettle();
       await addIngredientBySheet(tester, 'œufs', 'Œufs');
+      // Pas en base avant « Enregistrer » : pas de bouton.
+      expect(_deleteButton, findsNothing);
+      await saveFiche(tester);
+      await _edit(tester, 'Omelette');
       expect(_deleteButton, findsOneWidget);
 
       await _delete(tester);

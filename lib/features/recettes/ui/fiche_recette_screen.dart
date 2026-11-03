@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -37,16 +39,24 @@ const _revealDuration = Duration(milliseconds: 200);
 /// sous `photos/`, AD-18 ; remplacer, retirer) et le champ « Lien », avec
 /// une icône qui l'ouvre dans le navigateur.
 ///
-/// Enregistrement automatique : dès que la fiche a un nom et au moins un
-/// ingrédient, chaque changement s'écrit, dans l'ordre, en une transaction.
-/// Sinon rien n'est écrit : une nouvelle fiche incomplète ne crée rien, une
-/// recette existante garde sa dernière version valide. Modifier une recette
-/// ne change jamais la liste en cours ni la sélection (R7).
+/// La fiche garde son brouillon en mémoire et n'écrit rien avant
+/// « Enregistrer » (R1) : ce Bouton d'action, en bas, au-dessus du clavier,
+/// grisé tant que la fiche n'a pas de nom ou pas d'ingrédient, écrit nom,
+/// ingrédients, photo et lien en une transaction, puis ferme la fiche. Un
+/// échec montre un snackbar ; la fiche reste ouverte, rien n'est écrit.
+/// Seuls les articles créés par la popup entrent au catalogue tout de suite.
+/// Modifier une recette ne change jamais la liste en cours ni la sélection
+/// (R7).
 ///
-/// En bas, « Supprimer la recette », seulement pour une recette enregistrée :
-/// un tap, sans confirmation (C9), la supprime logiquement et ferme la fiche
-/// en rendant une [RecipeDeletion] à Recettes, qui montre le snackbar
-/// Annuler. Un échec montre un snackbar et la fiche reste ouverte.
+/// Le retour (flèche ou Android) sur une fiche modifiée depuis son ouverture
+/// demande « Quitter sans enregistrer ? » : « Quitter » ferme sans rien
+/// écrire, « Garder », le retour ou un tap hors du dialogue restent sur la
+/// fiche. Non modifiée, elle se ferme sans question.
+///
+/// Sous le lien, « Supprimer la recette », seulement pour une recette en
+/// base : un tap, sans confirmation (C9), la supprime logiquement et ferme
+/// la fiche en rendant une [RecipeDeletion] à Recettes, qui montre le
+/// snackbar Annuler. Un échec montre un snackbar et la fiche reste ouverte.
 class FicheRecetteScreen extends ConsumerStatefulWidget {
   const FicheRecetteScreen({super.key, this.recipeId});
 
@@ -74,8 +84,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   /// Lu à l'ouverture : le ménage des photos se finit après la fermeture.
   late final RecipePhotos _photos;
 
-  /// Id de la recette, tiré à l'ouverture d'une fiche vide : les écritures
-  /// successives de la fiche visent la même ligne.
+  /// Id de la recette, tiré à l'ouverture d'une fiche vide.
   late final String _recipeId = widget.recipeId ?? _repository.newId();
 
   final _nameController = TextEditingController();
@@ -95,19 +104,19 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   /// Photo du brouillon (nom de fichier dans `photos/`), nulle sans photo.
   String? _photo;
 
-  /// Photo de la recette en base, telle que la dernière écriture l'a mise.
+  /// Photo de la recette en base : celle lue, puis celle enregistrée.
   String? _savedPhoto;
 
   /// Fichiers de photo connus de la fiche (celui lu, ceux choisis) : ceux
-  /// que ni la base ni le brouillon ne portent plus sont supprimés après
-  /// une écriture, et à la fermeture.
+  /// que ni la base ni le brouillon ne portent plus sont supprimés dès
+  /// qu'ils sont abandonnés, et à la fermeture.
   final _photoFiles = <String>{};
 
   /// Un choix de photo est en cours : un second tap est ignoré.
   bool _picking = false;
 
-  /// La fiche est fermée : le ménage des photos attend la fin des
-  /// écritures.
+  /// La fiche est fermée : seule la photo en base est gardée ; le ménage
+  /// attend la fin d'un enregistrement en cours.
   bool _closed = false;
 
   /// Brouillon d'écran : les ingrédients dans l'ordre.
@@ -122,12 +131,13 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   /// Ingrédient dont le Choix d'unité est ouvert.
   String? _unitOpenFor;
 
-  /// Brouillon à écrire après l'écriture en cours, et écriture en cours.
-  RecipeDraft? _pendingSave;
-  bool _saving = false;
+  /// État du brouillon à l'ouverture : la fiche est modifiée quand le sien
+  /// en diffère ([_signature]).
+  List<Object?> _initial = const [];
 
-  /// Écritures en cours, attendues avant une suppression.
-  Future<void>? _flushing;
+  /// « Enregistrer » écrit : un second tap, le retour et la suppression
+  /// attendent.
+  bool _saving = false;
 
   /// La recette est en base : « Supprimer la recette » est montré.
   bool _saved = false;
@@ -142,6 +152,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     final recipeId = widget.recipeId;
     if (recipeId == null) {
       _loaded = true;
+      _initial = _signature();
     } else {
       unawaited(_load(recipeId));
     }
@@ -162,6 +173,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       _photo = _savedPhoto = sheet.photo;
       if (sheet.photo != null) _photoFiles.add(sheet.photo!);
       _ingredients.addAll(sheet.ingredients.map(IngredientDraft.read));
+      _initial = _signature();
     });
   }
 
@@ -197,39 +209,84 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     );
   }
 
-  /// Un changement de la fiche : son état est pris tout de suite, puis écrit
-  /// après l'écriture en cours (une seule à la fois, la plus récente).
-  void _changed() {
-    if (!_loaded || _missing) return;
-    _pendingSave = _snapshot();
-    if (!_saving) _flushing = _flush();
+  /// Ce que l'écran montre du brouillon : nom, lien, photo, ingrédients dans
+  /// l'ordre avec leur quantité.
+  List<Object?> _signature() => [
+    _nameController.text,
+    _linkController.text,
+    _photo,
+    for (final ingredient in _ingredients) ...[ingredient.id, ingredient.value],
+  ];
+
+  /// La fiche a changé depuis son ouverture, ou une photo est en cours de
+  /// choix : quitter demande confirmation.
+  bool get _modified =>
+      _picking || (_loaded && !_missing && !listEquals(_signature(), _initial));
+
+  /// « Enregistrer » est actif : un nom une fois nettoyé, un ingrédient,
+  /// aucun choix de photo en cours.
+  bool get _canSave =>
+      _loaded &&
+      !_missing &&
+      !_picking &&
+      cleanRecipeName(_nameController.text).isNotEmpty &&
+      _ingredients.isNotEmpty;
+
+  /// « Enregistrer » : le brouillon entier écrit en une transaction, puis la
+  /// fiche se ferme. Un échec montre un snackbar ; la fiche reste ouverte et
+  /// rien n'est écrit. Pendant l'écriture, la fiche est inerte : plus de
+  /// saisie, d'ajout ni d'action sur la photo.
+  Future<void> _save() async {
+    if (_saving || _deleting || !_canSave) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _saving = true;
+      _unitOpenFor = null;
+    });
+    final messenger = ScaffoldMessenger.of(context);
+    final draft = _snapshot();
+    var saved = false;
+    try {
+      // Faux : la recette a été supprimée entre-temps.
+      saved = await _repository.saveDraft(draft);
+    } catch (_) {}
+    if (saved) _savedPhoto = draft.photo;
+    if (_closed) {
+      await _cleanPhotos();
+      return;
+    }
+    if (!mounted) return;
+    if (!saved) {
+      setState(() => _saving = false);
+      showErrorSnackBar(messenger, StringsFr.enregistrementImpossible);
+      return;
+    }
+    // L'ancienne photo, remplacée ou retirée, n'est plus portée.
+    unawaited(_cleanPhotos());
+    context.pop();
   }
 
-  Future<void> _flush() async {
-    _saving = true;
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    while (_pendingSave != null) {
-      final draft = _pendingSave!;
-      _pendingSave = null;
-      try {
-        if (await _repository.saveDraft(draft)) {
-          _savedPhoto = draft.photo;
-          if (!_saved && mounted) setState(() => _saved = true);
-        }
-      } catch (_) {
-        if (messenger != null) {
-          showErrorSnackBar(messenger, StringsFr.enregistrementImpossible);
-        }
-      }
+  /// Retour (flèche ou Android) : une fiche modifiée demande confirmation ;
+  /// « Quitter » la ferme sans rien écrire. Pendant un enregistrement, rien.
+  Future<void> _onBack() async {
+    if (_saving || _deleting) return;
+    if (_modified) {
+      final quit = await showConfirmDialog(
+        context,
+        title: StringsFr.quitterSansEnregistrerTitre,
+        message: StringsFr.quitterSansEnregistrerTexte,
+        keepLabel: StringsFr.garder,
+        confirmLabel: StringsFr.quitter,
+      );
+      if (!quit || !mounted || _saving || _deleting) return;
     }
-    _saving = false;
-    await _cleanPhotos();
+    context.pop();
   }
 
   /// Supprime les fichiers de photo que plus rien ne porte : ni la base,
-  /// ni (fiche ouverte) le brouillon. Après une écriture, l'ancienne photo
-  /// d'un remplacement ou d'un retrait ; à la fermeture, une photo choisie
-  /// sur une fiche jamais devenue valide.
+  /// ni (fiche ouverte) le brouillon. Fiche ouverte, une photo choisie puis
+  /// remplacée ou retirée ; après un enregistrement, l'ancienne photo ; à la
+  /// fermeture, une photo choisie et jamais enregistrée.
   Future<void> _cleanPhotos() async {
     final keep = {_savedPhoto, if (!_closed) _photo};
     final orphans = [
@@ -245,9 +302,12 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   /// Prend une photo à [source] : copiée sous `photos/`, elle remplace celle
   /// du brouillon. Choix annulé : rien ne change ; échec : snackbar, rien
   /// d'écrit.
+  ///
+  /// Tant que le choix est en cours, « Enregistrer » est grisé et le retour
+  /// demande confirmation.
   Future<void> _pickPhoto(PhotoSource source) async {
-    if (_picking) return;
-    _picking = true;
+    if (_picking || _saving) return;
+    setState(() => _picking = true);
     final messenger = ScaffoldMessenger.of(context);
     final pick = ref.read(photoPickerProvider);
     final String name;
@@ -260,6 +320,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       return;
     } finally {
       _picking = false;
+      if (mounted) setState(() {});
     }
     if (_closed || !mounted) {
       await _photos.delete(name);
@@ -267,27 +328,27 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     }
     _photoFiles.add(name);
     setState(() => _photo = name);
-    _changed();
+    // La photo choisie avant, jamais enregistrée, est abandonnée.
+    unawaited(_cleanPhotos());
   }
 
   void _removePhoto() {
+    if (_saving) return;
     setState(() => _photo = null);
-    _changed();
+    unawaited(_cleanPhotos());
   }
 
-  /// « Supprimer la recette » : les écritures en cours finies, la recette est
-  /// supprimée logiquement et la fiche se ferme en rendant son nom et son
-  /// entrée Annuler. Un échec montre un snackbar ; la fiche reste ouverte.
+  /// « Supprimer la recette » : la recette en base est supprimée logiquement
+  /// et la fiche se ferme en rendant son nom et son entrée Annuler ; le
+  /// brouillon non enregistré est perdu. Un échec montre un snackbar ; la
+  /// fiche reste ouverte.
   Future<void> _delete() async {
-    if (_deleting) return;
+    if (_deleting || _saving) return;
     _deleting = true;
     final messenger = ScaffoldMessenger.of(context);
     final undo = ref.read(undoProvider);
     final DeletedRecipe? deleted;
     try {
-      // Les écritures en cours finies : Annuler rend la dernière version
-      // enregistrée de la recette.
-      await _flushing;
       deleted = await _repository.deleteRecipe(_recipeId);
     } catch (_) {
       _deleting = false;
@@ -320,7 +381,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   /// de la fiche. Le champ qui avait le focus le rend : à la fermeture, aucun
   /// champ de la fiche ne le reprend.
   Future<void> _openSheet() async {
-    if (_sheetOpen) return;
+    if (_sheetOpen || _saving) return;
     _sheetOpen = true;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _unitOpenFor = null);
@@ -354,7 +415,6 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       _ingredients.add(ingredient);
       _unitOpenFor = null;
     });
-    _changed();
     // La popup change de hauteur dans la même frame et la publie après
     // elle : la ligne est montrée une frame plus tard, sous sa géométrie à
     // jour.
@@ -418,21 +478,21 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   }
 
   void _remove(IngredientDraft ingredient) {
+    if (_saving) return;
     setState(() {
       _ingredients.remove(ingredient);
       if (_unitOpenFor == ingredient.id) _unitOpenFor = null;
     });
-    _changed();
     // Le champ quitte l'arbre à la frame suivante.
     WidgetsBinding.instance.addPostFrameCallback((_) => ingredient.dispose());
   }
 
   void _selectUnit(IngredientDraft ingredient, InputUnit unit) {
+    if (_saving) return;
     setState(() {
       ingredient.selectUnit(unit);
       _unitOpenFor = null;
     });
-    _changed();
   }
 
   @override
@@ -480,11 +540,9 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                       textCapitalization: TextCapitalization.sentences,
                       textInputAction: TextInputAction.done,
                       style: nameStyle?.copyWith(color: scheme.onSurface),
-                      onChanged: (_) {
-                        // L'aperçu de la photo est lu avec le nom.
-                        if (_photo != null) setState(() {});
-                        _changed();
-                      },
+                      // « Enregistrer » et l'aperçu de la photo suivent le
+                      // nom.
+                      onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         filled: false,
                         contentPadding: EdgeInsets.zero,
@@ -512,7 +570,6 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                           : ingredient.id,
                     ),
                     onUnitSelected: (unit) => _selectUnit(ingredient, unit),
-                    onChanged: _changed,
                     onRemove: () => _remove(ingredient),
                   ),
                 // « Ajouter un ingrédient » : icône + et texte `on-surface`,
@@ -571,10 +628,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                       textInputAction: TextInputAction.done,
                       autocorrect: false,
                       enableSuggestions: false,
-                      onChanged: (_) {
-                        setState(() {});
-                        _changed();
-                      },
+                      onChanged: (_) => setState(() {}),
                       style: theme.textTheme.bodyLarge?.copyWith(
                         color: scheme.onSurface,
                       ),
@@ -635,15 +689,47 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
             ),
           );
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.recipeId == null
-              ? StringsFr.nouvelleRecette
-              : StringsFr.recette,
+    // Le retour passe par [_onBack] : confirmation si la fiche est modifiée.
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_onBack());
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(
+            widget.recipeId == null
+                ? StringsFr.nouvelleRecette
+                : StringsFr.recette,
+          ),
         ),
+        // Pendant l'écriture, la fiche est inerte au toucher ; les actions
+        // TalkBack sont ignorées par leurs gestionnaires.
+        body: AbsorbPointer(absorbing: _saving, child: body),
+        // « Enregistrer » (DESIGN `action-button`) : clavier ouvert, il
+        // reste visible juste au-dessus ; grisé sans nom ou sans ingrédient.
+        bottomNavigationBar: !_loaded || _missing
+            ? null
+            : Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                ),
+                child: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      KadiSpacing.margin,
+                      KadiSpacing.s2,
+                      KadiSpacing.margin,
+                      KadiSpacing.s2,
+                    ),
+                    child: FilledButton(
+                      onPressed: _canSave && !_saving ? _save : null,
+                      child: const Text(StringsFr.enregistrer),
+                    ),
+                  ),
+                ),
+              ),
       ),
-      body: body,
     );
   }
 }

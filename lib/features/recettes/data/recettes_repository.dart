@@ -126,8 +126,8 @@ class RecettesRepository {
     );
   }
 
-  /// Écrit le brouillon [draft] de la Fiche recette en une transaction
-  /// (enregistrement automatique, R1) : la recette (insérée, ou nom, lien
+  /// Écrit le brouillon [draft] de la Fiche recette en une transaction, au
+  /// tap sur « Enregistrer » (R1) : la recette (insérée, ou nom, lien
   /// nettoyé et photo mis à jour),
   /// ses ingrédients (insérés, ou position, article, quantité et unité mis à
   /// jour) ; les ingrédients actifs absents du brouillon sont supprimés
@@ -135,8 +135,7 @@ class RecettesRepository {
   ///
   /// Rien n'est écrit, et le résultat est faux, si le brouillon n'a pas de
   /// nom une fois nettoyé ([cleanRecipeName]) ou pas d'ingrédient, ou si la
-  /// recette a été supprimée : une nouvelle fiche incomplète ne crée rien,
-  /// une recette existante garde sa dernière version valide.
+  /// recette a été supprimée : la recette en base reste telle quelle.
   Future<bool> saveDraft(RecipeDraft draft) {
     final name = cleanRecipeName(draft.name);
     if (name.isEmpty || draft.ingredients.isEmpty) return Future.value(false);

@@ -65,6 +65,16 @@ abstract final class StringsFr {
   static const enregistrementImpossible =
       'Enregistrement impossible. Réessaie.';
 
+  /// Bouton d'action du bas de la fiche : écrit la recette et la ferme.
+  static const enregistrer = 'Enregistrer';
+
+  /// Dialogue du retour sur une fiche modifiée, non enregistrée ; « Garder »
+  /// ([garder]) y reste sur la fiche.
+  static const quitterSansEnregistrerTitre = 'Quitter sans enregistrer ?';
+  static const quitterSansEnregistrerTexte =
+      'Tes modifications seront perdues.';
+  static const quitter = 'Quitter';
+
   /// Bouton du bas de la fiche d'une recette enregistrée.
   static const supprimerLaRecette = 'Supprimer la recette';
 
