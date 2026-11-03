@@ -38,7 +38,8 @@ class _RevueScreenState extends ConsumerState<RevueScreen> {
   /// un retour n'écrit rien. Clés des lignes décochées.
   final _unchecked = <String>{};
 
-  /// Texte du Champ quantité de chaque ligne, par clé de ligne.
+  /// Texte du Champ quantité de chaque ligne chiffrée, par clé de ligne ;
+  /// une ligne sans quantité n'a pas de champ.
   final _controllers = <String, TextEditingController>{};
 
   /// Écriture en cours : le bouton ne réagit plus.
@@ -52,26 +53,30 @@ class _RevueScreenState extends ConsumerState<RevueScreen> {
     super.dispose();
   }
 
-  /// Texte d'origine du champ de [line] : sa quantité exacte dans son unité,
-  /// vide sans quantité.
+  /// Texte d'origine du champ de [line] : sa quantité exacte dans son unité.
   static String _originalText(RevueLine line) =>
       quantityFieldText(line.quantity, InputUnit.of(line.fieldUnit));
 
-  TextEditingController _controllerFor(RevueLine line) =>
-      _controllers.putIfAbsent(
-        line.key,
-        () => TextEditingController(text: _originalText(line)),
-      );
+  /// Le contrôleur du champ de [line], nul pour une ligne sans quantité.
+  TextEditingController? _controllerFor(RevueLine line) => line.quantity == null
+      ? null
+      : _controllers.putIfAbsent(
+          line.key,
+          () => TextEditingController(text: _originalText(line)),
+        );
 
   void _toggle(RevueLine line) => setState(() {
     if (!_unchecked.remove(line.key)) _unchecked.add(line.key);
   });
 
-  /// Le brouillon : lignes décochées et champs dont le texte a changé.
+  /// Le brouillon : lignes décochées et champs dont le texte a changé. Une
+  /// ligne sans quantité n'a pas de champ : jamais de correction, elle garde
+  /// ses parts d'origine.
   RevueDraft _draft(Revue revue) {
     final corrections = <String, int?>{};
     for (final group in revue.groups) {
       for (final line in group.lines) {
+        if (line.quantity == null) continue;
         final text = _controllers[line.key]?.text;
         if (text == null || text == _originalText(line)) continue;
         corrections[line.key] = quantityFromFieldText(

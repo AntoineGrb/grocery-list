@@ -43,7 +43,6 @@ class RevueSource {
     required this.selectionId,
     required this.articleId,
     required this.name,
-    required this.pictoKey,
     required this.rayon,
     this.quantity,
     this.unit,
@@ -54,7 +53,6 @@ class RevueSource {
   final String selectionId;
   final String articleId;
   final String name;
-  final String pictoKey;
 
   /// Rayon actuel de l'article (AD-15).
   final Rayon rayon;

@@ -454,7 +454,6 @@ class RecettesRepository {
       selectionId: selectionId,
       articleId: article.id,
       name: article.name,
-      pictoKey: article.pictoKey,
       rayon: Rayon.tryFromCode(article.rayon) ?? Rayon.divers,
       quantity: quantity == null || quantity <= 0 ? null : quantity,
       unit: quantity == null || quantity <= 0 ? null : unit,

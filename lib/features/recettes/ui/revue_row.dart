@@ -1,5 +1,4 @@
 import 'package:flutter/semantics.dart';
-import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -10,8 +9,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../state/revue.dart';
 
-/// Largeur du Champ quantité à droite de la ligne.
-const _fieldWidth = 128.0;
+/// Largeur du Champ quantité à droite de la ligne à ×1 : « 500 g » et
+/// « 6 pièces » y tiennent entiers ; elle suit la police jusqu'à
+/// [_inlineFieldMaxTextScale].
+const _fieldWidth = 96.0;
 
 /// Facteur de police au-delà duquel le Champ quantité passe sous le nom.
 const _inlineFieldMaxTextScale = 1.3;
@@ -35,8 +36,10 @@ String revueQuantityText(int? quantity, Unit? unit) {
 }
 
 /// Ligne de Revue (DESIGN `review-row`) : coche ronde à l'accent du rayon,
-/// Picto, nom et Champ quantité à droite, dans l'unité de la ligne
-/// ([RevueLine.fieldUnit]), sans Choix d'unité.
+/// nom, et à droite, pour une ligne chiffrée seulement, le Champ quantité
+/// discret (rempli, sans bordure) dans l'unité de la ligne
+/// ([RevueLine.fieldUnit]), sans Choix d'unité. Pas de Picto (C7). Une
+/// ligne sans quantité n'a ni champ ni texte de quantité.
 ///
 /// Un tap sur la coche décoche ou recoche ([onToggle]) ; décochée, le nom
 /// passe en couleur `checked`, sans barré, et la ligne reste en place. La
@@ -55,8 +58,9 @@ class RevueRow extends StatelessWidget {
   final RevueLine line;
   final bool checked;
 
-  /// Texte saisi du Champ quantité, gardé par l'écran (brouillon).
-  final TextEditingController controller;
+  /// Texte saisi du Champ quantité, gardé par l'écran (brouillon) ; nul pour
+  /// une ligne sans quantité, qui n'a pas de champ.
+  final TextEditingController? controller;
   final VoidCallback onToggle;
 
   void _toggle(BuildContext context) {
@@ -70,18 +74,33 @@ class RevueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = this.controller;
+    if (controller == null) return _build(context, '', null);
     final inputUnit = InputUnit.of(line.fieldUnit);
     return ValueListenableBuilder<TextEditingValue>(
       valueListenable: controller,
       builder: (context, value, _) {
         final stored = quantityFromFieldText(value.text, inputUnit);
         final quantity = revueQuantityText(stored?.quantity, stored?.unit);
-        return _build(context, quantity, inputUnit);
+        return _build(
+          context,
+          quantity,
+          Semantics(
+            label: StringsFr.quantiteDe(line.name, quantity),
+            child: QuantityField(
+              controller: controller,
+              unit: inputUnit,
+              filled: true,
+            ),
+          ),
+        );
       },
     );
   }
 
-  Widget _build(BuildContext context, String quantity, InputUnit inputUnit) {
+  /// La ligne, avec [field] à droite (sous le nom en grande police) ou sans
+  /// champ s'il est nul.
+  Widget _build(BuildContext context, String quantity, Widget? field) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final kadiColors = KadiColors.of(context);
@@ -91,8 +110,10 @@ class RevueRow extends StatelessWidget {
       if (quantity.isNotEmpty) quantity,
       line.rayon.spokenLabel,
     ].join(', ');
-    final large =
-        MediaQuery.textScalerOf(context).scale(1) > _inlineFieldMaxTextScale;
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final large = textScale > _inlineFieldMaxTextScale;
+    final fieldWidth =
+        _fieldWidth * textScale.clamp(1.0, _inlineFieldMaxTextScale);
 
     final head = Semantics(
       label: spoken,
@@ -107,8 +128,6 @@ class RevueRow extends StatelessWidget {
             accent: accent,
           ),
           const SizedBox(width: KadiSpacing.s1),
-          Picto(pictoKey: line.pictoKey, rayon: line.rayon),
-          const SizedBox(width: KadiSpacing.s3),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
@@ -125,11 +144,6 @@ class RevueRow extends StatelessWidget {
       ),
     );
 
-    final field = Semantics(
-      label: StringsFr.quantiteDe(line.name, quantity),
-      child: QuantityField(controller: controller, unit: inputUnit),
-    );
-
     return ConstrainedBox(
       constraints: const BoxConstraints(minHeight: KadiSpacing.rowMinHeight),
       child: Padding(
@@ -138,7 +152,9 @@ class RevueRow extends StatelessWidget {
           right: KadiSpacing.margin,
         ),
         // En grande police, le champ passe sous le nom : rien ne déborde.
-        child: large
+        child: field == null
+            ? head
+            : large
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -156,7 +172,7 @@ class RevueRow extends StatelessWidget {
                 children: [
                   Expanded(child: head),
                   const SizedBox(width: KadiSpacing.s3),
-                  SizedBox(width: _fieldWidth, child: field),
+                  SizedBox(width: fieldWidth, child: field),
                 ],
               ),
       ),

@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/app/actions/ajouter_a_la_liste.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/seed/seed_loader.dart';
+import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
@@ -379,19 +380,50 @@ void main() {
       Rayon.epicerieSalee,
     ]);
     expect(find.byType(RevueRow), findsNWidgets(8));
+    // Pas de picto en Revue (C7).
+    expect(
+      find.descendant(
+        of: find.byType(RevueScreen),
+        matching: find.byType(Picto),
+      ),
+      findsNothing,
+    );
     expect(find.text('Lardons'), findsOneWidget);
     expect(_fieldText(tester, 'Lardons'), '400');
+    // Lardons : champ discret, rempli sans bordure, coins arrondis, étroit.
+    final lardons = tester.widget<TextField>(_field('Lardons')).decoration!;
+    final scheme = Theme.of(tester.element(_field('Lardons'))).colorScheme;
+    expect(lardons.filled, isTrue);
+    expect(lardons.fillColor, scheme.surfaceContainer);
+    final lardonsBorder = lardons.enabledBorder! as OutlineInputBorder;
+    expect(lardonsBorder.borderSide, BorderSide.none);
+    expect(lardonsBorder.borderRadius, BorderRadius.circular(KadiRadius.sm));
+    expect(tester.getSize(_field('Lardons')).width, lessThanOrEqualTo(96));
+    expect(
+      find.descendant(
+        of: _revueRow('Lardons'),
+        matching: find.text(StringsFr.champUniteG),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Œufs'), findsOneWidget);
     expect(_fieldText(tester, 'Œufs'), '6');
+    expect(
+      find.descendant(
+        of: _revueRow('Œufs'),
+        matching: find.text(StringsFr.champUnitePieces),
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Poivre'), findsOneWidget);
-    // Poivre sans quantité : champ vide dans la pièce (article sans unité).
-    expect(_fieldText(tester, 'Poivre'), '');
+    // Poivre sans quantité : ni champ ni texte de quantité.
+    expect(_field('Poivre'), findsNothing);
     expect(
       find.descendant(
         of: _revueRow('Poivre'),
         matching: find.text(StringsFr.champUnitePieces),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       tester.getSemantics(
@@ -592,7 +624,9 @@ void main() {
       find.bySemanticsLabel('Quantité de Pâtes, 500${_nbsp}g'),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel('Quantité de Poivre, aucune'), findsOneWidget);
+    // Poivre, sans quantité, n'annonce aucun champ.
+    expect(find.bySemanticsLabel('Poivre, Épicerie salée'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Quantité de Poivre')), findsNothing);
 
     tester.semantics.tap(find.semantics.byLabel(pates));
     await tester.pumpAndSettle();
@@ -1218,6 +1252,25 @@ void main() {
       expect(eggName.overflow, isNull);
       await tester.enterText(_field('Œufs'), '999999');
       await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(_field('Œufs')).right, lessThanOrEqualTo(360));
+      expect(
+        tester.widget<TextField>(_field('Œufs')).decoration!.filled,
+        isTrue,
+      );
+      // Poivre, sans quantité : pas de champ, à toute taille de police.
+      await tester.scrollUntilVisible(
+        _revueRow('Poivre'),
+        100,
+        scrollable: find
+            .descendant(
+              of: find.byType(RevueScreen),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      expect(_field('Poivre'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.scrollUntilVisible(
         check,

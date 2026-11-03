@@ -15,7 +15,6 @@ RevueSource _source(
   selectionId: selection,
   articleId: article,
   name: article,
-  pictoKey: article.toLowerCase(),
   rayon: rayon,
   quantity: quantity,
   unit: unit,

@@ -25,7 +25,6 @@ class RevueLine {
   const RevueLine({
     required this.articleId,
     required this.name,
-    required this.pictoKey,
     required this.rayon,
     required this.unit,
     required this.contributions,
@@ -34,7 +33,6 @@ class RevueLine {
 
   final String articleId;
   final String name;
-  final String pictoKey;
   final Rayon rayon;
 
   /// Unité de la ligne ; nulle : sans quantité.
@@ -141,7 +139,7 @@ Revue buildRevue({
 class _LineBuilder {
   _LineBuilder(this.source, this.unit);
 
-  /// Premier ingrédient de la ligne : article, nom, picto et rayon.
+  /// Premier ingrédient de la ligne : article, nom et rayon.
   final RevueSource source;
   Unit? unit;
   final contributions = <RevueContribution>[];
@@ -149,7 +147,6 @@ class _LineBuilder {
   RevueLine build() => RevueLine(
     articleId: source.articleId,
     name: source.name,
-    pictoKey: source.pictoKey,
     rayon: source.rayon,
     unit: unit,
     articleUnit: source.articleUnit,

@@ -104,7 +104,8 @@ class QuantityField extends StatelessWidget {
   /// Prend le focus à son apparition, clavier ouvert.
   final bool autofocus;
 
-  /// Fond `surface-container` sans bordure, pour la Popup quantité.
+  /// Fond `surface-container` sans bordure, pour la Popup quantité et la
+  /// Revue.
   final bool filled;
 
   /// Saisie de l'utilisateur.
