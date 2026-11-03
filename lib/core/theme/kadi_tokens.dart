@@ -171,9 +171,11 @@ abstract final class KadiSpacing {
   static const addPopupMaxWidth = 340.0;
 
   /// Carte recette (`recipe-card`) : hauteur du visuel, Picto de repli,
-  /// pastille de sélection, hauteur minimale du nom.
+  /// icône « modifier », disque qui garde la coche et l'icône lisibles sur
+  /// une photo, hauteur minimale du nom.
   static const recipeVisualHeight = 118.0;
   static const recipePicto = 44.0;
-  static const recipeMark = 26.0;
+  static const recipeEditIcon = 18.0;
+  static const recipeDisc = 32.0;
   static const recipeCaptionMinHeight = 64.0;
 }

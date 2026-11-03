@@ -1,3 +1,5 @@
+import 'dart:ui' show SemanticsFlag;
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/app/actions/ajouter_a_la_liste.dart';
@@ -62,6 +64,25 @@ Future<void> _tapCheck(WidgetTester tester, String name) async {
 
 Finder get _ajouterButton =>
     find.widgetWithText(FilledButton, StringsFr.ajouterALaListe);
+
+/// La coche ronde de la carte de [name].
+Finder _cardCheck(String name) =>
+    find.descendant(of: recipeCard(name), matching: find.byType(Checkbox));
+
+/// La coche de la carte de [name] est-elle pleine ?
+bool _cardChecked(WidgetTester tester, String name) =>
+    tester.widget<Checkbox>(_cardCheck(name)).value!;
+
+/// Touche la coche ronde de la carte de [name].
+Future<void> _tapCardCheck(WidgetTester tester, String name) async {
+  await tester.ensureVisible(_cardCheck(name));
+  await tester.tap(_cardCheck(name));
+  await tester.pumpAndSettle();
+}
+
+/// L'icône « modifier » de la carte de [name].
+Finder _editButton(String name) =>
+    find.byTooltip(StringsFr.modifierRecette(name));
 
 /// Annonces TalkBack envoyées pendant le test.
 List<String> _recordAnnouncements(WidgetTester tester) {
@@ -154,12 +175,53 @@ void main() {
     expect(find.byType(RecipeCard), findsNothing);
   });
 
-  testWidgets('sélectionner, désélectionner : coche, bordure et Valider (n)', (
-    tester,
-  ) async {
+  testWidgets('sélectionner, désélectionner : coche ronde vide puis pleine, '
+      'sans bordure, et Valider (n)', (tester) async {
     final handle = tester.ensureSemantics();
     final db = await pumpKadi(tester);
     await _openRecettes(tester);
+
+    // Chaque carte : coche ronde vide en haut à gauche du visuel, en
+    // on-surface (jamais d'argile), cible de 48 dp ; la carte sans bordure.
+    final scheme = Theme.of(tester.element(recipeCard('Chili con carne')))
+        .colorScheme;
+    for (final name in [
+      'Chili con carne',
+      'Pâtes carbonara',
+      'Quiche lorraine',
+      'Ratatouille',
+    ]) {
+      final check = tester.widget<Checkbox>(_cardCheck(name));
+      expect(check.value, isFalse);
+      expect(check.activeColor, scheme.onSurface);
+      expect(check.side?.color, scheme.onSurface);
+      expect(check.checkColor, scheme.surface);
+      final card = tester.getRect(recipeCard(name));
+      final target = tester.getRect(
+        find
+            .ancestor(of: _cardCheck(name), matching: find.byType(SizedBox))
+            .first,
+      );
+      expect(target.size, const Size.square(KadiSpacing.touchTarget));
+      expect(target.topLeft, card.topLeft);
+      // Le nom, sous le visuel, n'est jamais masqué par la coche.
+      expect(
+        tester.getRect(find.text(name)).top,
+        greaterThanOrEqualTo(target.bottom),
+      );
+    }
+    Material cardMaterial(String name) => tester.widget<Material>(
+      find.descendant(
+        of: recipeCard(name),
+        matching: find.byWidgetPredicate(
+          (w) => w is Material && w.color == scheme.surfaceContainer,
+        ),
+      ),
+    );
+    expect(
+      (cardMaterial('Chili con carne').shape! as RoundedRectangleBorder).side,
+      BorderSide.none,
+    );
 
     expect(
       find.bySemanticsLabel('Chili con carne, non sélectionnée'),
@@ -170,12 +232,12 @@ void main() {
       find.bySemanticsLabel('Chili con carne, sélectionnée'),
       findsOneWidget,
     );
+    expect(_cardChecked(tester, 'Chili con carne'), isTrue);
+    expect(_cardChecked(tester, 'Ratatouille'), isFalse);
+    // Sélectionnée : toujours sans bordure.
     expect(
-      find.descendant(
-        of: recipeCard('Chili con carne'),
-        matching: find.byIcon(Icons.check),
-      ),
-      findsOneWidget,
+      (cardMaterial('Chili con carne').shape! as RoundedRectangleBorder).side,
+      BorderSide.none,
     );
     expect(validerButton(1), findsOneWidget);
     expect(await db.select(db.weekSelections).get(), hasLength(1));
@@ -198,6 +260,96 @@ void main() {
     // Une carte non validée se désélectionne sans snackbar.
     expect(find.byType(SnackBar), findsNothing);
     handle.dispose();
+  });
+
+  testWidgets('tap sur la coche : comme un tap sur la carte, une seule fois', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    final db = await pumpKadi(tester);
+    await _openRecettes(tester);
+
+    await _tapCardCheck(tester, 'Chili con carne');
+    expect(_cardChecked(tester, 'Chili con carne'), isTrue);
+    expect(
+      find.bySemanticsLabel('Chili con carne, sélectionnée'),
+      findsOneWidget,
+    );
+    expect(validerButton(1), findsOneWidget);
+    expect(await db.select(db.weekSelections).get(), hasLength(1));
+
+    await _tapCardCheck(tester, 'Chili con carne');
+    expect(_cardChecked(tester, 'Chili con carne'), isFalse);
+    expect(
+      find.bySemanticsLabel('Chili con carne, non sélectionnée'),
+      findsOneWidget,
+    );
+    expect(find.byType(FilledButton), findsNothing);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(
+      (await db.select(db.weekSelections).get()).where(
+        (s) => s.deletedAt == null,
+      ),
+      isEmpty,
+    );
+    handle.dispose();
+  });
+
+  testWidgets('TalkBack : la coche n’ajoute aucun nœud lu, la carte garde '
+      'sa lecture et son tap', (tester) async {
+    final handle = tester.ensureSemantics();
+    await pumpKadi(tester);
+    await _openRecettes(tester);
+
+    expect(find.semantics.byFlag(SemanticsFlag.hasCheckedState), findsNothing);
+    expect(
+      tester.getSemantics(
+        find.bySemanticsLabel('Chili con carne, non sélectionnée'),
+      ),
+      isSemantics(
+        label: 'Chili con carne, non sélectionnée',
+        isButton: true,
+        hasTapAction: true,
+      ),
+    );
+    await tapRecipeCard(tester, 'Chili con carne');
+    expect(find.semantics.byFlag(SemanticsFlag.hasCheckedState), findsNothing);
+    expect(
+      find.bySemanticsLabel('Chili con carne, sélectionnée'),
+      findsOneWidget,
+    );
+    handle.dispose();
+  });
+
+  testWidgets('icône « modifier » : 18 dp, on-surface-variant, sans fond, '
+      'cible de 48 dp ; ouvre la fiche sans changer la sélection', (
+    tester,
+  ) async {
+    final db = await pumpKadi(tester);
+    await _openRecettes(tester);
+
+    final edit = _editButton('Chili con carne');
+    expect(tester.getSize(edit), const Size.square(KadiSpacing.touchTarget));
+    final icon = find.descendant(
+      of: edit,
+      matching: find.byIcon(Icons.edit_outlined),
+    );
+    final size = tester.getSize(icon);
+    expect(size.width, lessThanOrEqualTo(18));
+    expect(size.height, lessThanOrEqualTo(18));
+    final scheme = Theme.of(tester.element(edit)).colorScheme;
+    expect(tester.widget<Icon>(icon).color, scheme.onSurfaceVariant);
+    // Sans photo : ni fond de bouton, ni disque.
+    final button = tester.widget<IconButton>(
+      find.ancestor(of: edit, matching: find.byType(IconButton)),
+    );
+    expect(button.style?.backgroundColor, isNull);
+    expect(recipeCardDiscs('Chili con carne'), findsNothing);
+
+    await editRecipe(tester, 'Chili con carne');
+    await backFromFiche(tester);
+    expect(_cardChecked(tester, 'Chili con carne'), isFalse);
+    expect(await db.select(db.weekSelections).get(), isEmpty);
   });
 
   testWidgets('Carbonara + Quiche : Valider (2), Revue, Ajouter à la liste, '
@@ -589,13 +741,7 @@ void main() {
         find.bySemanticsLabel('Pâtes carbonara, non sélectionnée'),
         findsOneWidget,
       );
-      expect(
-        find.descendant(
-          of: recipeCard('Pâtes carbonara'),
-          matching: find.byIcon(Icons.check),
-        ),
-        findsNothing,
-      );
+      expect(_cardChecked(tester, 'Pâtes carbonara'), isFalse);
       expect(
         find.bySemanticsLabel('Quiche lorraine, sélectionnée'),
         findsOneWidget,
@@ -655,6 +801,26 @@ void main() {
       expect(find.text('Courgettes'), findsOneWidget);
       expect(find.text('Lardons'), findsNothing);
       expect(find.text('Pâtes'), findsNothing);
+    });
+
+    testWidgets('tap sur la coche de Carbonara validée : même désélection, '
+        'un seul snackbar ; Annuler la resélectionne', (tester) async {
+      await validatedCarbonaraQuiche(tester);
+      await _tapCardCheck(tester, 'Pâtes carbonara');
+
+      expect(_cardChecked(tester, 'Pâtes carbonara'), isFalse);
+      expect(find.text(carbonaraRetiree), findsOneWidget);
+      expect(undoAction, findsOneWidget);
+      await _openListe(tester);
+      expect(find.bySemanticsLabel(lardons200), findsOneWidget);
+
+      await _openRecettes(tester);
+      await tester.tap(undoAction);
+      await tester.pumpAndSettle();
+      expect(_cardChecked(tester, 'Pâtes carbonara'), isTrue);
+      expect(find.byType(FilledButton), findsNothing);
+      await _openListe(tester);
+      expect(find.bySemanticsLabel(lardons400), findsOneWidget);
     });
 
     testWidgets('fin du snackbar : plus d’Annuler, la carte reste '
@@ -858,13 +1024,7 @@ void main() {
       expect(find.byType(AlertDialog), findsNothing);
 
       expect(await snapshot(db), before);
-      expect(
-        find.descendant(
-          of: recipeCard('Pâtes carbonara'),
-          matching: find.byIcon(Icons.check),
-        ),
-        findsOneWidget,
-      );
+      expect(_cardChecked(tester, 'Pâtes carbonara'), isTrue);
       expect(validerButton(1), findsOneWidget);
       expect(find.byType(SnackBar), findsNothing);
       // Toujours sur Recettes.
@@ -988,7 +1148,39 @@ void main() {
       final name = tester.widget<Text>(find.text('Pâtes carbonara'));
       expect(name.maxLines, isNull);
       expect(name.overflow, isNull);
+      // Coche au-dessus du nom, jamais sur lui ; icône « modifier » toujours
+      // de 18 dp dans sa cible de 48 dp.
+      final checkTarget = tester.getRect(
+        find
+            .ancestor(
+              of: _cardCheck('Pâtes carbonara'),
+              matching: find.byType(SizedBox),
+            )
+            .first,
+      );
+      expect(
+        tester.getRect(find.text('Pâtes carbonara')).top,
+        greaterThanOrEqualTo(checkTarget.bottom),
+      );
+      expect(
+        tester.getSize(_editButton('Pâtes carbonara')),
+        const Size.square(KadiSpacing.touchTarget),
+      );
+      expect(
+        tester
+            .getSize(
+              find.descendant(
+                of: _editButton('Pâtes carbonara'),
+                matching: find.byIcon(Icons.edit_outlined),
+              ),
+            )
+            .width,
+        lessThanOrEqualTo(18),
+      );
 
+      await _tapCardCheck(tester, 'Pâtes carbonara');
+      expect(_cardChecked(tester, 'Pâtes carbonara'), isTrue);
+      await _tapCardCheck(tester, 'Pâtes carbonara');
       await tapRecipeCard(tester, 'Pâtes carbonara');
       await openRevue(tester, 1);
       expect(tester.takeException(), isNull);

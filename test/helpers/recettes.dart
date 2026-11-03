@@ -25,6 +25,18 @@ Future<void> openTab(WidgetTester tester, String tab) async {
 Finder recipeCard(String name) =>
     find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
 
+/// Disques `surface` translucides de la carte de [name], qui gardent la
+/// coche et l'icône « modifier » lisibles sur une photo.
+Finder recipeCardDiscs(String name) => find.descendant(
+  of: recipeCard(name),
+  matching: find.byWidgetPredicate(
+    (w) =>
+        w is DecoratedBox &&
+        w.decoration is BoxDecoration &&
+        (w.decoration as BoxDecoration).shape == BoxShape.circle,
+  ),
+);
+
 /// Touche la carte de [name] (sélection ou désélection).
 Future<void> tapRecipeCard(WidgetTester tester, String name) async {
   await tester.ensureVisible(recipeCard(name));

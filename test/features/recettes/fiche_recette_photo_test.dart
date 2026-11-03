@@ -242,6 +242,39 @@ void main() {
     );
     // Le visuel de repli n'est pas montré sous une photo.
     expect(_cardPicto('Chili con carne'), findsNothing);
+    // Sur la photo, un disque `surface` translucide derrière la coche et
+    // derrière l'icône « modifier », qui garde sa cible de 48 dp.
+    expect(recipeCardDiscs('Chili con carne'), findsNWidgets(2));
+    expect(recipeCardDiscs('Ratatouille'), findsNothing);
+    final scheme = Theme.of(tester.element(recipeCard('Chili con carne')))
+        .colorScheme;
+    for (final disc in tester.widgetList<DecoratedBox>(
+      recipeCardDiscs('Chili con carne'),
+    )) {
+      expect(
+        (disc.decoration as BoxDecoration).color,
+        scheme.surface.withValues(alpha: 0.8),
+      );
+    }
+    final checkTarget = find
+        .ancestor(
+          of: find.descendant(
+            of: recipeCard('Chili con carne'),
+            matching: find.byType(Checkbox),
+          ),
+          matching: find.byType(SizedBox),
+        )
+        .first;
+    expect([
+      for (final e in recipeCardDiscs('Chili con carne').evaluate())
+        tester.getCenter(find.byWidget(e.widget)),
+    ], contains(tester.getCenter(checkTarget)));
+    expect(
+      tester.getSize(
+        find.byTooltip(StringsFr.modifierRecette('Chili con carne')),
+      ),
+      const Size.square(KadiSpacing.touchTarget),
+    );
     // Le fichier reste après la fermeture : la base le porte.
     expect(env.photos.files, {'photo-1.jpg'});
   });
