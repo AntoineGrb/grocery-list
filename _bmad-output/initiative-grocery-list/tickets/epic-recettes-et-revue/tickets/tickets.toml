@@ -91,3 +91,50 @@ covers = []
 after = [1, 2, 3, 4, 5, 6, 7]
 hitl = false
 risk = "low"
+
+# Retours d'Antoine au test de fin d'epic (2026-11-03), une seule voie.
+
+[[entry]]
+id = 9
+type = "story"
+title = "Carte recette : coche discrète façon todo, crayon discret"
+description = "La pastille noire à coche et la bordure de la carte sélectionnée sont remplacées par la coche ronde de la Liste (RoundCheck), petite, en haut à gauche de chaque carte : contour vide non sélectionnée, pleine sélectionnée, jamais d'argile. L'icône « modifier » devient plus petite et plus discrète (on-surface-variant), cible 48 dp gardée. TalkBack inchangé (« Chili, sélectionnée », « Modifier Chili »)."
+verify = "Les tests d'écran montrent : une carte non sélectionnée porte une coche ronde vide, une sélectionnée une coche ronde pleine, sans bordure ni pastille ; le crayon fait au plus 18 dp visuels pour une cible de 48 dp ; les tests de sélection existants passent."
+covers = ["R2", "R3", "R13"]
+after = [8]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 10
+type = "story"
+title = "Revue épurée : sans picto, quantité discrète seulement si elle existe"
+description = "La Ligne de Revue perd son picto (C7). Une ligne sans quantité n'a plus de champ quantité ; une ligne chiffrée garde un champ plus petit, aux bords arrondis et au fond grisé, comme le champ de la Popup quantité du Panneau + (QuantityField rempli), avec son unité. Décoche, correction et prorata inchangés."
+verify = "Les tests d'écran montrent : aucune Ligne de Revue n'a de picto ; Poivre (sans quantité) n'a pas de champ ; Lardons a un champ rempli arrondi, plus étroit qu'avant ; corriger Œufs à 4 donne toujours « Œufs 4 pièces » dans la Liste ; police ×2 sans débordement."
+covers = ["R4", "R5", "R13"]
+after = [9]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 11
+type = "story"
+title = "Fiche recette : ajouter un ingrédient par une popup, quantité facultative"
+description = "Le Champ de recherche intégré à la fiche est remplacé par un bouton « Ajouter un ingrédient » qui ouvre une popup basse comme le Panneau + : champ focalisé, résultats du catalogue, « Créer « … » » sans correspondance exacte, Entrée qui ajoute le texte tapé (article de ce nom exact, sinon créé au catalogue en Divers). La liste des ingrédients reste visible derrière et se met à jour à chaque ajout ; le champ se vide, le clavier reste ouvert pour enchaîner ; un résultat déjà ingrédient montre sa coche. Après un ajout, aucun focus n'est donné au Champ quantité : la quantité reste facultative et ne se saisit que par un tap sur la ligne."
+verify = "Les tests d'écran montrent : la fiche n'a plus de champ de recherche ; « Ajouter un ingrédient » ouvre la popup ; taper « hari » puis toucher le résultat ajoute la ligne, visible derrière, vide le champ et laisse le focus dans la popup ; Entrée sur « Piment d'Espelette » crée l'article et l'ajoute ; aucun Champ quantité n'a le focus après un ajout ; TalkBack et police ×2."
+covers = ["R1", "R13"]
+after = [10]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 12
+type = "story"
+title = "Fiche recette : bouton de validation au lieu de l'enregistrement automatique"
+description = "La fiche ne s'enregistre plus seule : un Bouton d'action « Enregistrer » (argile, en bas), actif dès qu'elle a un nom et au moins un ingrédient, écrit nom, ingrédients, quantités, photo et lien en une transaction puis ferme la fiche. Quitter une fiche modifiée sans l'enregistrer demande « Quitter sans enregistrer ? » (« Garder » / « Quitter ») ; sans modification, on quitte sans question. Les photos non enregistrées sont nettoyées comme avant ; « Supprimer la recette » est inchangé."
+verify = "Les tests d'écran montrent : « Enregistrer » est grisé sans nom ou sans ingrédient ; le toucher crée ou met à jour la recette et revient à Recettes ; rien n'est écrit avant ; retour après modification : le dialogue, « Garder » reste, « Quitter » n'écrit rien ; retour sans modification : aucune question ; modifier une recette validée laisse la liste identique."
+covers = ["R1", "R7", "R13"]
+after = [11]
+hitl = false
+risk = "medium"
+notes = ["Le dialogue de sortie est une exception à C9, à valider par Antoine."]

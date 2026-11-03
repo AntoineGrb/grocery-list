@@ -22,7 +22,7 @@ Le dimanche soir, Antoine et sa femme obtiennent la liste de la semaine fusionn�
 
 ## Requirements
 
-- R1 (parent R1) : on crée, modifie et supprime une recette avec un nom, des ingrédients pris dans le catalogue par recherche + tap avec quantité facultative, un lien facultatif et une photo facultative prise dans la galerie ou à l'appareil photo, et rien d'autre ; la fiche s'enregistre automatiquement dès qu'elle a un nom et au moins un ingrédient ; une recette de 5 ingrédients se saisit en moins d'une minute.
+- R1 (parent R1) : on crée, modifie et supprime une recette avec un nom, des ingrédients ajoutés par une popup de recherche sur le catalogue avec quantité facultative, un lien facultatif et une photo facultative prise dans la galerie ou à l'appareil photo, et rien d'autre ; la fiche s'enregistre par un bouton de validation, actif dès qu'elle a un nom et au moins un ingrédient ; une recette de 5 ingrédients se saisit en moins d'une minute.
 - R2 (parent R2) : l'onglet Recettes affiche les recettes en cartes sur 2 colonnes, avec la photo ou, à défaut, le picto de l'ingrédient principal teinté de son rayon.
 - R3 (parent R3) : un tap sur une carte la sélectionne ou la désélectionne pour la semaine ; une carte sélectionnée porte une coche et une bordure, sans distinguer validée et à valider ; « Valider (n) » n'apparaît que si n recettes sélectionnées ne sont pas encore validées ; la fiche s'ouvre par l'icône « modifier » de la carte.
 - R4 (parent R4) : Valider ouvre la Revue avec les seuls ingrédients des recettes nouvellement validées, groupés par rayon dans l'ordre du parcours, tous cochés ; les quantités d'un même article dans la même unité sont additionnées.
@@ -64,6 +64,8 @@ Le dimanche soir, Antoine et sa femme obtiennent la liste de la semaine fusionn�
 
 ## Notes
 
+- Decision: 2026-11-03 — premiers retours d'Antoine au test de fin d'epic : R1 re-rendu depuis l'initiative (popup d'ajout, bouton de validation) et C7 (pas de picto en Revue) ; l'epic rouvre pour quatre stories dans une seule voie, les stories 1 à 8 restent faites : 9 carte recette (coche façon todo, crayon discret), 10 Revue épurée, 11 ajout d'ingrédient par popup et quantité sans focus, 12 bouton de validation de la fiche. Pas de second « Refactor sweep » : chaque story nettoie ce qu'elle remplace.
+- Assumption: 2026-11-03 — la marque de sélection devient la coche ronde de la Liste, petite, visible sur toutes les cartes (contour vide, pleine sélectionnée), sans bordure de carte.
 - Decision: 2026-11-02 — epic affiné sans arrêt (demande d'Antoine : enchaîner les étapes, il teste l'epic entier à la fin) : Requirements rendus depuis les lignes de l'initiative ; les points ouverts sont tranchés par les hypothèses ci-dessous, qu'Antoine valide au test de fin d'epic.
 - Decision: 2026-11-02 — découpage en 8 stories, dans une seule voie (Recettes, Revue et actions partagent l'écran Recettes) ; traceur : story 1, « une recette exemple sélectionnée et validée arrive dans la Liste » (migration v3 jusqu'à la Liste) ; puis la Revue et la désélection, les plus risquées (prorata et provenance, AD-4, AD-5).
 - Decision: 2026-11-02 — les stories forment une seule voie dans leurs prérequis (chacune attend la précédente) : elles partagent l'écran Recettes, la Revue, les repositories et les chaînes ; la vérification du découpage l'a demandé.
