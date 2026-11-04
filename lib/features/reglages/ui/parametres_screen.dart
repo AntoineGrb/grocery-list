@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kadi/app/actions/exporter_mes_donnees.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -7,7 +8,8 @@ import 'package:material_ui/material_ui.dart';
 
 /// Paramètres : écran poussé plein écran, flèche retour, sans Barre de
 /// navigation. Lignes de paramètre (`settings-row`) en Switch M3 :
-/// Écran allumé (R14) et groupement de la Liste par rayon.
+/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, la
+/// ligne « Exporter mes données » (R21).
 ///
 /// Les switches suivent les réglages en base (AD-1) et y écrivent par le
 /// `SettingsRepository` (AD-2) : une écriture qui échoue laisse le switch à
@@ -51,6 +53,7 @@ class ParametresScreen extends ConsumerWidget {
                   onChanged: (value) =>
                       _write(context, ref, (r) => r.setGroupByRayon(value)),
                 ),
+                const _ExportRow(),
               ],
             ),
     );
@@ -82,6 +85,59 @@ class _SettingsSwitch extends StatelessWidget {
       title: Text(title, style: theme.textTheme.bodyLarge),
       subtitle: Text(
         subtitle,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne « Exporter mes données » : écrit l'archive de sauvegarde et l'ouvre
+/// dans la feuille de partage. Désactivée pendant l'export (pas de double
+/// export) ; « Sauvegarde prête. » au retour du partage, rien s'il est
+/// fermé sans choix, « Export impossible. » sur un échec.
+class _ExportRow extends ConsumerStatefulWidget {
+  const _ExportRow();
+
+  @override
+  ConsumerState<_ExportRow> createState() => _ExportRowState();
+}
+
+class _ExportRowState extends ConsumerState<_ExportRow> {
+  var _exporting = false;
+
+  Future<void> _export() async {
+    if (_exporting) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final export = ref.read(exporterMesDonneesProvider);
+    setState(() => _exporting = true);
+    try {
+      final result = await export();
+      if (result == ExportResult.shared && messenger.mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text(StringsFr.sauvegardePrete)),
+        );
+      }
+    } catch (_) {
+      showErrorSnackBar(messenger, StringsFr.exportImpossible);
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      enabled: !_exporting,
+      onTap: _exporting ? null : _export,
+      title: Text(
+        StringsFr.exporterMesDonnees,
+        style: theme.textTheme.bodyLarge,
+      ),
+      subtitle: Text(
+        StringsFr.exporterMesDonneesDetail,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

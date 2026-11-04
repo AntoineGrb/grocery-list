@@ -1,8 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/app/kadi_app.dart';
 import 'package:kadi/app/startup.dart';
+import 'package:kadi/core/backup/backup_providers.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
@@ -23,6 +26,9 @@ import 'test_db.dart';
 /// de l'app), telle quelle et sans être fermée ici. La base créée ici est
 /// fermée au démontage. Le maintien de l'écran passe par [screenAwake], un
 /// [FakeScreenAwake] neuf par défaut : aucun test n'appelle la plateforme.
+/// De même, la feuille de partage est [shareFile] (par défaut un double qui
+/// rend « partagé ») et l'export écrit dans [exportDirectory] (par défaut un
+/// dossier temporaire créé au premier export, supprimé en fin de test).
 Future<AppDatabase> pumpKadi(
   WidgetTester tester, {
   List<Override> overrides = const [],
@@ -30,6 +36,8 @@ Future<AppDatabase> pumpKadi(
   bool firstLaunch = false,
   AppDatabase? database,
   ScreenAwake? screenAwake,
+  ShareFile? shareFile,
+  Future<Directory> Function()? exportDirectory,
 }) async {
   assert(
     !(firstLaunch && database != null),
@@ -57,6 +65,10 @@ Future<AppDatabase> pumpKadi(
         databaseProvider.overrideWithValue(db),
         seedAssetLoaderProvider.overrideWithValue(loadAsset),
         screenAwakeProvider.overrideWithValue(screenAwake ?? FakeScreenAwake()),
+        shareFileProvider.overrideWithValue(shareFile ?? (_) async => true),
+        exportDirectoryProvider.overrideWithValue(
+          exportDirectory ?? _tempExportDirectory(),
+        ),
         ...overrides,
       ],
       child: const KadiApp(),
@@ -70,4 +82,23 @@ Future<AppDatabase> pumpKadi(
     });
   }
   return db;
+}
+
+/// Dossier temporaire d'export, créé au premier appel (E/S synchrones : la
+/// zone de test des widgets n'attend pas les E/S asynchrones) et supprimé en
+/// fin de test.
+Future<Directory> Function() _tempExportDirectory() {
+  Directory? dir;
+  return () async {
+    if (dir != null) return dir!;
+    final created = dir = Directory.systemTemp.createTempSync('kadi_export_');
+    addTearDown(() {
+      try {
+        created.deleteSync(recursive: true);
+      } on FileSystemException {
+        // Windows : un fichier encore ouvert.
+      }
+    });
+    return created;
+  };
 }

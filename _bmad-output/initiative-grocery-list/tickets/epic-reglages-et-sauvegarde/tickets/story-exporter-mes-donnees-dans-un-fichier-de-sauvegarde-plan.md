@@ -3,8 +3,8 @@ title: 'Exporter mes données dans un fichier de sauvegarde'
 type: 'feature'
 ticket: '2'
 created: '2026-11-04'
-status: 'draft'
-baseline_revision: ''
+status: 'in-review'
+baseline_revision: '27f2c9d35e998415ef314c06315d4acec87ccf79'
 route: 'full'
 route_source: 'auto'
 risk: 'medium'
@@ -64,18 +64,30 @@ deferred: []
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `pubspec.yaml` -- ajouter `archive` et `share_plus` épinglés ; `flutter pub get`.
-- [ ] `lib/core/backup/backup_archive.dart`, `lib/core/backup/backup_providers.dart` -- exporteur générique et partage.
-- [ ] `lib/app/actions/exporter_mes_donnees.dart` -- action.
-- [ ] `lib/core/strings/strings_fr.dart`, `lib/features/reglages/ui/parametres_screen.dart` -- ligne et snackbars.
-- [ ] `test/core/backup_export_test.dart` -- lignes Export complet, Tables exportées, Base fraîche, Photo manquante, Échec d'écriture (aucun `.zip` ni `.part` laissé) : décompresser l'archive et vérifier le JSON.
-- [ ] `test/features/reglages/parametres_export_test.dart` -- ligne visible et lue par TalkBack ; tap → double de partage appelé avec un `.zip`, puis « Sauvegarde prête. » ; partage annulé → rien ; échec → « Export impossible. » ; police ×2 sans débordement.
+- [x] `pubspec.yaml` -- ajouter `archive` et `share_plus` épinglés ; `flutter pub get`.
+- [x] `lib/core/backup/backup_archive.dart`, `lib/core/backup/backup_providers.dart` -- exporteur générique et partage.
+- [x] `lib/app/actions/exporter_mes_donnees.dart` -- action.
+- [x] `lib/core/strings/strings_fr.dart`, `lib/features/reglages/ui/parametres_screen.dart` -- ligne et snackbars.
+- [x] `test/core/backup_export_test.dart` -- lignes Export complet, Tables exportées, Base fraîche, Photo manquante, Échec d'écriture (aucun `.zip` ni `.part` laissé) : décompresser l'archive et vérifier le JSON.
+- [x] `test/features/reglages/parametres_export_test.dart` -- ligne visible et lue par TalkBack ; tap → double de partage appelé avec un `.zip`, puis « Sauvegarde prête. » ; partage annulé → rien ; échec → « Export impossible. » ; police ×2 sans débordement.
 
 **Acceptance Criteria:**
 - Given une base avec des recettes, une photo et une liste, when Antoine touche « Exporter mes données », then la feuille de partage Android s'ouvre avec `kadi-sauvegarde-<date>.zip`, et au retour « Sauvegarde prête. » s'affiche.
 - Given une nouvelle table ajoutée un jour à la base, when on exporte, then elle est dans `data.json` sans changer le code de l'export.
 
 ## Implementation Notes
+
+- **Paquets** : `archive: 4.6.0` (Dart pur, SDK >=3.0) et `share_plus: 13.3.1` (SDK >=3.10, Flutter >=3.38.1, minSdk 21), dernières versions de pub.dev au 2026-11-04 ; `flutter pub get` passe. Le manifeste de `share_plus` ne déclare qu'un `FileProvider` et un receiver, aucune permission (C2). Build Android non lancé (pièges Gradle du poste) : à confirmer au premier `flutter build apk`.
+- **`lib/core/backup/backup_archive.dart`** : `BackupFormat` regroupe les noms (`data.json`, `photos/`, `.part`) et les clés JSON (`format_version`, `exported_at`, `tables`) pour l'import de la story 3, et `fileName(at)` (date locale). `BackupExporter.readTables()` lit `allTables` par `SELECT * FROM "<actualTableName>"` dans une seule transaction (lignes brutes `QueryRow.data`, booléens en 0/1 comme SQLite les stocke). `export()` écrit le zip dans `<nom>.zip.part` par `ZipFileEncoder` en flux (les photos ne sont pas chargées en mémoire), puis supprime un zip du même jour et renomme ; sur un échec, le `.part` est fermé et supprimé, puis l'erreur remonte. `data.json` est compressé (deflate), les photos sont stockées sans compression (`ZipFileEncoder.store`). Les photos viennent de **tous les fichiers du dossier** (pas seulement ceux référencés), triés par nom ; un fichier disparu entre la lecture du dossier et son ajout est ignoré.
+- **E/S synchrones** dans l'exporteur (comme `_TempPhotos` des tests de la Fiche) : la zone de test des widgets n'attend pas les E/S asynchrones, et l'export est court. Revers : l'écriture du zip bloque l'UI le temps de copier les photos (court pour quelques dizaines de photos de 1600 px).
+- **`lib/core/backup/backup_providers.dart`** : `backupExporterProvider`, `exportDirectoryProvider` (`getTemporaryDirectory`, remplacé en test) et `shareFileProvider` (`SharePlus.instance.share` avec `XFile(…, mimeType: 'application/zip')` ; vrai sauf `ShareResultStatus.dismissed`, donc `unavailable` compte comme partagé).
+- **`lib/app/actions/exporter_mes_donnees.dart`** : constructeur positionnel comme `NouvelleListe`. Écart léger avec le Code Map : le dossier des photos est pris par `recipePhotosProvider.directory` (ce qu'enveloppe `photosDirectoryProvider`) et relu à chaque export, pour ne pas garder un échec de lecture dans le `FutureProvider` ; la source reste `features/recettes`, `core/backup` n'importe aucune fonctionnalité.
+- **`parametres_screen.dart`** : `_ExportRow` (`ConsumerStatefulWidget`, `ListTile` titre `body-large` + aide `body-medium on-surface-variant`, comme les switches), placé après les deux switches. `enabled: false` et `onTap: null` pendant l'export ; succès par `SnackBar` « Sauvegarde prête. », échec par `showErrorSnackBar` « Export impossible. », rien si le partage est fermé.
+- **`strings_fr.dart`** : `exporterMesDonnees`, `exporterMesDonneesDetail`, `sauvegardePrete`, `exportImpossible`.
+- **`test/helpers/pump_app.dart`** : nouveaux paramètres `shareFile` (défaut : double qui rend « partagé ») et `exportDirectory` (défaut : dossier temporaire créé au premier export, supprimé en fin de test). Passés en paramètres et non par `overrides`, car Riverpod refuse deux surcharges du même provider. Le dossier des photos n'a pas de défaut dans `pumpKadi` : `fiche_recette_photo_test` surcharge déjà `recipePhotosProvider` par `overrides` (même conflit) ; `parametres_export_test` le surcharge lui-même.
+- **Tests écrits, pas lancés** (consigne) : `test/core/backup_export_test.dart` (Export complet : 8 tables comparées ligne par ligne à `SELECT *`, quiche supprimée présente, `format_version` = 3, parcours inversé, sources `ajout` et `week_selection`, photo intacte et non compressée ; Tables exportées = `allTables` = tables de `sqlite_master` ; Base fraîche ; Photo manquante ; export du même jour qui remplace ; deux échecs d'écriture sans `.zip` ni `.part` laissé) et `test/features/reglages/parametres_export_test.dart` (ligne sous les switches, ≥ 48 dp ; partage d'un `.zip` qui contient `data.json` et la photo, puis « Sauvegarde prête. » ; ligne désactivée pendant l'export, second toucher sans effet ; partage annulé ; échec ; TalkBack ; police ×2).
+- **Vérification** : `flutter analyze` sans problème ; `grep -rn "Ã\|â€" lib test` sans résultat ; le schéma d'écriture du zip (`createWithStream` + `addArchiveFile` + `addFileSync(store)` + `closeSync`, puis `ZipDecoder`) vérifié par un script Dart hors projet : JSON UTF-8 relu, photo stockée sans compression, fichiers refermés (dossier supprimable sous Windows).
+- **Surprises / à suivre** : les archives de jours différents restent dans le dossier temporaire (Android peut le vider) ; un export du même jour remplace le précédent. Une future colonne BLOB ferait échouer `jsonEncode` (« Export impossible. ») : aucune aujourd'hui.
 
 ## Plan Change Log
 

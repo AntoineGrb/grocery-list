@@ -202,6 +202,11 @@ abstract final class StringsFr {
   static const grouperParRayon = 'Grouper par rayon';
   static const grouperParRayonDetail = 'Sinon, la liste suit l’ordre d’ajout';
   static const reglageImpossible = 'Réglage impossible à enregistrer.';
+  static const exporterMesDonnees = 'Exporter mes données';
+  static const exporterMesDonneesDetail =
+      'Recettes, liste et réglages dans un fichier';
+  static const sauvegardePrete = 'Sauvegarde prête.';
+  static const exportImpossible = 'Export impossible.';
 
   // Écran d'erreur bloquant (base ou contenu fourni illisible).
   static const erreurOuvertureTitre = 'Impossible d’ouvrir tes données.';
