@@ -22,6 +22,10 @@ abstract final class AppRoutes {
 
   /// Paramètres (⚙ de Liste et Recettes) : poussée hors de la coque.
   static const parametres = '/parametres';
+
+  /// Paramètres › Parcours (ligne « Parcours ») : poussée au-dessus des
+  /// Paramètres.
+  static const parcours = '/parametres/parcours';
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,

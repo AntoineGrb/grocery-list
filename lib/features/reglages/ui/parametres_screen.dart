@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kadi/app/actions/exporter_mes_donnees.dart';
 import 'package:kadi/app/actions/importer_une_sauvegarde.dart';
 import 'package:kadi/core/backup/backup_import.dart';
+import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -10,7 +12,8 @@ import 'package:material_ui/material_ui.dart';
 
 /// Paramètres : écran poussé plein écran, flèche retour, sans Barre de
 /// navigation. Lignes de paramètre (`settings-row`) en Switch M3 :
-/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, les
+/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, la
+/// ligne de navigation « Parcours » (Paramètres › Parcours, R19), puis les
 /// lignes « Exporter mes données » et « Importer une sauvegarde » (R21).
 ///
 /// Les switches suivent les réglages en base (AD-1) et y écrivent par le
@@ -55,6 +58,11 @@ class ParametresScreen extends ConsumerWidget {
                   onChanged: (value) =>
                       _write(context, ref, (r) => r.setGroupByRayon(value)),
                 ),
+                _NavigationRow(
+                  title: StringsFr.parcours,
+                  subtitle: StringsFr.parcoursDetail,
+                  onTap: () => context.push(AppRoutes.parcours),
+                ),
                 const _ExportRow(),
                 const _ImportRow(),
               ],
@@ -92,6 +100,35 @@ class _SettingsSwitch extends StatelessWidget {
           color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
+    );
+  }
+}
+
+/// Ligne de paramètre de navigation : libellé, texte d'aide et chevron en
+/// `on-surface-variant` ; pousse son sous-écran ([onTap]).
+class _NavigationRow extends StatelessWidget {
+  const _NavigationRow({
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final variant = theme.colorScheme.onSurfaceVariant;
+    return ListTile(
+      onTap: onTap,
+      title: Text(title, style: theme.textTheme.bodyLarge),
+      subtitle: Text(
+        subtitle,
+        style: theme.textTheme.bodyMedium?.copyWith(color: variant),
+      ),
+      trailing: Icon(Icons.chevron_right, color: variant),
     );
   }
 }

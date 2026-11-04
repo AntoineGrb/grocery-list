@@ -202,6 +202,19 @@ abstract final class StringsFr {
   static const grouperParRayon = 'Grouper par rayon';
   static const grouperParRayonDetail = 'Sinon, la liste suit l’ordre d’ajout';
   static const reglageImpossible = 'Réglage impossible à enregistrer.';
+
+  // Paramètres › Parcours : ligne de navigation, titre de l'écran, actions
+  // TalkBack de la Ligne de parcours et snackbar d'échec.
+  static const parcours = 'Parcours';
+  static const parcoursDetail = 'L’ordre des rayons dans ton magasin';
+  static const parcoursImpossible = 'Parcours impossible à enregistrer.';
+  static const monter = 'Monter';
+  static const descendre = 'Descendre';
+
+  /// Ligne de parcours lue par TalkBack, et annonce après « Monter » ou
+  /// « Descendre » : « Boulangerie, position 2 sur 13 ».
+  static String positionSur(String rayon, int position, int total) =>
+      '$rayon, position $position sur $total';
   static const exporterMesDonnees = 'Exporter mes données';
   static const exporterMesDonneesDetail =
       'Recettes, liste et réglages dans un fichier';

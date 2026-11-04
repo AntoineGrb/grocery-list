@@ -237,6 +237,9 @@ void main() {
       StringsFr.exporterMesDonneesDetail,
     ]) {
       final finder = find.text(text);
+      // La ligne Parcours, au-dessus, peut la pousser hors de l'écran.
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
       expect(finder.hitTestable(), findsOneWidget, reason: text);
       expect(tester.getRect(finder).right, lessThanOrEqualTo(360));
       expect(tester.widget<Text>(finder).overflow, isNull, reason: text);

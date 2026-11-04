@@ -11,6 +11,7 @@ import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
+import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'keep_screen_on.dart';
@@ -102,6 +103,10 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
       GoRoute(
         path: AppRoutes.parametres,
         builder: (context, state) => const ParametresScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.parcours,
+        builder: (context, state) => const ParcoursScreen(),
       ),
     ],
   );
