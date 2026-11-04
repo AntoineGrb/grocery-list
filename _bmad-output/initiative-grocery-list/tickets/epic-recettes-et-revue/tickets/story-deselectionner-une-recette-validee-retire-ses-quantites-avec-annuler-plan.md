@@ -3,7 +3,7 @@ title: 'Désélectionner une recette validée retire ses quantités, avec Annule
 type: 'feature'
 ticket: '3'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: '1568758c4285bc01154d604e173e2bc05433ff85'
 route: 'full'
 route_source: 'auto'

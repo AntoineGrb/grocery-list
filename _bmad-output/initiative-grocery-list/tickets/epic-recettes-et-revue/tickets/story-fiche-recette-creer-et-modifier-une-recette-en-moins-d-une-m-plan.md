@@ -3,7 +3,7 @@ title: "Fiche recette : créer et modifier une recette en moins d'une minute"
 type: 'feature'
 ticket: '5'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: 'eb282da1502089220fdaf71c54e6d19cfd589089'
 route: 'full'
 route_source: 'auto'

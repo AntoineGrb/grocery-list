@@ -3,7 +3,7 @@ title: "Fiche recette : ajouter un ingrédient par une popup, quantité facultat
 type: 'feature'
 ticket: '11'
 created: '2026-11-03'
-status: 'built'
+status: done
 baseline_revision: 'a0e91a7380ffd52320a82c7173b49cd7c2ca61b9'
 route: 'full'
 route_source: 'auto'

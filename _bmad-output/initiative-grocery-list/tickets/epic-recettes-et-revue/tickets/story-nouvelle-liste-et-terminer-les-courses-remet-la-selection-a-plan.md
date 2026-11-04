@@ -3,7 +3,7 @@ title: 'Nouvelle liste, et Terminer les courses remet la sélection à zéro'
 type: 'feature'
 ticket: '4'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: 'a4198ee0e7f2d458ee0fda4b04355845be3c86dd'
 route: 'full'
 route_source: 'auto'

@@ -8,6 +8,7 @@ companions: []
 after: []
 refined: true
 risk: high
+status: done
 ---
 
 # De la recette à la liste
@@ -80,3 +81,4 @@ Le dimanche soir, Antoine et sa femme obtiennent la liste de la semaine fusionn�
 - Assumption: 2026-11-02 — le lien d'une recette se saisit dans la fiche, et une icône l'ouvre dans le navigateur du téléphone.
 - Assumption: 2026-11-02 — en Revue, un article dans deux unités donne deux lignes (AD-4, AD-6) ; la variante « une ligne à deux quantités » d'EXPERIENCE.md est écartée ; la quantité s'y corrige dans l'unité de la ligne, sans Choix d'unité.
 - Assumption: 2026-11-02 — 4 recettes exemples simples, générées par IA avec les articles du catalogue fourni ; Antoine les relit au test de fin d'epic.
+- Decision: 2026-11-04 — Antoine valide l'epic au test ; les hypothèses à valider au test de fin d'epic sont confirmées ; l'epic est fait.

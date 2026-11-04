@@ -89,7 +89,7 @@ Pour Antoine et son foyer, préparer la liste de la semaine à partir des recett
 - Jamais : l'import de recettes par URL, l'inventaire de stock ou le drapeau « placard », plusieurs magasins, la conversion d'unités.
 - Jamais : les onglets Boissons, Divers ou « Habituels », ni de tiroir de navigation. Il y a deux onglets seulement.
 - Touch point: maintien de l'écran allumé (Android) — utilisé par Écran allumé (R14) ; owner: epic-reglages-et-sauvegarde
-- Touch point: pack de pictos (externe, à choisir) — consommé par le catalogue (C7) ; owner: epic-liste-de-courses
+- Touch point: pack de pictos (externe, à choisir) — consommé par le catalogue (C7) ; owner: epic-reglages-et-sauvegarde (repris de l'epic 1 le 2026-11-04)
 - Touch point: galerie et appareil photo Android — photo de recette (R1) ; owner: epic-recettes-et-revue
 - Touch point: feuille de partage et sélecteur de fichier Android — export et import (R21) ; owner: epic-reglages-et-sauvegarde
 - Parcours traceur : une recette exemple sélectionnée, validée, passée en Revue, ajoutée à la Liste triée par rayon, cochée, puis Terminer les courses ; la Liste vient de l'epic 1, le reste de l'epic 2.
@@ -135,3 +135,5 @@ Pour Antoine et son foyer, préparer la liste de la semaine à partir des recett
 - Open question: source et licence du pack de pictos, et faisabilité du complément en SVG générés : Antoine attend des propositions. C7 attend.
 - Assumption: 2026-11-02 — un ingrédient de recette inconnu passe par « Créer « … » » et rejoint le catalogue (Divers, sans unité), comme le Flux 4 et AD-17, pas une ligne libre (R1, epic 2) ; Antoine le valide au test de fin d'epic 2.
 - Open question: Paramètres › Articles a-t-il encore lieu si la liste n'alimente plus le catalogue, et un fréquent peut-il être un nom libre ? R18, R20, epic 3.
+- Decision: 2026-11-04 — Antoine valide les epics 1 et 2 ; les hypothèses à valider au test de fin d'epic 2 (« Quitter sans enregistrer ? », ingrédient inconnu créé au catalogue) sont confirmées.
+- Decision: 2026-11-04 — le pack de pictos, jamais choisi pendant l'epic 1, passe à l'epic 3 (story 3.5) ; les questions ouvertes sur Paramètres › Articles et les fréquents sont tranchées par des hypothèses de l'epic 3, qu'Antoine valide au test de fin d'epic.

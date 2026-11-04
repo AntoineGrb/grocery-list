@@ -3,7 +3,7 @@ title: 'Premier lancement sur Recettes, supprimer une recette, Recettes vide'
 type: 'feature'
 ticket: '7'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: '05897e99360fd6b5de8a2cc2336999cc30b737f8'
 route: 'full'
 route_source: 'auto'

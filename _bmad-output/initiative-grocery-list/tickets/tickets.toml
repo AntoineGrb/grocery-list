@@ -20,8 +20,8 @@ after = [{ epic = 1, needs = "la liste en cours avec provenance des quantités, 
 id = 3
 slug = "epic-reglages-et-sauvegarde"
 title = "Réglages et sauvegarde"
-description = "Antoine garde, s'il le veut, l'écran allumé pendant les courses, gère son catalogue d'articles, ses fréquents et le parcours de son magasin, désactive le groupement s'il le veut, et sauvegarde puis restaure toutes ses données par fichier (fusion par UUID). Pose l'écran Paramètres avec le réglage Écran allumé et clôt l'initiative par la vérification de bout en bout des six parcours en clair et en sombre et du plancher d'accessibilité. Parts : R9 désactivation du groupement, R18 Paramètres › Articles, R19 parcours par glisser-déposer, R20 gestion des fréquents, R24 actions Monter et Descendre et vérification finale."
-covers = ["R9", "R14", "R18", "R19", "R20", "R21", "R24"]
+description = "Antoine garde, s'il le veut, l'écran allumé pendant les courses, gère son catalogue d'articles, ses fréquents et le parcours de son magasin, désactive le groupement s'il le veut, et sauvegarde puis restaure toutes ses données par fichier (fusion par UUID). Pose l'écran Paramètres avec le réglage Écran allumé et clôt l'initiative par la vérification de bout en bout des six parcours en clair et en sombre et du plancher d'accessibilité. Parts : R9 désactivation du groupement, R15 le bouton Gérer mène à la gestion des fréquents, R18 Paramètres › Articles, C7 le pack de pictos (repris de l'epic 1), R19 parcours par glisser-déposer, R20 gestion des fréquents, R24 actions Monter et Descendre et vérification finale."
+covers = ["R9", "R14", "R15", "R18", "R19", "R20", "R21", "R24"]
 after = [
   { epic = 1, needs = "le catalogue, les fréquents, l'ordre par défaut du parcours et le stockage" },
   { epic = 2, needs = "le modèle de recette, pour l'export et l'import" },

@@ -1,0 +1,105 @@
+# Stories de l'epic 3, dans l'ordre de construction.
+
+[[entry]]
+id = 1
+type = "story"
+title = "Paramètres : Écran allumé et groupement par rayon"
+description = "Parcours traceur : une icône ⚙ dans la Barre d'application de la Liste et de Recettes (sur Recettes, à droite de Nouvelle liste), lue « Paramètres », pousse l'écran Paramètres (route poussée, AD-13 ; fonctionnalité `reglages`, UI seulement, AD-2) avec ses deux premières Lignes de paramètre : « Garder l'écran allumé » · « Pendant que la liste est affichée » (switch, désactivé par défaut) et « Grouper par rayon » (switch, activé par défaut), écrites par de nouveaux setters du SettingsRepository (horloge d'AD-7), avec celui de l'ordre du parcours (`route_order`), que les tests des stories 2 à 4 utilisent. Groupement désactivé : la Liste suit l'ordre d'ajout (`added_at`, AD-4), sans En-tête de rayon, la case gardant la couleur du rayon ; la Section Cochés ne change pas. Écran allumé actif : l'écran ne se met pas en veille tant que l'onglet Liste est affiché, et plus dès qu'on change d'onglet, qu'on pousse un écran ou que l'app passe en arrière-plan (touch point : paquet de maintien de l'écran, choisi ici, sans permission, C2). Microcopie dans strings_fr, TalkBack et taille de police système sur l'écran."
+verify = "Les tests d'écran montrent : ⚙ ouvre Paramètres depuis la Liste et depuis Recettes ; désactiver « Grouper par rayon » affiche la Liste en ordre d'ajout sans en-tête, le réactiver rend les en-têtes ; activer « Garder l'écran allumé » demande le maintien de l'écran sur l'onglet Liste et le relâche sur Recettes, sur Paramètres et en arrière-plan (service de maintien remplacé par un double de test) ; les deux réglages survivent à un redémarrage de l'app."
+covers = ["R1", "R2", "R7"]
+after = ["epic-liste-de-courses", "epic-recettes-et-revue"]
+hitl = false
+risk = "medium"
+notes = ["Les lignes Parcours, Articles, Fréquents, Exporter et Importer arrivent avec leurs stories : rien n'est affiché avant d'exister."]
+
+[[entry]]
+id = 2
+type = "story"
+title = "Exporter mes données dans un fichier de sauvegarde"
+description = "Crée `core/backup` (AD-9) : « Exporter mes données » dans les Paramètres écrit une archive zip `kadi-sauvegarde-<date>.zip` avec `data.json` (`format_version` = `schemaVersion` d'AD-14, `exported_at`, toutes les tables, lignes supprimées comprises) et `photos/` (les photos de recette, AD-18), puis l'ouvre dans la feuille de partage Android (touch point : paquet de partage, sans permission, C2) ; un snackbar confirme « Sauvegarde prête. » au retour. Un échec d'écriture s'affiche en snackbar d'erreur et ne laisse aucun fichier partiel. Le test d'AD-9 vérifie que les tables exportées sont exactement celles de la base, pour que toute table future rejoigne l'export. TalkBack sur la ligne et le snackbar."
+verify = "Les tests montrent : sur une base avec recettes, photo, sélection, liste, fréquents et parcours modifié, l'archive contient data.json avec les 8 tables et leurs lignes supprimées, la photo dans photos/ et le bon format_version ; la liste des tables exportées égale celle de la base Drift ; le test d'écran montre l'appel à la feuille de partage (double de test) puis le snackbar."
+covers = ["R6", "R7"]
+after = [1]
+hitl = false
+risk = "medium"
+notes = ["Avant chaque installation de release, un export (convention Livraison de l'architecture) : cette story le rend possible dès maintenant."]
+
+[[entry]]
+id = 3
+type = "story"
+title = "Importer une sauvegarde, fusionnée avec mes données"
+description = "« Importer une sauvegarde » dans les Paramètres ouvre le sélecteur de fichier Android (touch point : paquet de sélection, sans permission, C2). L'archive est validée en entier avant toute écriture : zip lisible, data.json conforme, `format_version` connu (une version antérieure est migrée vers le schéma courant, une version inconnue est refusée). L'import, en une transaction (AD-9) : copie des photos manquantes, fusion ligne par ligne par `id` dans l'ordre des dépendances (articles, recettes, ingrédients, sélections, lignes, contributions, fréquents, réglages), le `updated_at` le plus récent l'emportant, la ligne locale en cas d'égalité, suppressions logiques comprises (AD-7) ; pour la ligne de réglages, l'import prend toujours les champs de l'utilisateur du fichier (parcours, groupement, Écran allumé) et garde les champs système locaux (premier lancement, seed_version), que le premier lancement d'une installation neuve a écrits après l'export ; puis chaque propriétaire réconcilie ses doublons de clé naturelle (articles de même nom normalisé, lignes non cochées de même article et unité, sélections de la même recette) en reportant les références sur la ligne gardée. Il vide le service Annuler (AD-10) et confirme « Sauvegarde importée. » ; un fichier invalide affiche « Ce fichier n'est pas une sauvegarde Kadi. » en snackbar d'erreur et ne modifie aucune donnée, photos comprises."
+verify = "Les tests montrent : export d'une base A puis import sur une base neuve donne des tables égales à A (recettes, photo, catalogue, fréquents, parcours, réglages, liste) ; import sur une base neuve dont le premier lancement a écrit les réglages après l'export rend le parcours, le groupement et Écran allumé du fichier ; import sur une base qui a modifié la même ligne plus tard garde la version locale ; deux articles « Tomates » d'id différents fusionnent en un, lignes et ingrédients reportés ; deux lignes non cochées du même article et de la même unité fusionnent, quantité additionnée ; un zip sans data.json, un JSON tronqué et un format_version inconnu laissent la base et le dossier photos identiques, avec le message d'erreur."
+covers = ["R6", "R7"]
+after = [2]
+hitl = false
+risk = "high"
+notes = ["Risque élevé : un import faux corrompt les vraies données d'Antoine. Contrôle en plus : un instantané complet des tables et des photos avant un import refusé est égal à celui d'après, et import deux fois du même fichier égale import une fois."]
+
+[[entry]]
+id = 4
+type = "story"
+title = "Le parcours de mon magasin, par glisser-déposer"
+description = "La ligne « Parcours » des Paramètres pousse Paramètres › Parcours : les 13 rayons en Lignes de parcours dans l'ordre du réglage (pastille et nom du rayon, poignée de glisser à droite, cible de 48 dp, ligne soulevée pendant le glisser), seul glisser-déposer de l'app (C10). Déposer un rayon écrit le nouvel ordre par le SettingsRepository (`route_order`, AD-2, AD-11) ; la Liste, la Revue et le Panneau + (fréquents et liste déroulante du Tag Rayon) suivent aussitôt. Actions TalkBack « Monter » et « Descendre » sur chaque ligne, absentes aux extrémités, avec annonce de la nouvelle place ; sans animation quand elles sont désactivées."
+verify = "Les tests montrent : glisser Boulangerie en premier place ses lignes en tête de la Liste, de la Revue et des fréquents du Panneau + ; l'action « Descendre » sur Fruits et légumes l'échange avec le rayon suivant et l'annonce ; le premier rayon n'a pas « Monter », le dernier pas « Descendre » ; l'ordre survit à un redémarrage."
+covers = ["R4", "R7"]
+after = [3]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Les pictos du pack à la place du repli"
+description = "Résout la question ouverte du pack (C7, touch point repris de l'epic 1) : la story compare deux ou trois packs au trait sous licence libre sur une planche d'une vingtaine d'articles du catalogue, en clair et en sombre, retient Tabler Icons (MIT) par défaut, et ajoute ses SVG en assets avec la licence. Le résolveur unique de `core/pictos` (AD-18) traduit chacune des `picto_key` du catalogue fourni en asset, plusieurs clés pouvant partager un picto ; les clés sans équivalent gardent le repli neutre, ou un SVG dessiné dans le même style si c'est simple. Les pictos sont teintés de l'accent du rayon, 24 dp (44 dp pour le visuel de repli de la Carte recette), dans le Panneau +, la Fiche recette et le visuel de repli de la Carte recette ; toujours absents de la Liste et de la Revue. Le résolveur expose aussi la liste des pictos du pack pour la grille de la Fiche article (story 6)."
+verify = "Les tests montrent : chaque picto_key de articles.json résout vers un asset existant ou vers le repli, et au moins 90 % vers un asset ; un test de widget du Panneau + et de la Carte recette sans photo rend l'image teintée de l'accent du rayon ; la planche de comparaison est écrite dans le dossier de l'epic pour Antoine."
+covers = ["R8"]
+after = [4]
+hitl = false
+risk = "medium"
+notes = ["Antoine attend des propositions de pack : la planche les lui montre, il tranche au test de fin d'epic ; changer de pack ne change que le résolveur et les assets."]
+
+[[entry]]
+id = 6
+type = "story"
+title = "Paramètres › Articles : chercher, créer et modifier un article"
+description = "La ligne « Articles » pousse Paramètres › Articles : Champ de recherche (loupe, ×) sur les seuls articles du catalogue (AD-17), résultats avec Picto, nom et rayon. Un tap ouvre la Fiche article, feuille modale (AD-13) : nom, Picto choisi dans une grille du pack avec recherche (liste des pictos exposée par le résolveur, story 5), rayon par défaut (Choix de rayon) et unité par défaut (g, ml, pièce, sans), enregistrés par le repository `catalogue`. Sans correspondance exacte, « Créer « … » » ouvre la Fiche article préremplie du nom ; créer un nom porté par un article hors catalogue le fait entrer au catalogue, même id (AD-17). Un nom déjà porté par un autre article actif est refusé avec un message. Une modification vaut pour les ajouts suivants : les lignes de liste et les ingrédients existants ne changent pas (AD-15). Changer le rayon d'un article qui est un fréquent passe ce fréquent en dernier de son nouveau rayon (AD-17), par un seul chemin du repository `catalogue`, que la story 7 réutilise. TalkBack sur la recherche, les résultats, la grille et la fiche ; taille de police système."
+verify = "Les tests montrent : chercher « tom » montre Tomates ; passer Tomates en Épicerie salée et en g, puis l'ajouter depuis le Panneau +, crée une ligne en Épicerie salée, l'ajouter comme ingrédient d'une recette préchoisit g, alors que la ligne Tomates déjà dans la liste reste en Fruits et légumes ; « Créer « Piment » » crée un article du catalogue trouvé ensuite par le Panneau + ; renommer Lait en « tomates » est refusé ; un article hors catalogue n'apparaît pas dans la recherche."
+covers = ["R3", "R7"]
+after = [5]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 7
+type = "story"
+title = "Paramètres › Fréquents, ouvert par « Gérer »"
+description = "La ligne « Fréquents » des Paramètres et le bouton « Gérer » du Panneau + (qui ferme le panneau) poussent Paramètres › Fréquents : les fréquents en liste plate dans l'ordre du parcours, chaque ligne avec Picto, nom, rayon écrit et une icône de retrait (cible de 48 dp, lue « Retirer Lait des fréquents ») ; retirer supprime logiquement le fréquent avec Snackbar « Retiré des fréquents : Lait » · « Annuler » (AD-10). Un tap sur la ligne ouvre le Choix de rayon, qui change le rayon par défaut de l'article par le chemin de la story 6 ; le fréquent passe alors en dernier de son nouveau rayon (AD-17). Le Champ de recherche en haut ajoute un article du catalogue comme fréquent, en dernier de son rayon (un fréquent retiré est réactivé, même id) ; « Créer « … » » crée l'article au catalogue (Divers, sans unité) puis le fréquent. L'app n'ajoute jamais de fréquent d'elle-même. Sans fréquent : un message d'état vide. TalkBack et taille de police système."
+verify = "Les tests montrent : « Gérer » ferme le Panneau + et ouvre Paramètres › Fréquents ; retirer Lait l'enlève des Ajouts fréquents du panneau, Annuler le remet à sa place ; ajouter Piles par la recherche le place en dernier d'Entretien ; passer Lait en Boissons le déplace en dernier de Boissons et change le rayon de Lait au prochain ajout ; l'ordre des autres fréquents ne bouge pas ; « Créer « Kombucha » » crée l'article au catalogue et le fréquent."
+covers = ["R5", "R7"]
+after = [6]
+hitl = false
+risk = "medium"
+
+[[entry]]
+id = 8
+type = "story"
+title = "Refactor sweep"
+description = "Nettoyage seul, sans nouvelle capacité : sa portée est fixée à son démarrage à partir des plans et des revues de l'epic 3 (éléments reportés, doublons entre les sous-écrans des Paramètres, chaînes, tests lents ou fragiles). Elle comprend la remise à jour d'EXPERIENCE.md et de DESIGN.md sur les Decisions des epics 2 et 3 (Fiche recette enregistrée par un bouton, coche ronde de la carte, Revue sans picto, Panneau + sans voile, Paramètres), par bmad-ux. Tout ajout de capacité devient une nouvelle story."
+verify = "Les tests, l'analyse statique et le build release passent ; chaque élément de la portée fixée au démarrage est traité ou explicitement reporté avec sa raison."
+covers = []
+after = [1, 2, 3, 4, 5, 6, 7]
+hitl = false
+risk = "low"
+
+[[entry]]
+id = 9
+type = "story"
+title = "Les six parcours de bout en bout, clair et sombre, sur la release installée"
+description = "Suite de bout en bout dans `integration_test/` (convention Tests de l'architecture) : les six Key Flows d'EXPERIENCE.md, tels que les Decisions de l'initiative les ont modifiés (Fiche recette enregistrée par son bouton, coche ronde sur la carte), chacun en thème clair et en thème sombre, moment ★ vérifié par une assertion ; plus l'aller-retour export puis import sur une base neuve. Contrôles du plancher d'accessibilité sur chaque écran : cibles de 48 dp, libellés des cibles et contraste des textes (guidelines du test Flutter), police système ×2 sans débordement, animations désactivées sans attente. Puis le build release signé est installé sur le téléphone d'Antoine, après un export de la version en place ; cet export est importé sur une installation neuve de la même release (émulateur) et comparé ; Antoine passe les parcours avec TalkBack et fait de vraies courses de la semaine avec."
+verify = "La suite d'intégration passe sur un émulateur ou le téléphone, six parcours × deux thèmes, plus l'aller-retour de sauvegarde ; l'import sur la release neuve de l'émulateur rend recettes, catalogue, fréquents, parcours, réglages et liste ; Antoine confirme la release installée, le passage TalkBack et une vraie semaine de courses."
+covers = ["R7"]
+after = [8]
+hitl = true
+risk = "medium"
+notes = ["Clôt l'initiative : la closure check de l'initiative suit cette story, avec la confirmation d'Antoine."]

@@ -3,7 +3,7 @@ title: "La Revue : décocher ce qu'on a déjà et corriger une quantité"
 type: 'feature'
 ticket: '2'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: '91b507b6695c56060f4bfcd020960e87a6d10ece'
 route: 'full'
 route_source: 'auto'

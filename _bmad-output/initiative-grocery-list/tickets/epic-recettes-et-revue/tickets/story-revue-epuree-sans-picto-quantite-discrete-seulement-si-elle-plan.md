@@ -3,7 +3,7 @@ title: 'Revue épurée : sans picto, quantité discrète seulement si elle exist
 type: 'feature'
 ticket: '10'
 created: '2026-11-03'
-status: 'built'
+status: done
 baseline_revision: '0cb600746314d45c39b04a95fc70120087c0ecc6'
 route: 'full'
 route_source: 'auto'

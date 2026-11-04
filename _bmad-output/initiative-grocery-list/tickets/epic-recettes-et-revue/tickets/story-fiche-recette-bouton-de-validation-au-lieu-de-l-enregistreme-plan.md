@@ -3,7 +3,7 @@ title: "Fiche recette : bouton de validation au lieu de l'enregistrement automat
 type: 'feature'
 ticket: '12'
 created: '2026-11-03'
-status: 'built'
+status: done
 baseline_revision: 'e42350c871ec5ee75f031c5c43fa12c9cbb7e762'
 route: 'full'
 route_source: 'auto'

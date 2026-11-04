@@ -3,7 +3,7 @@ title: 'Une recette exemple sélectionnée et validée arrive dans la Liste'
 type: 'feature'
 ticket: '1'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: 'fbd1612a8bc408a72a0a1d1f1a3c4512b4ae608b'
 route: 'full'
 route_source: 'auto'

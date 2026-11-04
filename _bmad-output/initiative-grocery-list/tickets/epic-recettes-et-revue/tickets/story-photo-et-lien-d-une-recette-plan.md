@@ -3,7 +3,7 @@ title: "Photo et lien d'une recette"
 type: 'feature'
 ticket: '6'
 created: '2026-11-02'
-status: 'built'
+status: done
 baseline_revision: '02df130dc69f25dac84f7114fac1b96667f1dbec'
 route: 'full'
 route_source: 'auto'

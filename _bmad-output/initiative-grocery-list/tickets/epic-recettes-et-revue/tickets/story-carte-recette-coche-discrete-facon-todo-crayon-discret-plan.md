@@ -3,7 +3,7 @@ title: 'Carte recette : coche discrète façon todo, crayon discret'
 type: 'feature'
 ticket: '9'
 created: '2026-11-03'
-status: 'built'
+status: done
 baseline_revision: 'ced731399072fbc36b62f2da5040ae7e057fc726'
 route: 'full'
 route_source: 'auto'
