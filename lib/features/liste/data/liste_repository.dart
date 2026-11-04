@@ -636,6 +636,103 @@ class ListeRepository {
     });
   }
 
+  /// Réconcilie la liste après la fusion d'une sauvegarde (AD-9), à appeler
+  /// dans la transaction de l'import, après les réconciliations des articles
+  /// et des sélections.
+  ///
+  /// Les lignes actives d'un article supprimé par la réconciliation passent
+  /// sur l'article gardé ([articles] : id supprimé → id gardé) ; les
+  /// contributions actives d'une sélection supprimée passent sur la
+  /// sélection gardée ([selections], de même). Puis, parmi les lignes
+  /// actives non cochées de même (`article_id`, `unit_key`) (AD-4), la plus
+  /// ancienne (`added_at`, puis id) est gardée : elle reçoit les
+  /// contributions actives des autres (sa quantité devient leur somme), et
+  /// devient manuelle si l'une l'était (AD-5) ; les autres sont supprimées
+  /// logiquement.
+  Future<void> reconcileImported({
+    required Map<String, String> articles,
+    required Map<String, String> selections,
+  }) async {
+    final l = _db.listLines;
+    final c = _db.listContributions;
+    if (articles.isNotEmpty) {
+      final moved =
+          await (_db.select(l)..where(
+                (x) => x.articleId.isIn(articles.keys) & x.deletedAt.isNull(),
+              ))
+              .get();
+      for (final line in moved) {
+        await (_db.update(l)..where((x) => x.id.equals(line.id))).write(
+          ListLinesCompanion(
+            articleId: Value(articles[line.articleId]!),
+            updatedAt: Value(_clock.stamp(line.updatedAt)),
+          ),
+        );
+      }
+    }
+    if (selections.isNotEmpty) {
+      final moved =
+          await (_db.select(c)..where(
+                (x) =>
+                    x.weekSelectionId.isIn(selections.keys) &
+                    x.deletedAt.isNull(),
+              ))
+              .get();
+      for (final contribution in moved) {
+        await (_db.update(c)..where((x) => x.id.equals(contribution.id))).write(
+          ListContributionsCompanion(
+            weekSelectionId: Value(selections[contribution.weekSelectionId]!),
+            updatedAt: Value(_clock.stamp(contribution.updatedAt)),
+          ),
+        );
+      }
+    }
+
+    final unchecked =
+        await (_db.select(l)
+              ..where((x) => x.deletedAt.isNull() & x.checkedAt.isNull())
+              ..orderBy([
+                (x) => OrderingTerm.asc(x.addedAt),
+                (x) => OrderingTerm.asc(x.id),
+              ]))
+            .get();
+    final byKey = <(String, String), List<ListLine>>{};
+    for (final line in unchecked) {
+      byKey.putIfAbsent((line.articleId, line.unit ?? '-'), () => []).add(line);
+    }
+    for (final group in byKey.values) {
+      if (group.length < 2) continue;
+      // Déjà triées : la plus ancienne en tête.
+      final kept = group.first;
+      final others = group.skip(1).toList();
+      for (final other in others) {
+        for (final contribution in await _activeContributions(other.id)) {
+          await (_db.update(
+            c,
+          )..where((x) => x.id.equals(contribution.id))).write(
+            ListContributionsCompanion(
+              lineId: Value(kept.id),
+              updatedAt: Value(_clock.stamp(contribution.updatedAt)),
+            ),
+          );
+        }
+        final stamp = _clock.stamp(other.updatedAt);
+        await (_db.update(l)..where((x) => x.id.equals(other.id))).write(
+          ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+        );
+      }
+      final manual = [for (final other in others) ?other.manualAt];
+      if (kept.manualAt == null && manual.isNotEmpty) {
+        await (_db.update(l)..where((x) => x.id.equals(kept.id))).write(
+          ListLinesCompanion(
+            manualAt: Value(manual.reduce((a, b) => a < b ? a : b)),
+            updatedAt: Value(_clock.stamp(kept.updatedAt)),
+          ),
+        );
+      }
+    }
+  }
+
   Future<ListLine?> _activeLine(String lineId) =>
       (_db.select(_db.listLines)
             ..where((l) => l.id.equals(lineId) & l.deletedAt.isNull()))

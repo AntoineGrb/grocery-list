@@ -383,6 +383,74 @@ class RecettesRepository {
     return [for (final s in active) UndoRow.before(_db.weekSelections, s)];
   }
 
+  /// Réconcilie les recettes après la fusion d'une sauvegarde (AD-9), à
+  /// appeler dans la transaction de l'import, après celle des articles.
+  ///
+  /// Les ingrédients actifs d'un article supprimé par la réconciliation
+  /// passent sur l'article gardé ([articles] : id supprimé → id gardé). Parmi
+  /// les sélections actives d'une même recette, une seule est gardée : une
+  /// validée de préférence, puis la plus ancienne (`validated_at`, puis
+  /// `updated_at`, puis id) ; les autres sont supprimées logiquement.
+  ///
+  /// Rend la sélection gardée de chaque sélection supprimée (id supprimé →
+  /// id gardé), pour que `liste` y reporte les contributions.
+  Future<Map<String, String>> reconcileImported(
+    Map<String, String> articles,
+  ) async {
+    if (articles.isNotEmpty) {
+      final ingredients =
+          await (_db.select(_db.recipeIngredients)..where(
+                (i) => i.articleId.isIn(articles.keys) & i.deletedAt.isNull(),
+              ))
+              .get();
+      for (final i in ingredients) {
+        await (_db.update(
+          _db.recipeIngredients,
+        )..where((x) => x.id.equals(i.id))).write(
+          RecipeIngredientsCompanion(
+            articleId: Value(articles[i.articleId]!),
+            updatedAt: Value(_clock.stamp(i.updatedAt)),
+          ),
+        );
+      }
+    }
+
+    final active = await (_db.select(
+      _db.weekSelections,
+    )..where((s) => s.deletedAt.isNull())).get();
+    final byRecipe = <String, List<WeekSelection>>{};
+    for (final s in active) {
+      byRecipe.putIfAbsent(s.recipeId, () => []).add(s);
+    }
+    final replaced = <String, String>{};
+    for (final group in byRecipe.values) {
+      if (group.length < 2) continue;
+      group.sort((x, y) {
+        final xv = x.validatedAt, yv = y.validatedAt;
+        if ((xv == null) != (yv == null)) return xv == null ? 1 : -1;
+        if (xv != null && yv != null && xv != yv) return xv.compareTo(yv);
+        if (x.updatedAt != y.updatedAt) {
+          return x.updatedAt.compareTo(y.updatedAt);
+        }
+        return x.id.compareTo(y.id);
+      });
+      final kept = group.first;
+      for (final other in group.skip(1)) {
+        final stamp = _clock.stamp(other.updatedAt);
+        await (_db.update(
+          _db.weekSelections,
+        )..where((s) => s.id.equals(other.id))).write(
+          WeekSelectionsCompanion(
+            deletedAt: Value(stamp),
+            updatedAt: Value(stamp),
+          ),
+        );
+        replaced[other.id] = kept.id;
+      }
+    }
+    return replaced;
+  }
+
   Future<List<WeekSelection>> _activeSelections(String recipeId) => (_db.select(
     _db.weekSelections,
   )..where((s) => s.recipeId.equals(recipeId) & s.deletedAt.isNull())).get();

@@ -5,6 +5,7 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:uuid/uuid.dart';
 
+import 'frequent_id.dart';
 import 'normalize_name.dart';
 
 /// Article du catalogue, tel que le lisent les écrans.
@@ -165,6 +166,128 @@ class CatalogueRepository {
         updatedAt: Value(_clock.stamp(article.updatedAt)),
       ),
     );
+  }
+
+  /// Réconcilie les articles après la fusion d'une sauvegarde (AD-9), à
+  /// appeler dans la transaction de l'import : parmi les articles actifs de
+  /// même nom normalisé (AD-17), un seul est gardé, celui qui existait
+  /// localement avant l'import (absent de [inserted], les ids insérés par la
+  /// fusion), sinon le plus petit id. Il entre au catalogue si l'un des
+  /// autres y était ; les autres sont supprimés logiquement.
+  ///
+  /// Le fréquent actif d'un article supprimé passe sur l'article gardé :
+  /// sous l'id dérivé de celui-ci ([frequentId], AD-17), inséré ou réactivé
+  /// à la même position ; si l'article gardé a déjà un fréquent actif, ce
+  /// fréquent en double est seulement supprimé logiquement.
+  ///
+  /// Rend l'article gardé de chaque article supprimé (id supprimé → id
+  /// gardé), pour que `liste` et `recettes` y reportent leurs références.
+  Future<Map<String, String>> reconcileImportedArticles(
+    Set<String> inserted,
+  ) async {
+    final active = await (_db.select(
+      _db.articles,
+    )..where((a) => a.deletedAt.isNull())).get();
+    final byName = <String, List<Article>>{};
+    for (final a in active) {
+      byName.putIfAbsent(a.normalizedName, () => []).add(a);
+    }
+
+    final replaced = <String, String>{};
+    for (final group in byName.values) {
+      if (group.length < 2) continue;
+      group.sort((x, y) {
+        final byOrigin =
+            (inserted.contains(x.id) ? 1 : 0) -
+            (inserted.contains(y.id) ? 1 : 0);
+        return byOrigin != 0 ? byOrigin : x.id.compareTo(y.id);
+      });
+      final kept = group.first;
+      final others = group.skip(1).toList();
+      if (!kept.inCatalogue && others.any((a) => a.inCatalogue)) {
+        await (_db.update(
+          _db.articles,
+        )..where((a) => a.id.equals(kept.id))).write(
+          ArticlesCompanion(
+            inCatalogue: const Value(true),
+            updatedAt: Value(_clock.stamp(kept.updatedAt)),
+          ),
+        );
+      }
+      for (final other in others) {
+        final stamp = _clock.stamp(other.updatedAt);
+        await (_db.update(
+          _db.articles,
+        )..where((a) => a.id.equals(other.id))).write(
+          ArticlesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+        );
+        replaced[other.id] = kept.id;
+      }
+    }
+    if (replaced.isNotEmpty) await _moveFrequents(replaced);
+    return replaced;
+  }
+
+  /// Reporte les fréquents actifs des articles supprimés [replaced] sur leur
+  /// article gardé (voir [reconcileImportedArticles]).
+  Future<void> _moveFrequents(Map<String, String> replaced) async {
+    final moved =
+        await (_db.select(_db.frequents)
+              ..where(
+                (f) => f.articleId.isIn(replaced.keys) & f.deletedAt.isNull(),
+              )
+              ..orderBy([
+                (f) => OrderingTerm.asc(f.position),
+                (f) => OrderingTerm.asc(f.id),
+              ]))
+            .get();
+    for (final f in moved) {
+      final keptId = replaced[f.articleId]!;
+      final targetId = frequentId(keptId);
+      if (targetId == f.id) {
+        // Déjà sous l'id de l'article gardé : seul l'article change.
+        await (_db.update(
+          _db.frequents,
+        )..where((x) => x.id.equals(f.id))).write(
+          FrequentsCompanion(
+            articleId: Value(keptId),
+            updatedAt: Value(_clock.stamp(f.updatedAt)),
+          ),
+        );
+        continue;
+      }
+      final target = await (_db.select(
+        _db.frequents,
+      )..where((x) => x.id.equals(targetId))).getSingleOrNull();
+      if (target == null) {
+        await _db
+            .into(_db.frequents)
+            .insert(
+              FrequentsCompanion.insert(
+                id: targetId,
+                updatedAt: _clock.stamp(),
+                articleId: keptId,
+                position: f.position,
+              ),
+            );
+      } else if (target.deletedAt != null) {
+        await (_db.update(
+          _db.frequents,
+        )..where((x) => x.id.equals(targetId))).write(
+          FrequentsCompanion(
+            articleId: Value(keptId),
+            position: Value(f.position),
+            deletedAt: const Value(null),
+            updatedAt: Value(_clock.stamp(target.updatedAt)),
+          ),
+        );
+      }
+      // Sinon, l'article gardé a déjà son fréquent : celui-ci est en double.
+      final stamp = _clock.stamp(f.updatedAt);
+      await (_db.update(_db.frequents)..where((x) => x.id.equals(f.id))).write(
+        FrequentsCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+    }
   }
 
   /// Articles actifs du catalogue dont le nom normalisé contient [query]

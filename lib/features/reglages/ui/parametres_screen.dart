@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/app/actions/exporter_mes_donnees.dart';
+import 'package:kadi/app/actions/importer_une_sauvegarde.dart';
+import 'package:kadi/core/backup/backup_import.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -8,8 +10,8 @@ import 'package:material_ui/material_ui.dart';
 
 /// Paramètres : écran poussé plein écran, flèche retour, sans Barre de
 /// navigation. Lignes de paramètre (`settings-row`) en Switch M3 :
-/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, la
-/// ligne « Exporter mes données » (R21).
+/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, les
+/// lignes « Exporter mes données » et « Importer une sauvegarde » (R21).
 ///
 /// Les switches suivent les réglages en base (AD-1) et y écrivent par le
 /// `SettingsRepository` (AD-2) : une écriture qui échoue laisse le switch à
@@ -54,6 +56,7 @@ class ParametresScreen extends ConsumerWidget {
                       _write(context, ref, (r) => r.setGroupByRayon(value)),
                 ),
                 const _ExportRow(),
+                const _ImportRow(),
               ],
             ),
     );
@@ -138,6 +141,63 @@ class _ExportRowState extends ConsumerState<_ExportRow> {
       ),
       subtitle: Text(
         StringsFr.exporterMesDonneesDetail,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+      ),
+    );
+  }
+}
+
+/// Ligne « Importer une sauvegarde » : ouvre le sélecteur de fichier et
+/// fusionne la sauvegarde choisie avec les données, sans confirmation (C9).
+/// Désactivée pendant l'import ; « Sauvegarde importée. » après un import,
+/// « Ce fichier n’est pas une sauvegarde Kadi. » pour un fichier invalide,
+/// « Import impossible. » sur un échec d'écriture, rien si le sélecteur est
+/// fermé sans choix.
+class _ImportRow extends ConsumerStatefulWidget {
+  const _ImportRow();
+
+  @override
+  ConsumerState<_ImportRow> createState() => _ImportRowState();
+}
+
+class _ImportRowState extends ConsumerState<_ImportRow> {
+  var _importing = false;
+
+  Future<void> _import() async {
+    if (_importing) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final import = ref.read(importerUneSauvegardeProvider);
+    setState(() => _importing = true);
+    try {
+      final result = await import();
+      if (result == ImportResult.imported && messenger.mounted) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text(StringsFr.sauvegardeImportee)),
+        );
+      }
+    } on InvalidBackupException {
+      showErrorSnackBar(messenger, StringsFr.pasUneSauvegardeKadi);
+    } catch (_) {
+      showErrorSnackBar(messenger, StringsFr.importImpossible);
+    } finally {
+      if (mounted) setState(() => _importing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ListTile(
+      enabled: !_importing,
+      onTap: _importing ? null : _import,
+      title: Text(
+        StringsFr.importerUneSauvegarde,
+        style: theme.textTheme.bodyLarge,
+      ),
+      subtitle: Text(
+        StringsFr.importerUneSauvegardeDetail,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
         ),

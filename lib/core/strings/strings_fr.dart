@@ -207,6 +207,12 @@ abstract final class StringsFr {
       'Recettes, liste et réglages dans un fichier';
   static const sauvegardePrete = 'Sauvegarde prête.';
   static const exportImpossible = 'Export impossible.';
+  static const importerUneSauvegarde = 'Importer une sauvegarde';
+  static const importerUneSauvegardeDetail = 'Fusionnée avec tes données';
+  static const sauvegardeImportee = 'Sauvegarde importée.';
+  static const pasUneSauvegardeKadi =
+      'Ce fichier n’est pas une sauvegarde Kadi.';
+  static const importImpossible = 'Import impossible.';
 
   // Écran d'erreur bloquant (base ou contenu fourni illisible).
   static const erreurOuvertureTitre = 'Impossible d’ouvrir tes données.';

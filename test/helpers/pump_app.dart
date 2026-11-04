@@ -28,7 +28,9 @@ import 'test_db.dart';
 /// [FakeScreenAwake] neuf par défaut : aucun test n'appelle la plateforme.
 /// De même, la feuille de partage est [shareFile] (par défaut un double qui
 /// rend « partagé ») et l'export écrit dans [exportDirectory] (par défaut un
-/// dossier temporaire créé au premier export, supprimé en fin de test).
+/// dossier temporaire créé au premier export, supprimé en fin de test). Le
+/// sélecteur de fichier de l'import est [pickBackupFile] (par défaut un
+/// double qui rend « fermé sans choix »).
 Future<AppDatabase> pumpKadi(
   WidgetTester tester, {
   List<Override> overrides = const [],
@@ -38,6 +40,7 @@ Future<AppDatabase> pumpKadi(
   ScreenAwake? screenAwake,
   ShareFile? shareFile,
   Future<Directory> Function()? exportDirectory,
+  PickBackupFile? pickBackupFile,
 }) async {
   assert(
     !(firstLaunch && database != null),
@@ -68,6 +71,9 @@ Future<AppDatabase> pumpKadi(
         shareFileProvider.overrideWithValue(shareFile ?? (_) async => true),
         exportDirectoryProvider.overrideWithValue(
           exportDirectory ?? _tempExportDirectory(),
+        ),
+        pickBackupFileProvider.overrideWithValue(
+          pickBackupFile ?? () async => null,
         ),
         ...overrides,
       ],

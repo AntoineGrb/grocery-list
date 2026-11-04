@@ -131,6 +131,37 @@ class SettingsRepository {
     );
   }
 
+  /// Reprend les trois réglages utilisateur d'une sauvegarde importée
+  /// (AD-9) : ordre du parcours [routeOrder] (encodé, normalisé par
+  /// [decodeRouteOrder] : toujours les 13 rayons), [groupByRayon] et
+  /// [keepScreenOn]. Le drapeau de premier lancement et les `seed_version`
+  /// locaux ne changent pas ; `updated_at` vient de l'horloge (AD-7), même
+  /// si rien ne change. Sans ligne de réglages, les réglages par défaut sont
+  /// d'abord insérés. À appeler dans la transaction de l'import.
+  Future<void> applyImported({
+    required String routeOrder,
+    required bool groupByRayon,
+    required bool keepScreenOn,
+  }) async {
+    SettingsRow? r = await (_db.select(
+      _db.settings,
+    )..where((s) => s.id.equals(rowId))).getSingleOrNull();
+    if (r == null) {
+      await insertDefaults(seedVersions: const {});
+      r = await (_db.select(
+        _db.settings,
+      )..where((s) => s.id.equals(rowId))).getSingle();
+    }
+    await (_db.update(_db.settings)..where((s) => s.id.equals(rowId))).write(
+      SettingsCompanion(
+        routeOrder: Value(encodeRouteOrder(decodeRouteOrder(routeOrder))),
+        groupByRayon: Value(groupByRayon),
+        keepScreenOn: Value(keepScreenOn),
+        updatedAt: Value(_clock.stamp(r.updatedAt)),
+      ),
+    );
+  }
+
   /// Écrit [changes] sur la ligne de réglages, horodatée par l'horloge
   /// (AD-7), sauf si elle n'existe pas ou si [unchanged] la dit déjà à jour.
   Future<void> _write(
