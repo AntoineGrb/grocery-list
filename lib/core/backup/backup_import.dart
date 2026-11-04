@@ -136,10 +136,11 @@ class BackupImporter {
     return BackupContents._(_validated(tables), photos);
   }
 
-  /// Un simple nom de fichier : ni `/`, ni `\`, ni `..` ; aucune photo ne
-  /// s'écrit hors du dossier des photos.
+  /// Un simple nom de fichier : ni `.`, ni `/`, ni `\`, ni `..` ; aucune
+  /// photo ne s'écrit ni ne se lit hors du dossier des photos.
   static bool isPhotoName(String name) =>
       name.isNotEmpty &&
+      name != '.' &&
       !name.contains('/') &&
       !name.contains(r'\') &&
       !name.contains('..') &&
@@ -241,6 +242,12 @@ class BackupImporter {
       }
       if (complete['updated_at'] is! int) {
         throw InvalidBackupException('updated_at invalide dans $name');
+      }
+      // Le nom de photo d'une recette se lit dans le dossier des photos :
+      // jamais un chemin (AD-18).
+      final photo = name == 'recipes' ? complete['photo'] : null;
+      if (photo is String && !isPhotoName(photo)) {
+        throw const InvalidBackupException('photo de recette invalide');
       }
       valid.add(complete);
     }

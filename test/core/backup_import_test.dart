@@ -131,6 +131,9 @@ class _Phone {
 }
 
 void main() {
+  // Deux téléphones par test, chacun sur sa propre base en mémoire (son
+  // propre exécuteur) : aucune course possible.
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late Directory root;
   final opened = <AppDatabase>[];
 
@@ -327,17 +330,22 @@ void main() {
     expect(quiche.deletedAt, isNotNull);
   });
 
-  /// B a « Piles » (id X), A a « Piles » (id Y) avec une ligne, un
-  /// ingrédient et un fréquent ; rend (B, X, Y, archive de A).
+  /// B a « Ficelle » (id X), A a « Ficelle » (id Y) avec une ligne, un
+  /// ingrédient et un fréquent ; rend (B, X, Y, archive de A). « Ficelle »
+  /// est absente du contenu fourni : chaque téléphone crée son propre
+  /// article, d'id différent.
   Future<(_Phone, String, String, List<int>)> duplicateArticles() async {
     final b = await phone('b');
-    final x = await b.db.transaction(() => b.catalogue.createArticle('Piles'));
+    final x = await b.db.transaction(
+      () => b.catalogue.createArticle('Ficelle'),
+    );
     await b.liste.addArticle(x.id, quantity: 2000, unit: Unit.piece);
 
     final a = await phone('a');
     final y = await a.db.transaction(
-      () => a.catalogue.resolveTypedArticle('piles'),
+      () => a.catalogue.resolveTypedArticle('ficelle'),
     );
+    expect(y.id, isNot(x.id));
     await a.liste.addArticle(y.id, quantity: 3000, unit: Unit.piece);
     await a.recettes.saveDraft(
       RecipeDraft(
@@ -367,15 +375,18 @@ void main() {
 
     await b.import(bytes);
 
-    final piles = await b.activeRows('articles', "normalized_name = 'piles'");
-    expect([for (final a in piles) a['id']], [x]);
-    expect(piles.single['in_catalogue'], 1);
+    final ficelle = await b.activeRows(
+      'articles',
+      "normalized_name = 'ficelle'",
+    );
+    expect([for (final a in ficelle) a['id']], [x]);
+    expect(ficelle.single['in_catalogue'], 1);
     final removed = await (b.db.select(
       b.db.articles,
     )..where((a) => a.id.equals(y))).getSingle();
     expect(removed.deletedAt, isNotNull);
 
-    // Lignes : une seule ligne non cochée Piles / pièce, quantité = somme.
+    // Lignes : une seule ligne non cochée Ficelle / pièce, quantité = somme.
     expect(await b.activeRows('list_lines', "article_id = '$y'"), isEmpty);
     final line = await b.liste.firstUnchecked(x);
     expect(line!.quantity, 5000);
@@ -398,6 +409,38 @@ void main() {
     expect(frequents.single['id'], frequentId(x));
     expect(frequents.single['article_id'], x);
     expect(frequents.single['position'], 42);
+  });
+
+  test('Articles en double : une recette qui avait les deux articles garde '
+      'un seul ingrédient, le premier', () async {
+    final b = await phone('b');
+    final (x, z) = await b.db.transaction(
+      () async => (
+        await b.catalogue.createArticle('Ficelle'),
+        await b.catalogue.createArticle('Corde'),
+      ),
+    );
+    final recipeId = b.recettes.newId();
+    final first = b.recettes.newId();
+    await b.recettes.saveDraft(
+      RecipeDraft(
+        recipeId: recipeId,
+        name: 'Paquet',
+        ingredients: [
+          RecipeDraftIngredient(id: first, articleId: x.id),
+          RecipeDraftIngredient(id: b.recettes.newId(), articleId: z.id),
+        ],
+      ),
+    );
+
+    await b.db.transaction(() => b.recettes.reconcileImported({z.id: x.id}));
+
+    final ingredients = await b.activeRows(
+      'recipe_ingredients',
+      "recipe_id = '$recipeId'",
+    );
+    expect([for (final i in ingredients) i['id']], [first]);
+    expect(ingredients.single['article_id'], x.id);
   });
 
   test('Articles en double : un fréquent en double sur l’article gardé est '
@@ -642,6 +685,15 @@ void main() {
         '${BackupFormat.photosFolder}nouvelle.jpg': [4, 5, 6],
         '${BackupFormat.photosFolder}../x': [7],
       }),
+      'entrée photos/.': () => zip({
+        BackupFormat.dataFile: json(data),
+        '${BackupFormat.photosFolder}.': [7],
+      }),
+      'photo de recette en chemin': () => withData(
+        (d) =>
+            ((tablesIn(d)['recipes']! as List).first as Map)['photo'] =
+                '../../x',
+      ),
       'entrée photos/sous/x.jpg': () => zip({
         BackupFormat.dataFile: json(data),
         '${BackupFormat.photosFolder}sous/x.jpg': [7],

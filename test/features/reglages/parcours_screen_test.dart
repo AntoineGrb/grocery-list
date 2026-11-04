@@ -520,7 +520,13 @@ void main() {
       expect(tester.widget<Text>(finder).maxLines, isNull, reason: text);
     }
 
-    await _tap(tester, find.text(StringsFr.parcours));
+    // L'aide montrée en haut de la liste a glissé le libellé sous la Barre
+    // d'application : la ligne entière revient à l'écran avant le toucher.
+    final parcoursRow = find.widgetWithText(ListTile, StringsFr.parcours);
+    await tester.ensureVisible(parcoursRow);
+    await tester.pumpAndSettle();
+    await _tap(tester, parcoursRow);
+    expect(find.byType(ParcoursScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
     final rows = tester.widgetList<RouteRow>(find.byType(RouteRow)).toList();
     expect(rows, isNotEmpty);
@@ -534,11 +540,13 @@ void main() {
       expect(tester.widget<Text>(name).maxLines, isNull);
       expect(tester.getRect(_handle(row.rayon)).right, lessThanOrEqualTo(360));
     }
-    // Un nom long passe à la ligne au lieu de déborder.
-    final longName = find.text(Rayon.fruitsLegumes.label);
+    // Un nom long passe à la ligne au lieu de déborder, face à un nom court
+    // en haut de la liste (Divers, en fin, n'est pas bâti à cette hauteur).
+    Finder nameOf(Rayon rayon) =>
+        find.descendant(of: _row(rayon), matching: find.text(rayon.label));
     expect(
-      tester.getSize(longName).height,
-      greaterThan(tester.getSize(find.text(Rayon.divers.label)).height),
+      tester.getSize(nameOf(Rayon.fruitsLegumes)).height,
+      greaterThan(tester.getSize(nameOf(Rayon.cremerie)).height),
     );
   });
 }

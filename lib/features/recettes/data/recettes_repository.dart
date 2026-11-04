@@ -413,6 +413,32 @@ class RecettesRepository {
           ),
         );
       }
+      // Un article ne figure qu'une fois dans une recette : si le report en
+      // crée un doublon, le premier ingrédient (position, puis id) reste.
+      final kept = articles.values.toSet();
+      final onKept =
+          await (_db.select(_db.recipeIngredients)
+                ..where(
+                  (i) => i.articleId.isIn(kept) & i.deletedAt.isNull(),
+                )
+                ..orderBy([
+                  (i) => OrderingTerm(expression: i.position),
+                  (i) => OrderingTerm(expression: i.id),
+                ]))
+              .get();
+      final seen = <(String, String)>{};
+      for (final i in onKept) {
+        if (seen.add((i.recipeId, i.articleId))) continue;
+        final stamp = _clock.stamp(i.updatedAt);
+        await (_db.update(
+          _db.recipeIngredients,
+        )..where((x) => x.id.equals(i.id))).write(
+          RecipeIngredientsCompanion(
+            deletedAt: Value(stamp),
+            updatedAt: Value(stamp),
+          ),
+        );
+      }
     }
 
     final active = await (_db.select(

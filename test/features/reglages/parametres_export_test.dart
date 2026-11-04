@@ -237,8 +237,9 @@ void main() {
       StringsFr.exporterMesDonneesDetail,
     ]) {
       final finder = find.text(text);
-      // La ligne Parcours, au-dessus, peut la pousser hors de l'écran.
-      await tester.ensureVisible(finder);
+      // Les lignes au-dessus la poussent sous l'écran, hors de ce que la
+      // liste construit : elle défile jusqu'à la construire et la montrer.
+      await tester.scrollUntilVisible(finder, 100);
       await tester.pumpAndSettle();
       expect(finder.hitTestable(), findsOneWidget, reason: text);
       expect(tester.getRect(finder).right, lessThanOrEqualTo(360));

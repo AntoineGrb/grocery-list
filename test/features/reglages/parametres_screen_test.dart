@@ -166,7 +166,19 @@ void main() {
     final handle = tester.ensureSemantics();
     await pumpKadi(tester);
 
-    expect(find.bySemanticsLabel(StringsFr.parametres), findsOneWidget);
+    // Le `tooltip` de l'IconButton donne ce que lit TalkBack : il est porté
+    // par la propriété `tooltip` du nœud, pas par son `label`.
+    final gear = find.byType(SettingsAction);
+    expect(gear, findsOneWidget);
+    expect(
+      tester.getSemantics(gear),
+      isSemantics(
+        tooltip: StringsFr.parametres,
+        isButton: true,
+        isEnabled: true,
+        hasTapAction: true,
+      ),
+    );
     await _openParametres(tester);
 
     expect(

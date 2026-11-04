@@ -3,19 +3,20 @@ title: 'Le parcours de mon magasin, par glisser-déposer'
 type: 'feature'
 ticket: '4'
 created: '2026-11-04'
-status: 'in-review'
+status: 'built'
 baseline_revision: '831926a10738e348f26b9114f36ad498c502ea34'
 route: 'full'
 route_source: 'auto'
 risk: 'medium'
-review: ''
-review_source: ''
+review: 'quick'
+review_source: 'pinned'
 lenses_ran: []
 review_loop_iteration: 0
 followup_review_recommended: false
 context: []
 warnings: []
-deferred: []
+deferred:
+  - {summary: 'Parcours : _dragFrom pas remis à zéro si un glisser est annulé sans onReorderEnd ; un Monter/Descendre TalkBack suivant suivrait l index brut', location: 'lib/features/reglages/ui/parcours_screen.dart:38', severity: low}
 ---
 
 <intent-contract>
@@ -97,6 +98,8 @@ deferred: []
 ## Plan Change Log
 
 ## Review Triage Log
+
+- 2026-11-04 — revue unique du lot 3.1 à 3.4 (demande d'Antoine : tests et revue à la fin du lot). Première passe de tests : 725 passent, 6 échouent, tous des défauts de test (article « Piles » déjà fourni, lignes hors écran en police ×2, libellé ⚙ porté par le tooltip, tap sous l'AppBar) ; tests corrigés sans affaiblir d'assertion. Revue de code : high 0, medium 0, low 6. Patchés : photo de recette validée comme simple nom de fichier, entrée `photos/.` refusée, ingrédient en double dans une recette après report d'article supprimé (tests ajoutés). Reportés (deferred) : positions de fréquents égales, gel bref à l'import, drapeau de glisser du Parcours. Suite complète : 734 tests passent.
 
 ## Design Notes
 
