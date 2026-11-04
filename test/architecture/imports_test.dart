@@ -45,6 +45,26 @@ void main() {
     );
   });
 
+  test('liste ne dépend jamais de reglages', () {
+    expect(
+      violations('lib/features/liste', (i) => isFeature(i, 'reglages/')),
+      isEmpty,
+    );
+  });
+
+  test('reglages ne dépend que de core et de catalogue', () {
+    expect(
+      violations(
+        'lib/features/reglages',
+        (i) =>
+            isFeature(i) &&
+            !isFeature(i, 'reglages/') &&
+            !isFeature(i, 'catalogue/'),
+      ),
+      isEmpty,
+    );
+  });
+
   test('catalogue ne dépend d’aucune autre fonctionnalité', () {
     expect(
       violations(

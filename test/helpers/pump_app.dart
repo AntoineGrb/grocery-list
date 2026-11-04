@@ -6,9 +6,11 @@ import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
+import 'package:kadi/core/screen/screen_awake.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'fake_screen_awake.dart';
 import 'test_db.dart';
 
 /// Monte Kadi sur une base en mémoire, avec les vrais assets du contenu
@@ -19,13 +21,15 @@ import 'test_db.dart';
 /// [firstLaunch], la base est vide : c'est le premier lancement, l'app
 /// s'ouvre sur Recettes. Avec [database], cette base est reprise (relance
 /// de l'app), telle quelle et sans être fermée ici. La base créée ici est
-/// fermée au démontage.
+/// fermée au démontage. Le maintien de l'écran passe par [screenAwake], un
+/// [FakeScreenAwake] neuf par défaut : aucun test n'appelle la plateforme.
 Future<AppDatabase> pumpKadi(
   WidgetTester tester, {
   List<Override> overrides = const [],
   Map<String, String> assetOverrides = const {},
   bool firstLaunch = false,
   AppDatabase? database,
+  ScreenAwake? screenAwake,
 }) async {
   assert(
     !(firstLaunch && database != null),
@@ -52,6 +56,7 @@ Future<AppDatabase> pumpKadi(
       overrides: [
         databaseProvider.overrideWithValue(db),
         seedAssetLoaderProvider.overrideWithValue(loadAsset),
+        screenAwakeProvider.overrideWithValue(screenAwake ?? FakeScreenAwake()),
         ...overrides,
       ],
       child: const KadiApp(),

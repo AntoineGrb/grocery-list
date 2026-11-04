@@ -195,6 +195,14 @@ abstract final class StringsFr {
   static const suppressionImpossible = 'Suppression impossible. Réessaie.';
   static const modificationImpossible = 'Modification impossible. Réessaie.';
 
+  // Paramètres : titre de l'écran, aussi lu par TalkBack sur l'icône ⚙.
+  static const parametres = 'Paramètres';
+  static const garderEcranAllume = 'Garder l’écran allumé';
+  static const garderEcranAllumeDetail = 'Pendant que la liste est affichée';
+  static const grouperParRayon = 'Grouper par rayon';
+  static const grouperParRayonDetail = 'Sinon, la liste suit l’ordre d’ajout';
+  static const reglageImpossible = 'Réglage impossible à enregistrer.';
+
   // Écran d'erreur bloquant (base ou contenu fourni illisible).
   static const erreurOuvertureTitre = 'Impossible d’ouvrir tes données.';
   static const erreurOuvertureCorps =

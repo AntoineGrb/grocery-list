@@ -98,6 +98,52 @@ class SettingsRepository {
     );
   }
 
+  /// Écran allumé (R14) ; sans ligne de réglages, ou valeur inchangée, rien
+  /// n'est écrit.
+  Future<void> setKeepScreenOn(bool value) => _write(
+    (r) => r.keepScreenOn == value,
+    SettingsCompanion(keepScreenOn: Value(value)),
+  );
+
+  /// Groupement de la Liste par rayon ; sans ligne de réglages, ou valeur
+  /// inchangée, rien n'est écrit.
+  Future<void> setGroupByRayon(bool value) => _write(
+    (r) => r.groupByRayon == value,
+    SettingsCompanion(groupByRayon: Value(value)),
+  );
+
+  /// Ordre du parcours (R19) : [order] porte les 13 rayons, chacun une fois,
+  /// sinon [ArgumentError]. Sans ligne de réglages, ou ordre inchangé, rien
+  /// n'est écrit.
+  Future<void> setRouteOrder(List<Rayon> order) {
+    if (order.length != Rayon.values.length ||
+        order.toSet().length != Rayon.values.length) {
+      throw ArgumentError.value(
+        order,
+        'order',
+        'doit contenir les ${Rayon.values.length} rayons, chacun une fois',
+      );
+    }
+    final encoded = encodeRouteOrder(order);
+    return _write(
+      (r) => r.routeOrder == encoded,
+      SettingsCompanion(routeOrder: Value(encoded)),
+    );
+  }
+
+  /// Écrit [changes] sur la ligne de réglages, horodatée par l'horloge
+  /// (AD-7), sauf si elle n'existe pas ou si [unchanged] la dit déjà à jour.
+  Future<void> _write(
+    bool Function(SettingsRow r) unchanged,
+    SettingsCompanion changes,
+  ) async {
+    final r = await _row.getSingleOrNull();
+    if (r == null || unchanged(r)) return;
+    await (_db.update(_db.settings)..where((s) => s.id.equals(rowId))).write(
+      changes.copyWith(updatedAt: Value(_clock.stamp(r.updatedAt))),
+    );
+  }
+
   static String encodeRouteOrder(List<Rayon> order) =>
       order.map((r) => r.code).join(',');
 

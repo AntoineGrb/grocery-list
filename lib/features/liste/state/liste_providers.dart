@@ -20,22 +20,35 @@ final listePanelProvider = Provider<ListePanel>((ref) {
   return panel;
 });
 
-/// Groupe de la Liste : un rayon et ses lignes non cochées.
+/// Groupe de la Liste : un rayon et ses lignes non cochées ; sans rayon
+/// (pas d'En-tête de rayon) quand la Liste n'est pas groupée.
 class RayonGroup {
   const RayonGroup(this.rayon, this.items);
 
-  final Rayon rayon;
+  /// Nul : groupement par rayon désactivé, toutes les lignes en un groupe.
+  final Rayon? rayon;
   final List<ListeItem> items;
 }
 
-/// Groupes non vides de la Liste, dans l'ordre du parcours de `settings`.
+/// Groupes non vides de la Liste : par rayon dans l'ordre du parcours de
+/// `settings`, ou, groupement désactivé, un seul groupe sans rayon dans
+/// l'ordre d'ajout (AD-4). Suit chaque changement de réglage.
 final listeGroupsProvider = StreamProvider<List<RayonGroup>>((ref) async* {
-  final settings = await ref.watch(settingsProvider.future);
+  final (grouped, routeOrder) = await ref.watch(
+    settingsProvider.selectAsync((s) => (s.groupByRayon, s.routeOrder)),
+  );
   yield* ref
       .watch(listeRepositoryProvider)
       .watchUnchecked()
-      .map((items) => groupByRoute(items, settings.routeOrder));
+      .map(
+        (items) => grouped ? groupByRoute(items, routeOrder) : ungrouped(items),
+      );
 });
+
+/// Toutes les lignes [items] en un seul groupe sans rayon, dans l'ordre
+/// reçu (ordre d'ajout) ; aucun groupe si [items] est vide.
+List<RayonGroup> ungrouped(List<ListeItem> items) =>
+    items.isEmpty ? const [] : [RayonGroup(null, items)];
 
 /// Regroupe [items] par rayon ([rayonOf]) dans l'ordre [routeOrder] : un
 /// couple (rayon, éléments) par rayon non vide. Dans un rayon, l'ordre reçu

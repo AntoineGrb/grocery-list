@@ -11,6 +11,7 @@ import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/settings_action.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
@@ -161,6 +162,7 @@ class RecettesScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SettingsAction(),
               const SizedBox(width: KadiSpacing.s2),
             ],
           ),

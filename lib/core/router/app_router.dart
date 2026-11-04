@@ -19,6 +19,9 @@ abstract final class AppRoutes {
 
   /// Fiche de la recette [id] (icône « modifier » de sa carte).
   static String recette(String id) => '/recette/$id';
+
+  /// Paramètres (⚙ de Liste et Recettes) : poussée hors de la coque.
+  static const parametres = '/parametres';
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,

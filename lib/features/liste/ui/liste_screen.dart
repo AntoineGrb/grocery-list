@@ -8,6 +8,7 @@ import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/settings_action.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
@@ -25,8 +26,9 @@ import 'row_highlight.dart';
 
 const _revealDuration = Duration(milliseconds: 250);
 
-/// Liste : lignes groupées par rayon dans l'ordre du parcours, Section
-/// Cochés en bas, FAB + ; Bouton d'action « Terminer les courses » quand
+/// Liste : lignes groupées par rayon dans l'ordre du parcours (ou, sans
+/// groupement, dans l'ordre d'ajout, sans En-tête de rayon), Section Cochés
+/// en bas, FAB + ; Bouton d'action « Terminer les courses » quand
 /// tout est coché (R4).
 ///
 /// Tant que le Panneau + est ouvert (AD-19), la Liste reste visible au-dessus
@@ -123,7 +125,7 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     if (groups == null) return;
     final rayons = {
       for (final group in groups)
-        for (final item in group.items) item.lineId: group.rayon,
+        for (final item in group.items) item.lineId: item.rayon,
     };
     // Entrée a changé le rayon de la ligne qu'elle montre (R28) : la demande
     // précède souvent cette émission, et la ligne n'est plus là où elle était.
@@ -292,7 +294,13 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: AppBar(title: const Text(StringsFr.tabListe)),
+          appBar: AppBar(
+            title: const Text(StringsFr.tabListe),
+            actions: const [
+              SettingsAction(),
+              SizedBox(width: KadiSpacing.s2),
+            ],
+          ),
           body: switch ((groups, checked)) {
             (final groups?, final checked?)
                 when groups.isEmpty && checked.isEmpty =>
@@ -309,7 +317,10 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   for (final group in groups) ...[
-                    RayonHeader(rayon: group.rayon),
+                    // Sans groupement, une seule suite de lignes, sans
+                    // En-tête de rayon.
+                    if (group.rayon case final rayon?)
+                      RayonHeader(rayon: rayon),
                     for (final item in group.items)
                       _uncheckedRow(context, item),
                   ],
