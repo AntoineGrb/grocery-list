@@ -270,8 +270,6 @@ components:
   search-result-row:
     min-height: '{spacing.row-min-height}'
     label: '{typography.body-large}'
-    meta: '{typography.body-medium}'
-    meta-color: '{colors.on-surface-variant}'
   quantity-field:
     text: '{typography.body-large}'
     unit-color: '{colors.on-surface-variant}'
@@ -451,7 +449,7 @@ Composants M3 standard hérités sans changement hors des lignes ci-dessous (Tex
 | **Champ de recherche** (`search-field`) | Barre M3, `{rounded.full}`, hauteur `{spacing.touch-target}`, fond `{colors.surface}`, texte indicatif `{colors.on-surface-variant}`, icône × d'effacement à droite. Curseur en `{colors.on-surface}`, jamais en argile (le défaut M3 serait `primary`). Champ d'ajout du Panneau + : icône + à gauche, « Ajouter un article » ; Fiche recette et Paramètres › Articles : icône loupe. |
 | **Titre des fréquents** (`frequents-title`) | « Ajouts fréquents » en `{typography.title-small}` `{colors.on-surface-variant}`, marge `{spacing.margin}` ; bouton texte « Gérer » à droite, `{typography.label-large}` `{colors.on-surface-variant}`, cible `{spacing.touch-target}`. |
 | **Ligne de fréquent** (`frequent-row`) | Liste plate : Picto + nom en `{typography.body-large}` + indicateur d'état à droite, sans libellé de rayon. Hors liste : signe + en `{colors.on-surface-variant}` ; dans la liste : coche ronde pleine en accent du rayon, et à sa gauche le tag quantité (`add-tag`). Rien ne s'insère sous la ligne. |
-| **Ligne de résultat** (`search-result-row`) | Comme la Ligne de fréquent, avec le rayon en `{typography.body-medium}` `{colors.on-surface-variant}` avant l'indicateur. Sans résultat, une seule ligne « Ajouter « … » » avec un signe + neutre. |
+| **Ligne de résultat** (`search-result-row`) | Exactement comme la Ligne de fréquent, sans libellé de rayon. Sans résultat, une seule ligne « Ajouter « … » » avec un signe + neutre. |
 | **Champ quantité** (`quantity-field`) | Petit champ M3, `{rounded.xs}`, bordure `{colors.outline}`, hauteur `{spacing.touch-target}`. Unité en suffixe `{colors.on-surface-variant}` ; vide = sans quantité. |
 | **Ligne de Revue** (`review-row`) | Comme la Ligne d'article, avec le Champ quantité à droite. Case cochée par défaut (accent du rayon). Décochée : nom en `{colors.checked}`, sans barré (l'article reste en place). |
 | **Feuille d'édition d'article** (`item-edit-sheet`) | Feuille modale M3 courte, hauteur au contenu, `{colors.surface-container}`, haut `{rounded.xl}`, poignée. Nom en `{typography.title-medium}`, puis Champ quantité, Choix d'unité (puces de choix M3 pièce · g · kg · ml · L, la puce choisie en contour `{colors.on-surface}` et coche, jamais en argile), Choix de rayon, « Supprimer » en `{colors.error}`. |

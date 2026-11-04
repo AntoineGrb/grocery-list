@@ -193,15 +193,8 @@ class InListIndicator extends StatelessWidget {
   }
 }
 
-/// Part du nom face au rayon abrégé d'une Ligne de résultat : au plus un tiers
-/// de la place pour le rayon.
-const _nameFlex = 2;
-
-/// Facteur de police au-delà duquel le rayon d'une ligne passe sous son nom.
-const _inlineMetaMaxTextScale = 1.2;
-
-/// Ligne du Panneau + : Picto, nom, [meta] facultatif et indicateur d'état ;
-/// dans la liste, le tag quantité de [line] à gauche de la coche.
+/// Ligne du Panneau + : Picto, nom et indicateur d'état ; dans la liste, le tag
+/// quantité de [line] à gauche de la coche.
 ///
 /// La ligne est un bouton lu [label] ; le tag, cible de 48 dp, est un bouton à
 /// part, lu « Quantité de Lait, 500 g ».
@@ -213,7 +206,6 @@ class _PanelRow extends StatelessWidget {
     required this.onTap,
     this.line,
     this.onQuantityTap,
-    this.meta,
   });
 
   final CatalogueArticle article;
@@ -222,7 +214,6 @@ class _PanelRow extends StatelessWidget {
   final VoidCallback onTap;
   final ListeItem? line;
   final ValueChanged<ListeItem>? onQuantityTap;
-  final String? meta;
 
   Widget _lineTag(ListeItem line, ValueChanged<ListeItem> onQuantityTap) {
     final value = formatQuantity(line.quantity, line.unit);
@@ -240,22 +231,6 @@ class _PanelRow extends StatelessWidget {
     final scheme = theme.colorScheme;
     final line = this.line;
     final onQuantityTap = this.onQuantityTap;
-    final meta = this.meta;
-    // En grande police, tout ne tient plus sur une ligne : le rayon passe sous
-    // le nom, et rien ne déborde.
-    final large =
-        MediaQuery.textScalerOf(context).scale(1) > _inlineMetaMaxTextScale;
-    // Sur la même ligne, le rayon s'abrège plutôt que d'écraser le nom.
-    final metaText = meta == null
-        ? null
-        : Text(
-            meta,
-            maxLines: large ? null : 1,
-            overflow: large ? null : TextOverflow.ellipsis,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-            ),
-          );
 
     return Semantics(
       container: true,
@@ -281,32 +256,21 @@ class _PanelRow extends StatelessWidget {
                 ),
                 const SizedBox(width: KadiSpacing.s4),
                 Expanded(
-                  flex: _nameFlex,
                   child: ExcludeSemantics(
                     child: Padding(
                       // Le tag fait 48 dp : la ligne garde sa hauteur.
                       padding: const EdgeInsets.symmetric(
                         vertical: KadiSpacing.s2,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            article.name,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: scheme.onSurface,
-                            ),
-                          ),
-                          if (large) ?metaText,
-                        ],
+                      child: Text(
+                        article.name,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          color: scheme.onSurface,
+                        ),
                       ),
                     ),
                   ),
                 ),
-                if (metaText != null && !large) ...[
-                  const SizedBox(width: KadiSpacing.s3),
-                  Flexible(child: ExcludeSemantics(child: metaText)),
-                ],
                 if (inList && line != null && onQuantityTap != null)
                   // Sa largeur seule, jusqu'à la limite : le nom garde le reste.
                   ConstrainedBox(
@@ -363,9 +327,9 @@ class FrequentRow extends StatelessWidget {
   );
 }
 
-/// Ligne de résultat : Picto, nom, rayon et indicateur d'état ; dans la
-/// liste, le tag quantité de [line]. Annoncée « Lait, Crèmerie », avec « dans
-/// la liste » s'il y est.
+/// Ligne de résultat : comme la Ligne de fréquent, Picto, nom et indicateur
+/// d'état, sans le rayon écrit ; dans la liste, le tag quantité de [line].
+/// Annoncée « Lait, Crèmerie », avec « dans la liste » s'il y est.
 class SearchResultRow extends StatelessWidget {
   const SearchResultRow({
     super.key,
@@ -398,6 +362,5 @@ class SearchResultRow extends StatelessWidget {
     onTap: onTap,
     line: line,
     onQuantityTap: onQuantityTap,
-    meta: article.rayon.label,
   );
 }

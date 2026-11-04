@@ -373,6 +373,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(_tag(_result('Lait')), findsNothing);
       await _tap(tester, _result('Lait'));
+      // L'ajout vide le champ : on cherche de nouveau.
+      await tester.enterText(_search, 'lai');
+      await tester.pumpAndSettle();
       expect(_tag(_result('Lait')), findsOneWidget);
 
       await _openPopup(tester, _result('Lait'));
@@ -479,7 +482,7 @@ void main() {
       await tester.pump();
     }
 
-    testWidgets('police normale : le rayon reste entre le nom et le tag', (
+    testWidgets('police normale : comme un fréquent, sans rayon écrit', (
       tester,
     ) async {
       await pumpResultRow(
@@ -490,17 +493,8 @@ void main() {
         quantity: 2000,
       );
 
-      final rayon = find.text(Rayon.cremerie.label);
-      expect(
-        tester.getTopLeft(rayon).dx,
-        greaterThanOrEqualTo(tester.getTopRight(find.text('Tomates')).dx),
-      );
-      expect(
-        tester.getTopRight(rayon).dx,
-        lessThanOrEqualTo(
-          tester.getTopLeft(_tag(find.byType(SearchResultRow))).dx,
-        ),
-      );
+      expect(find.text(Rayon.cremerie.label), findsNothing);
+      expect(_tag(find.byType(SearchResultRow)), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -565,8 +559,8 @@ void main() {
     });
 
     for (final scale in [1.3, 2.0, 3.0]) {
-      testWidgets('police ×$scale, écran étroit : le rayon passe sous le nom, '
-          'la ligne tient avec son tag', (tester) async {
+      testWidgets('police ×$scale, écran étroit : la ligne tient avec son '
+          'tag, sans rayon écrit', (tester) async {
         await pumpResultRow(
           tester,
           scale: scale,
@@ -576,10 +570,7 @@ void main() {
         );
 
         expect(_tag(find.byType(SearchResultRow)), findsOneWidget);
-        expect(
-          tester.getTopLeft(find.text(Rayon.fruitsLegumes.label)).dy,
-          greaterThanOrEqualTo(tester.getBottomLeft(find.text('Tomates')).dy),
-        );
+        expect(find.text(Rayon.fruitsLegumes.label), findsNothing);
         expect(tester.takeException(), isNull);
       });
     }

@@ -426,7 +426,8 @@ void main() {
   });
 
   testWidgets('recherche « lai » : les fréquents laissent la place aux '
-      'résultats ; le résultat Lait ajoute puis retire', (tester) async {
+      'résultats, sans rayon écrit ; le résultat Lait ajoute et vide le '
+      'champ, puis retire', (tester) async {
     final db = await _pumpApp(tester);
     await _openSheet(tester);
 
@@ -438,12 +439,25 @@ void main() {
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
     expect(find.byType(SearchResultRow), findsWidgets);
     expect(_indicator(_result('Lait'), Icons.add), findsOneWidget);
+    expect(
+      find.descendant(
+        of: _result('Lait'),
+        matching: find.text(Rayon.cremerie.label),
+      ),
+      findsNothing,
+    );
 
+    // Ajouté : le champ se vide, les fréquents reviennent.
     await _tap(tester, _result('Lait'));
     expect(_sheet, findsOneWidget);
     expect(await _activeLines(db, SeedIds.lait), hasLength(1));
-    expect(_indicator(_result('Lait'), Icons.check), findsOneWidget);
+    expect(tester.widget<TextField>(_search).controller!.text, isEmpty);
+    expect(find.byType(SearchResultRow), findsNothing);
+    expect(_indicator(_frequent('Lait'), Icons.check), findsOneWidget);
 
+    await tester.enterText(find.byType(TextField), 'lai');
+    await tester.pumpAndSettle();
+    expect(_indicator(_result('Lait'), Icons.check), findsOneWidget);
     await _tap(tester, _result('Lait'));
     expect(await _activeLines(db, SeedIds.lait), isEmpty);
     expect(_indicator(_result('Lait'), Icons.add), findsOneWidget);

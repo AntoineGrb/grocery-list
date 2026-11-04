@@ -1017,7 +1017,7 @@ void main() {
 
   group('les autres gestes', () {
     testWidgets('« lai », tag 2, tap sur Lait hors liste : Lait à 2, tags à '
-        'zéro, le champ garde son texte', (tester) async {
+        'zéro, le champ vidé', (tester) async {
       final db = await _pumpTall(tester);
       await _openPanel(tester);
 
@@ -1034,7 +1034,7 @@ void main() {
       expect(contribution.quantity, 2000);
       expect((await _articleNamed(db, 'lait')).rayon, Rayon.cremerie.code);
 
-      expect(_fieldText(tester), 'lai');
+      expect(_fieldText(tester), isEmpty);
       _expectTagsAtZero(tester, rayon: Rayon.divers.label);
     });
 

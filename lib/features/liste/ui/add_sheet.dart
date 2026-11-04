@@ -291,6 +291,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
   }) async {
     final quantity = withTags ? _draftQuantity : null;
     final rayon = withTags ? _draftRayon : null;
+    final text = _controller.text;
     final messenger = ScaffoldMessenger.of(context);
     final view = View.of(context);
     try {
@@ -307,7 +308,14 @@ class _AddSheetState extends ConsumerState<AddSheet> {
       showErrorSnackBar(messenger, StringsFr.ajoutImpossible);
       return;
     }
-    if (mounted && withTags) setState(() => _clearTags(quantity, rayon));
+    // Un résultat ajouté vide aussi le champ, comme Entrée ; une frappe
+    // pendant l'écriture est gardée.
+    if (mounted && withTags) {
+      setState(() {
+        _clearTags(quantity, rayon);
+        if (_controller.text == text) _controller.clear();
+      });
+    }
     await _announce(
       view,
       StringsFr.ajouteAnnonce(
@@ -564,6 +572,8 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                           focusNode: _fieldFocus,
                           autofocus: true,
                           textInputAction: TextInputAction.done,
+                          // Majuscule en début de saisie, comme une liste.
+                          textCapitalization: TextCapitalization.sentences,
                           textAlignVertical: TextAlignVertical.center,
                           style: fieldStyle?.copyWith(color: scheme.onSurface),
                           onChanged: (_) => setState(() {}),
