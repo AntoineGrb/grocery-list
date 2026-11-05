@@ -232,6 +232,22 @@ void main() {
       );
     });
 
+    test('tags sur deux rangées : leur hauteur mesurée entre dans le '
+        'budget', () {
+      expect(
+        addPanelHeight(
+          const MediaQueryData(
+            size: Size(412, 914),
+            padding: EdgeInsets.only(top: 24),
+            viewInsets: EdgeInsets.only(bottom: 300),
+          ),
+          rows: 1,
+          tagsHeight: KadiSpacing.touchTarget * 2,
+        ),
+        chrome + KadiSpacing.touchTarget + KadiSpacing.rowMinHeight,
+      );
+    });
+
     test('jamais moins que la poignée, le champ et les tags', () {
       expect(
         addPanelHeight(
@@ -345,6 +361,73 @@ void main() {
             KadiSpacing.touchTarget +
             KadiSpacing.rowMinHeight * 3,
       );
+    });
+
+    testWidgets('un seul résultat, police normale : hauteur d’une rangée de '
+        'tags et d’une ligne, comme avant la mesure', (tester) async {
+      await _pumpPhone(tester);
+      await _openPanel(tester);
+      // Sans nom exact, le Tag Rayon dit Divers : les tags tiennent sur une
+      // rangée.
+      await tester.enterText(_search, 'banan');
+      await tester.pumpAndSettle();
+
+      expect(_inSheet(find.byType(SearchResultRow)), findsOneWidget);
+      expect(
+        tester.getSize(_body).height,
+        KadiSpacing.panelHandleHeight +
+            KadiSpacing.addFieldHeight +
+            KadiSpacing.touchTarget +
+            KadiSpacing.rowMinHeight,
+      );
+    });
+
+    testWidgets('police ×2 sur 360 dp, un seul résultat d’un rayon au nom '
+        'long : les tags passent sur deux rangées, le résultat reste visible '
+        'et se touche', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(360, 800);
+      tester.view.viewInsets = const FakeViewPadding(bottom: _keyboard);
+      addTearDown(tester.view.reset);
+      final db = await pumpKadi(tester);
+      await _openPanel(tester);
+      await tester.enterText(_search, 'courgettes');
+      await tester.pumpAndSettle();
+
+      // Tag Rayon « Fruits & légumes » sous le Tag Quantité.
+      final tags = [
+        find.byWidgetPredicate(
+          (w) => w is QuantityTag && w.emptyLabel == StringsFr.quantite,
+        ),
+        find.byType(RayonTag),
+      ];
+      expect(
+        tester.getTopLeft(tags[1]).dy,
+        greaterThanOrEqualTo(tester.getBottomLeft(tags[0]).dy),
+      );
+
+      final result = _inSheet(find.byType(SearchResultRow));
+      expect(result, findsOneWidget);
+      final body = tester.getRect(_body);
+      final row = tester.getRect(result);
+      // Avant la mesure, la rangée de tags de trop ne laissait que 32 dp au
+      // résultat. Sa ligne, plus haute que la hauteur minimale mise à
+      // l'échelle, peut encore déborder sous la carte : au moins une cible
+      // tactile reste visible, son centre compris.
+      expect(row.top, greaterThanOrEqualTo(tester.getBottomLeft(tags[1]).dy));
+      expect(
+        body.intersect(row).height,
+        greaterThanOrEqualTo(KadiSpacing.touchTarget),
+      );
+      expect(body.contains(row.center), isTrue);
+      expect(tester.getBottomLeft(_body).dy, 800 - _keyboard - 8);
+      expect(_panel(tester).top, closeTo(body.top, 0.01));
+
+      await _tap(tester, result);
+      final line = (await db.select(db.listLines).get()).single;
+      expect(line.articleId, SeedIds.courgettes);
     });
 
     testWidgets('carte sans bordure ni ombre, coins arrondis, poignée '

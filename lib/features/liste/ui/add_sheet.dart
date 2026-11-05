@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' show FlutterView;
 
+import 'package:flutter/rendering.dart' show RenderProxyBox;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/app/actions/ajout_panneau.dart';
@@ -34,11 +35,9 @@ class PanelUndo {
   String message = '';
 }
 
-/// Haut du panneau toujours visible : poignée, Champ d'ajout, rangée des tags.
-const _panelChromeHeight =
-    KadiSpacing.panelHandleHeight +
-    KadiSpacing.addFieldHeight +
-    KadiSpacing.touchTarget;
+/// Haut du panneau toujours visible, hors tags : poignée et Champ d'ajout.
+const _panelFieldHeight =
+    KadiSpacing.panelHandleHeight + KadiSpacing.addFieldHeight;
 
 /// Fréquents visibles clavier fermé : la moitié de la dernière ligne dit
 /// qu'ils défilent. Les tests qui touchent tous les fréquents l'augmentent.
@@ -59,15 +58,24 @@ const _panelInset = KadiSpacing.s2;
 /// tags (titre compris), bornée aux deux tiers de la zone libre (écran −
 /// clavier − marge haute − Barre d'application) de [media], dont
 /// `padding.top` doit porter la marge haute de l'écran.
-double addPanelHeight(MediaQueryData media, {required double rows}) {
+///
+/// [tagsHeight] est la hauteur mesurée de la rangée des tags : une rangée
+/// d'une cible tactile, deux quand le Tag Rayon passe à la ligne en grande
+/// police ou sur un nom de rayon long.
+double addPanelHeight(
+  MediaQueryData media, {
+  required double rows,
+  double tagsHeight = KadiSpacing.touchTarget,
+}) {
   final free =
       media.size.height -
       media.viewInsets.bottom -
       media.padding.top -
       kToolbarHeight;
+  final chrome = _panelFieldHeight + tagsHeight;
   final row = media.textScaler.scale(KadiSpacing.rowMinHeight);
-  final wanted = _panelChromeHeight + rows * row;
-  return math.max(math.min(wanted, free * _panelMaxShare), _panelChromeHeight);
+  final wanted = chrome + rows * row;
+  return math.max(math.min(wanted, free * _panelMaxShare), chrome);
 }
 
 /// Annonce TalkBack : la Liste est inaccessible sous le panneau.
@@ -173,6 +181,18 @@ class _AddSheetState extends ConsumerState<AddSheet> {
 
   /// Une Popup quantité est ouverte : un second tag est ignoré.
   bool _quantityOpen = false;
+
+  /// Hauteur de la rangée des tags à la dernière mesure : une cible tactile
+  /// avant la première, puis ce que la rangée occupe vraiment.
+  double _tagsHeight = KadiSpacing.touchTarget;
+
+  /// Rangée des tags mesurée à [height] : le budget du panneau la suit, pour
+  /// que la rangée passée sur deux lignes ne prenne pas la place des
+  /// résultats.
+  void _onTagsHeight(double height) {
+    if (!mounted || height == _tagsHeight) return;
+    setState(() => _tagsHeight = height);
+  }
 
   @override
   void dispose() {
@@ -473,6 +493,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     final height = addPanelHeight(
       media.copyWith(padding: EdgeInsets.only(top: view.padding.top)),
       rows: rows,
+      tagsHeight: _tagsHeight,
     );
     // Clavier fermé, la carte reste au-dessus de la barre de gestes.
     final bottom =
@@ -602,49 +623,53 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                     ),
                     // Les puces s'alignent sur le Champ d'ajout, leur pourtour
                     // tappable déborde dans la marge ; Valider fait comme
-                    // Entrée, au bout de la rangée.
-                    Padding(
-                      padding: const EdgeInsetsDirectional.only(
-                        start: KadiSpacing.margin - KadiSpacing.s2,
-                        end: KadiSpacing.s1,
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Align(
-                              alignment: AlignmentDirectional.centerStart,
-                              // En grande police, le Tag Rayon passe à la ligne.
-                              child: Wrap(
-                                children: [
-                                  QuantityTag(
-                                    value: quantityValue,
-                                    emptyLabel: StringsFr.quantite,
-                                    semanticLabel: StringsFr.quantiteTag(
-                                      quantityValue,
+                    // Entrée, au bout de la rangée. Sa hauteur mesurée entre
+                    // dans celle du panneau.
+                    _HeightReporter(
+                      onHeight: _onTagsHeight,
+                      child: Padding(
+                        padding: const EdgeInsetsDirectional.only(
+                          start: KadiSpacing.margin - KadiSpacing.s2,
+                          end: KadiSpacing.s1,
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                // En grande police, le Tag Rayon passe à la ligne.
+                                child: Wrap(
+                                  children: [
+                                    QuantityTag(
+                                      value: quantityValue,
+                                      emptyLabel: StringsFr.quantite,
+                                      semanticLabel: StringsFr.quantiteTag(
+                                        quantityValue,
+                                      ),
+                                      onTap: _editDraftQuantity,
                                     ),
-                                    onTap: _editDraftQuantity,
-                                  ),
-                                  RayonTag(
-                                    rayon:
-                                        draftRayon ??
-                                        _exactArticle(query)?.rayon ??
-                                        Rayon.divers,
-                                    chosen: draftRayon != null,
-                                    route: route,
-                                    onSelected: (rayon) =>
-                                        setState(() => _draftRayon = rayon),
-                                  ),
-                                ],
+                                    RayonTag(
+                                      rayon:
+                                          draftRayon ??
+                                          _exactArticle(query)?.rayon ??
+                                          Rayon.divers,
+                                      chosen: draftRayon != null,
+                                      route: route,
+                                      onSelected: (rayon) =>
+                                          setState(() => _draftRayon = rayon),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                          SubmitButton(
-                            icon: Icons.arrow_upward,
-                            tooltip: StringsFr.valider,
-                            onPressed: searching ? _addTyped : null,
-                          ),
-                        ],
+                            SubmitButton(
+                              icon: Icons.arrow_upward,
+                              tooltip: StringsFr.valider,
+                              onPressed: searching ? _addTyped : null,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     Expanded(child: content(context)),
@@ -656,5 +681,41 @@ class _AddSheetState extends ConsumerState<AddSheet> {
         ),
       ),
     );
+  }
+}
+
+/// Remonte la hauteur de [child] après chaque mise en page où elle change,
+/// une fois la frame finie.
+class _HeightReporter extends SingleChildRenderObjectWidget {
+  const _HeightReporter({required this.onHeight, required super.child});
+
+  final ValueChanged<double> onHeight;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) =>
+      _RenderHeightReporter(onHeight);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderHeightReporter renderObject,
+  ) {
+    renderObject.onHeight = onHeight;
+  }
+}
+
+class _RenderHeightReporter extends RenderProxyBox {
+  _RenderHeightReporter(this.onHeight);
+
+  ValueChanged<double> onHeight;
+  double? _reported;
+
+  @override
+  void performLayout() {
+    super.performLayout();
+    final height = size.height;
+    if (height == _reported) return;
+    _reported = height;
+    WidgetsBinding.instance.addPostFrameCallback((_) => onHeight(height));
   }
 }

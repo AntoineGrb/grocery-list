@@ -409,15 +409,6 @@ void main() {
     expect(_createLine, findsNothing);
 
     await _backToTabs(tester);
-    // La police des tests donne à chaque glyphe 1 em de large, presque deux
-    // fois Roboto : sur 400 dp, les tags « Quantité » et « Fruits & légumes »
-    // (le rayon de Piment) passent sur deux rangées, ce qu'ils ne font pas
-    // au téléphone en police normale. Le panneau ne compte qu'une rangée de
-    // tags (story des tags, revue) : la rangée de trop prendrait toute la
-    // place de l'unique résultat. Plus large, les tags tiennent sur une
-    // rangée, comme au téléphone.
-    tester.view.physicalSize = const Size(800, 1400);
-    await tester.pumpAndSettle();
     await _searchInPanel(tester, 'piment');
     expect(_panelResult('Piment'), findsOneWidget);
     await _closePanel(tester);
