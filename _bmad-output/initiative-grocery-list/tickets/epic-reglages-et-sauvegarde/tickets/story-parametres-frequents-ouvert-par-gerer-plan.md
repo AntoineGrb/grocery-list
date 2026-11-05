@@ -3,20 +3,23 @@ title: 'Paramètres › Fréquents, ouvert par « Gérer »'
 type: 'feature'
 ticket: '7'
 created: '2026-11-05'
-status: 'in-review'
+status: 'built'
 baseline_revision: '1d142e970c6d61809d9246460eb3cc28d7c943c7'
 route: 'full'
 route_source: 'auto'
 risk: 'medium'
-review: ''
-review_source: ''
+review: 'quick'
+review_source: 'pinned'
 lenses_ran: []
 review_loop_iteration: 0
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/initiative-grocery-list/architecture-grocery-list/architecture-grocery-list.md'
 warnings: ['oversized']
-deferred: []
+deferred:
+  - {summary: 'Gérer : un Annuler en attente du panneau se remontre sous l écran Fréquents, invisible ; sans risque (canUndo)', location: 'lib/features/liste/ui/add_sheet_rows.dart:149', severity: low}
+  - {summary: 'Retrait de fréquent : undo.record même écran fermé, emplacement sans snackbar jusqu à la prochaine écriture', location: 'lib/features/reglages/ui/frequents_screen.dart:93', severity: low}
+  - {summary: 'Changement de rayon : le nom repasse par cleanName, un nom stocké non nettoyé (sauvegarde éditée à la main) serait réécrit', location: 'lib/features/catalogue/data/catalogue_repository.dart:223', severity: low}
 ---
 
 <intent-contract>
@@ -104,6 +107,8 @@ deferred: []
 ## Plan Change Log
 
 ## Review Triage Log
+
+- 2026-11-05 — revue unique du lot 3.6 à 3.8 (tests et revue à la fin du lot, demande d'Antoine). Première passe : 788 tests passent, 2 échouent : glisser vers le bas du Parcours cassé par le drapeau `_dropping` du sweep (Flutter appelle onReorderItem avant onReorderEnd quand le dépôt précède l'animation) — corrigé dans le produit, deux tests ajoutés ; « Créer « Piment » » : test trop étroit en police de test (tags sur deux rangées), écran du test élargi, assertion inchangée. Revue de code : high 0, medium 0, low 3, reportés (deferred). Suite complète : 792 tests passent.
 
 ## Design Notes
 

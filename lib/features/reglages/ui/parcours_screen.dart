@@ -1,3 +1,4 @@
+import 'dart:async' show scheduleMicrotask;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/foundation.dart' show SynchronousFuture, listEquals;
@@ -37,24 +38,39 @@ class _ParcoursScreenState extends ConsumerState<ParcoursScreen> {
 
   /// Index de départ du glisser en cours ; nul hors glisser. Un glisser
   /// annulé (doigt perdu) ne le remet pas à zéro : la liste ne le signale
-  /// pas. Il ne décide donc de rien seul : voir [_dropping].
+  /// pas. Il ne décide donc de rien seul : voir [_dropping] et [_held].
   int? _dragFrom;
 
   /// Vrai entre un déposer qui déplace la ligne et le déplacement qu'il
-  /// annonce. Tout déplacement reçu hors de cette fenêtre vient d'une action
-  /// TalkBack, même après un glisser annulé ou fini.
+  /// annonce, quand la ligne se pose par une animation (le cas courant).
   bool _dropping = false;
+
+  /// Déplacement de la ligne glissée reçu avant la fin du glisser. Une ligne
+  /// déposée avant que son soulèvement n'ait commencé se pose d'un coup : la
+  /// liste annonce alors le déplacement juste avant la fin du glisser, dans
+  /// le même appel, et [_onReorderEnd] le fait comme un glisser. Sans fin du
+  /// glisser à la suite (glisser annulé, puis action TalkBack sur la même
+  /// ligne), il est fait comme une action TalkBack.
+  _HeldMove? _held;
 
   void _onReorderStart(int index) {
     _dragFrom = index;
     _dropping = false;
+    _held = null;
   }
 
   /// [insertIndex] compte la ligne glissée encore en place : déposée sur
   /// elle-même (même index ou le suivant), aucun déplacement ne suivra.
   void _onReorderEnd(int insertIndex) {
     final from = _dragFrom;
+    final held = _held;
     _dragFrom = null;
+    _held = null;
+    if (held != null) {
+      _dropping = false;
+      _move(held.order, held.from, held.to);
+      return;
+    }
     _dropping = from != null && insertIndex != from && insertIndex != from + 1;
   }
 
@@ -62,20 +78,34 @@ class _ParcoursScreenState extends ConsumerState<ParcoursScreen> {
   /// ligne). Hors déposer, c'est « Monter » ou « Descendre » : un cran vers
   /// le voisin, dans le sens demandé, puis annoncé.
   void _onReorderItem(List<Rayon> order, int oldIndex, int newIndex) {
-    final byDrag = _dropping;
-    _dropping = false;
-    _dragFrom = null;
-    if (byDrag) {
+    if (_dropping) {
+      _dropping = false;
       _move(order, oldIndex, newIndex);
-    } else {
-      _move(
-        order,
-        oldIndex,
-        newIndex < oldIndex ? oldIndex - 1 : oldIndex + 1,
-        announce: true,
-      );
+      return;
     }
+    if (oldIndex == _dragFrom) {
+      final held = _HeldMove(order, oldIndex, newIndex);
+      _held = held;
+      scheduleMicrotask(() {
+        if (!identical(_held, held)) return;
+        _held = null;
+        _dragFrom = null;
+        if (mounted) _step(order, oldIndex, newIndex);
+      });
+      return;
+    }
+    _dragFrom = null;
+    _step(order, oldIndex, newIndex);
   }
+
+  /// « Monter » ou « Descendre » : un cran vers le voisin, dans le sens de
+  /// [newIndex], puis annoncé.
+  void _step(List<Rayon> order, int oldIndex, int newIndex) => _move(
+    order,
+    oldIndex,
+    newIndex < oldIndex ? oldIndex - 1 : oldIndex + 1,
+    announce: true,
+  );
 
   Future<void> _move(
     List<Rayon> order,
@@ -180,6 +210,15 @@ class _ParcoursScreenState extends ConsumerState<ParcoursScreen> {
             ),
     );
   }
+}
+
+/// Déplacement de la ligne glissée, en attente de la fin du glisser.
+class _HeldMove {
+  _HeldMove(this.order, this.from, this.to);
+
+  final List<Rayon> order;
+  final int from;
+  final int to;
 }
 
 /// Ligne de parcours (`route-row`) : Pastille du rayon, comme l'En-tête de

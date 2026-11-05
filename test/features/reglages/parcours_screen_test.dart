@@ -82,14 +82,22 @@ List<Rayon> _withAt(Rayon rayon, int index) => [...Rayon.values]
   ..remove(rayon)
   ..insert(index, rayon);
 
-/// Glisse la poignée de [rayon] de [dy], par petits pas, et la dépose.
-Future<void> _dragHandle(WidgetTester tester, Rayon rayon, double dy) async {
+/// Glisse la poignée de [rayon] de [dy], par petits pas de [stepTime], et
+/// la dépose. Sans durée, la ligne est déposée avant d'être soulevée et se
+/// pose d'un coup ; avec, elle est soulevée et se pose par une animation,
+/// comme au doigt.
+Future<void> _dragHandle(
+  WidgetTester tester,
+  Rayon rayon,
+  double dy, {
+  Duration stepTime = Duration.zero,
+}) async {
   final gesture = await tester.startGesture(tester.getCenter(_handle(rayon)));
   await tester.pump();
   const steps = 6;
   for (var i = 0; i < steps; i++) {
     await gesture.moveBy(Offset(0, dy / steps));
-    await tester.pump();
+    await tester.pump(stepTime);
   }
   await gesture.up();
   await tester.pumpAndSettle();
@@ -233,6 +241,36 @@ void main() {
     final expected = _withAt(Rayon.fruitsLegumes, 2);
     expect(_shown(tester), expected);
     expect(await _stored(db), expected);
+  });
+
+  testWidgets('glisser au rythme du doigt, ligne soulevée puis posée par une '
+      'animation : déposée où le doigt la lâche, vers le bas comme vers le '
+      'haut', (tester) async {
+    final db = await _pumpParcours(tester);
+    const stepTime = Duration(milliseconds: 50);
+
+    await _dragHandle(
+      tester,
+      Rayon.fruitsLegumes,
+      1.75 * _rowHeight(tester),
+      stepTime: stepTime,
+    );
+    final down = _withAt(Rayon.fruitsLegumes, 2);
+    expect(_shown(tester), down);
+    expect(await _stored(db), down);
+
+    // Crèmerie (4e) remonte de deux crans, en 2e.
+    await _dragHandle(
+      tester,
+      Rayon.cremerie,
+      -1.75 * _rowHeight(tester),
+      stepTime: stepTime,
+    );
+    final up = [...down]
+      ..remove(Rayon.cremerie)
+      ..insert(1, Rayon.cremerie);
+    expect(_shown(tester), up);
+    expect(await _stored(db), up);
   });
 
   testWidgets('glisser hors de la poignée, même après un appui long : rien '
@@ -464,6 +502,36 @@ void main() {
       final expected = _withAt(Rayon.fruitsLegumes, 1);
       expect(_shown(tester), expected);
       expect(await _stored(db), expected);
+      handle.dispose();
+    });
+
+    testWidgets('après un glisser annulé, « Descendre » sur la ligne glissée '
+        'reste un seul cran, annoncé', (tester) async {
+      final handle = tester.ensureSemantics();
+      final announcements = _captureAnnouncements(tester);
+      final db = await _pumpParcours(tester);
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(_handle(Rayon.fruitsLegumes)),
+      );
+      await tester.pump();
+      for (var i = 0; i < 4; i++) {
+        await gesture.moveBy(Offset(0, 0.2 * _rowHeight(tester)));
+        await tester.pump();
+      }
+      await gesture.cancel();
+      await tester.pumpAndSettle();
+      expect(_shown(tester), Rayon.values);
+
+      tester.semantics.customAction(
+        find.semantics.byLabel(_label(Rayon.fruitsLegumes, 1)),
+        _descendre,
+      );
+      await tester.pumpAndSettle();
+      final expected = _withAt(Rayon.fruitsLegumes, 1);
+      expect(_shown(tester), expected);
+      expect(await _stored(db), expected);
+      expect(announcements, ['Fruits et légumes, position 2 sur 13']);
       handle.dispose();
     });
 

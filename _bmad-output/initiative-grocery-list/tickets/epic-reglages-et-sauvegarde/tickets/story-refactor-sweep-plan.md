@@ -3,13 +3,13 @@ title: 'Refactor sweep'
 type: 'refactor'
 ticket: '8'
 created: '2026-11-05'
-status: 'in-progress'
+status: 'built'
 baseline_revision: '8f9636696c2c8ec8f3eaaa860bac69be39c8afd8'
 route: 'full'
 route_source: 'auto'
 risk: 'low'
-review: ''
-review_source: ''
+review: 'quick'
+review_source: 'pinned'
 lenses_ran: []
 review_loop_iteration: 0
 followup_review_recommended: false
@@ -82,6 +82,8 @@ deferred: []
 ## Plan Change Log
 
 ## Review Triage Log
+
+- 2026-11-05 — revue unique du lot 3.6 à 3.8 (tests et revue à la fin du lot, demande d'Antoine). Première passe : 788 tests passent, 2 échouent : glisser vers le bas du Parcours cassé par le drapeau `_dropping` du sweep (Flutter appelle onReorderItem avant onReorderEnd quand le dépôt précède l'animation) — corrigé dans le produit, deux tests ajoutés ; « Créer « Piment » » : test trop étroit en police de test (tags sur deux rangées), écran du test élargi, assertion inchangée. Revue de code : high 0, medium 0, low 3, reportés (deferred). Suite complète : 792 tests passent.
 
 ## Verification
 
