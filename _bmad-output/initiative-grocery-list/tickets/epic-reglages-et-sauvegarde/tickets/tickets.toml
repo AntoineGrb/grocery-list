@@ -48,25 +48,13 @@ hitl = false
 risk = "medium"
 
 [[entry]]
-id = 5
-type = "story"
-title = "Les pictos du pack à la place du repli"
-description = "Résout la question ouverte du pack (C7, touch point repris de l'epic 1) : la story compare deux ou trois packs au trait sous licence libre sur une planche d'une vingtaine d'articles du catalogue, en clair et en sombre, retient Tabler Icons (MIT) par défaut, et ajoute ses SVG en assets avec la licence. Le résolveur unique de `core/pictos` (AD-18) traduit chacune des `picto_key` du catalogue fourni en asset, plusieurs clés pouvant partager un picto ; les clés sans équivalent gardent le repli neutre, ou un SVG dessiné dans le même style si c'est simple. Les pictos sont teintés de l'accent du rayon, 24 dp (44 dp pour le visuel de repli de la Carte recette), dans le Panneau +, la Fiche recette et le visuel de repli de la Carte recette ; toujours absents de la Liste et de la Revue. Le résolveur expose aussi la liste des pictos du pack pour la grille de la Fiche article (story 6)."
-verify = "Les tests montrent : chaque picto_key de articles.json résout vers un asset existant ou vers le repli, et au moins 90 % vers un asset ; un test de widget du Panneau + et de la Carte recette sans photo rend l'image teintée de l'accent du rayon ; la planche de comparaison est écrite dans le dossier de l'epic pour Antoine."
-covers = ["R8"]
-after = [4]
-hitl = false
-risk = "medium"
-notes = ["Antoine attend des propositions de pack : la planche les lui montre, il tranche au test de fin d'epic ; changer de pack ne change que le résolveur et les assets."]
-
-[[entry]]
 id = 6
 type = "story"
 title = "Paramètres › Articles : chercher, créer et modifier un article"
-description = "La ligne « Articles » pousse Paramètres › Articles : Champ de recherche (loupe, ×) sur les seuls articles du catalogue (AD-17), résultats avec Picto, nom et rayon. Un tap ouvre la Fiche article, feuille modale (AD-13) : nom, Picto choisi dans une grille du pack avec recherche (liste des pictos exposée par le résolveur, story 5), rayon par défaut (Choix de rayon) et unité par défaut (g, ml, pièce, sans), enregistrés par le repository `catalogue`. Sans correspondance exacte, « Créer « … » » ouvre la Fiche article préremplie du nom ; créer un nom porté par un article hors catalogue le fait entrer au catalogue, même id (AD-17). Un nom déjà porté par un autre article actif est refusé avec un message. Une modification vaut pour les ajouts suivants : les lignes de liste et les ingrédients existants ne changent pas (AD-15). Changer le rayon d'un article qui est un fréquent passe ce fréquent en dernier de son nouveau rayon (AD-17), par un seul chemin du repository `catalogue`, que la story 7 réutilise. TalkBack sur la recherche, les résultats, la grille et la fiche ; taille de police système."
+description = "La ligne « Articles » pousse Paramètres › Articles : Champ de recherche (loupe, ×) sur les seuls articles du catalogue (AD-17), résultats avec Picto, nom et rayon. Un tap ouvre la Fiche article (son Picto affiché, non modifiable : le choix dans la grille du pack vient avec la story 5), feuille modale (AD-13) : nom, rayon par défaut (Choix de rayon) et unité par défaut (g, ml, pièce, sans), enregistrés par le repository `catalogue`. Sans correspondance exacte, « Créer « … » » ouvre la Fiche article préremplie du nom ; créer un nom porté par un article hors catalogue le fait entrer au catalogue, même id (AD-17). Un nom déjà porté par un autre article actif est refusé avec un message. Une modification vaut pour les ajouts suivants : les lignes de liste et les ingrédients existants ne changent pas (AD-15). Changer le rayon d'un article qui est un fréquent passe ce fréquent en dernier de son nouveau rayon (AD-17), par un seul chemin du repository `catalogue`, que la story 7 réutilise. TalkBack sur la recherche, les résultats et la fiche ; taille de police système."
 verify = "Les tests montrent : chercher « tom » montre Tomates ; passer Tomates en Épicerie salée et en g, puis l'ajouter depuis le Panneau +, crée une ligne en Épicerie salée, l'ajouter comme ingrédient d'une recette préchoisit g, alors que la ligne Tomates déjà dans la liste reste en Fruits et légumes ; « Créer « Piment » » crée un article du catalogue trouvé ensuite par le Panneau + ; renommer Lait en « tomates » est refusé ; un article hors catalogue n'apparaît pas dans la recherche."
 covers = ["R3", "R7"]
-after = [5]
+after = [4]
 hitl = false
 risk = "medium"
 
@@ -85,12 +73,24 @@ risk = "medium"
 id = 8
 type = "story"
 title = "Refactor sweep"
-description = "Nettoyage seul, sans nouvelle capacité : sa portée est fixée à son démarrage à partir des plans et des revues de l'epic 3 (éléments reportés, doublons entre les sous-écrans des Paramètres, chaînes, tests lents ou fragiles). Elle comprend la remise à jour d'EXPERIENCE.md et de DESIGN.md sur les Decisions des epics 2 et 3 (Fiche recette enregistrée par un bouton, coche ronde de la carte, Revue sans picto, Panneau + sans voile, Paramètres), par bmad-ux. Tout ajout de capacité devient une nouvelle story."
+description = "Nettoyage seul, sans nouvelle capacité : sa portée est fixée à son démarrage à partir des plans et des revues de l'epic 3 (éléments reportés, doublons entre les sous-écrans des Paramètres, chaînes, tests lents ou fragiles). Elle comprend la remise à jour d'EXPERIENCE.md et de DESIGN.md sur les Decisions des epics 2 et 3 (Fiche recette enregistrée par un bouton, coche ronde de la carte, Revue sans picto, Panneau + sans voile, Paramètres), directement par la story, sur les Decisions de l'initiative et des epics (demande d'Antoine d'aller vite) ; les pictos (story 5) y sont décrits tels qu'ils sont, repli neutre. Tout ajout de capacité devient une nouvelle story."
 verify = "Les tests, l'analyse statique et le build release passent ; chaque élément de la portée fixée au démarrage est traité ou explicitement reporté avec sa raison."
 covers = []
-after = [1, 2, 3, 4, 5, 6, 7]
+after = [1, 2, 3, 4, 6, 7]
 hitl = false
 risk = "low"
+
+[[entry]]
+id = 5
+type = "story"
+title = "Les pictos du pack à la place du repli"
+description = "Résout la question ouverte du pack (C7, touch point repris de l'epic 1) : la story compare deux ou trois packs au trait sous licence libre sur une planche d'une vingtaine d'articles du catalogue, en clair et en sombre, retient Tabler Icons (MIT) par défaut, et ajoute ses SVG en assets avec la licence. Le résolveur unique de `core/pictos` (AD-18) traduit chacune des `picto_key` du catalogue fourni en asset, plusieurs clés pouvant partager un picto ; les clés sans équivalent gardent le repli neutre, ou un SVG dessiné dans le même style si c'est simple. Les pictos sont teintés de l'accent du rayon, 24 dp (44 dp pour le visuel de repli de la Carte recette), dans le Panneau +, la Fiche recette et le visuel de repli de la Carte recette ; toujours absents de la Liste et de la Revue. La Fiche article (story 6) gagne le choix du Picto dans une grille du pack avec recherche, enregistré dans `picto_key` par le repository `catalogue`."
+verify = "Les tests montrent : chaque picto_key de articles.json résout vers un asset existant ou vers le repli, et au moins 90 % vers un asset ; un test de widget du Panneau + et de la Carte recette sans photo rend l'image teintée de l'accent du rayon ; choisir un picto dans la grille de la Fiche article le change dans le Panneau + ; la planche de comparaison est écrite dans le dossier de l'epic pour Antoine."
+covers = ["R8"]
+after = [8]
+hitl = false
+risk = "medium"
+notes = ["Antoine attend des propositions de pack : la planche les lui montre, il tranche au test de fin d'epic ; changer de pack ne change que le résolveur et les assets."]
 
 [[entry]]
 id = 9
@@ -99,7 +99,7 @@ title = "Les six parcours de bout en bout, clair et sombre, sur la release insta
 description = "Suite de bout en bout dans `integration_test/` (convention Tests de l'architecture) : les six Key Flows d'EXPERIENCE.md, tels que les Decisions de l'initiative les ont modifiés (Fiche recette enregistrée par son bouton, coche ronde sur la carte), chacun en thème clair et en thème sombre, moment ★ vérifié par une assertion ; plus l'aller-retour export puis import sur une base neuve. Contrôles du plancher d'accessibilité sur chaque écran : cibles de 48 dp, libellés des cibles et contraste des textes (guidelines du test Flutter), police système ×2 sans débordement, animations désactivées sans attente. Puis le build release signé est installé sur le téléphone d'Antoine, après un export de la version en place ; cet export est importé sur une installation neuve de la même release (émulateur) et comparé ; Antoine passe les parcours avec TalkBack et fait de vraies courses de la semaine avec."
 verify = "La suite d'intégration passe sur un émulateur ou le téléphone, six parcours × deux thèmes, plus l'aller-retour de sauvegarde ; l'import sur la release neuve de l'émulateur rend recettes, catalogue, fréquents, parcours, réglages et liste ; Antoine confirme la release installée, le passage TalkBack et une vraie semaine de courses."
 covers = ["R7"]
-after = [8]
+after = [8, 5]
 hitl = true
 risk = "medium"
 notes = ["Clôt l'initiative : la closure check de l'initiative suit cette story, avec la confirmation d'Antoine."]
