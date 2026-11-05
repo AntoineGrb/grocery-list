@@ -16,6 +16,11 @@ import 'package:material_ui/material_ui.dart';
 import 'fake_screen_awake.dart';
 import 'test_db.dart';
 
+/// Lecture des assets du contenu fourni : depuis le disque sous `flutter
+/// test` ; la suite `integration_test`, sur le téléphone, la remplace par
+/// une lecture du bundle de l'app.
+Future<Map<String, String>> Function() seedAssetsReader = readSeedAssets;
+
 /// Monte Kadi sur une base en mémoire, avec les vrais assets du contenu
 /// fourni (sauf les chemins de [assetOverrides]) et les [overrides] en plus.
 ///
@@ -46,7 +51,7 @@ Future<AppDatabase> pumpKadi(
     !(firstLaunch && database != null),
     'firstLaunch part d’une base vide : incompatible avec database',
   );
-  final assets = (await tester.runAsync(readSeedAssets))!;
+  final assets = (await tester.runAsync(seedAssetsReader))!;
   final loadAsset = assetLoaderWith({...assets, ...assetOverrides});
   final db = database ?? memoryDatabase();
   if (database == null && !firstLaunch) {

@@ -16,6 +16,23 @@ For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
 
+## Vérifier
+
+Les six parcours d'`EXPERIENCE.md` (Key Flows), en clair et en sombre, avec
+l'aller-retour de sauvegarde et le plancher d'accessibilité, sur l'app montée
+entière :
+
+```
+flutter test test/e2e
+```
+
+La même suite sur le téléphone branché, sur l'app debug (`.debug`, base en
+mémoire : la release installée et ses données ne sont pas touchées) :
+
+```
+flutter test integration_test -d <téléphone>
+```
+
 ## Licences
 
 Les pictos des articles viennent de [Phosphor Icons](https://phosphoricons.com/)

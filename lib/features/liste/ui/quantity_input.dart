@@ -93,38 +93,78 @@ class UnitChoice extends StatelessWidget {
       spacing: dense ? KadiSpacing.s1 : KadiSpacing.s2,
       children: [
         for (final unit in InputUnit.values)
-          ChoiceChip(
-            key: ValueKey(unit),
-            label: Text(_chipLabel(unit)),
+          _denseTarget(
+            dense: dense,
+            label: _chipLabel(unit),
             selected: unit == selected,
-            onSelected: (_) => onSelected(unit),
-            showCheckmark: !dense,
-            checkmarkColor: scheme.onSurface,
-            // Fond de la surface : seul le contour marque le choix ; resserrées,
-            // seul le fond le marque.
-            // Resserrées, sur le fond de la Popup quantité : un transparent
-            // laisserait voir le fond sombre de la puce M3.
-            color: WidgetStateProperty.resolveWith(
-              (states) => !dense
-                  ? Colors.transparent
-                  : states.contains(WidgetState.selected)
-                  ? scheme.surfaceContainer
-                  : scheme.surfaceContainerHigh,
+            onTap: () => onSelected(unit),
+            chip: ChoiceChip(
+              key: ValueKey(unit),
+              label: Text(_chipLabel(unit)),
+              selected: unit == selected,
+              onSelected: (_) => onSelected(unit),
+              showCheckmark: !dense,
+              checkmarkColor: scheme.onSurface,
+              // Fond de la surface : seul le contour marque le choix ; resserrées,
+              // seul le fond le marque.
+              // Resserrées, sur le fond de la Popup quantité : un transparent
+              // laisserait voir le fond sombre de la puce M3.
+              color: WidgetStateProperty.resolveWith(
+                (states) => !dense
+                    ? Colors.transparent
+                    : states.contains(WidgetState.selected)
+                    ? scheme.surfaceContainer
+                    : scheme.surfaceContainerHigh,
+              ),
+              labelStyle: TextStyle(
+                color: !dense || unit == selected
+                    ? scheme.onSurface
+                    : scheme.onSurfaceVariant,
+              ),
+              side: dense
+                  ? BorderSide.none
+                  : BorderSide(
+                      color: unit == selected
+                          ? scheme.onSurface
+                          : scheme.outline,
+                    ),
+              materialTapTargetSize: MaterialTapTargetSize.padded,
+              visualDensity: dense ? VisualDensity.compact : null,
             ),
-            labelStyle: TextStyle(
-              color: !dense || unit == selected
-                  ? scheme.onSurface
-                  : scheme.onSurfaceVariant,
-            ),
-            side: dense
-                ? BorderSide.none
-                : BorderSide(
-                    color: unit == selected ? scheme.onSurface : scheme.outline,
-                  ),
-            materialTapTargetSize: MaterialTapTargetSize.padded,
-            visualDensity: dense ? VisualDensity.compact : null,
           ),
       ],
+    );
+  }
+
+  /// Resserrée, la puce M3 réduit aussi sa cible (40 dp) : une zone de
+  /// 48 × 48 dp l'entoure, lue comme la puce et qui la choisit.
+  static Widget _denseTarget({
+    required bool dense,
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required Widget chip,
+  }) {
+    if (!dense) return chip;
+    return Semantics(
+      container: true,
+      button: true,
+      selected: selected,
+      label: label,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(
+            minWidth: KadiSpacing.touchTarget,
+            minHeight: KadiSpacing.touchTarget,
+          ),
+          child: Center(widthFactor: 1, heightFactor: 1, child: chip),
+        ),
+      ),
     );
   }
 }
