@@ -84,13 +84,13 @@ risk = "low"
 id = 5
 type = "story"
 title = "Les pictos du pack à la place du repli"
-description = "Résout la question ouverte du pack (C7, touch point repris de l'epic 1) : la story compare deux ou trois packs au trait sous licence libre sur une planche d'une vingtaine d'articles du catalogue, en clair et en sombre, retient Tabler Icons (MIT) par défaut, et ajoute ses SVG en assets avec la licence. Le résolveur unique de `core/pictos` (AD-18) traduit chacune des `picto_key` du catalogue fourni en asset, plusieurs clés pouvant partager un picto ; les clés sans équivalent gardent le repli neutre, ou un SVG dessiné dans le même style si c'est simple. Les pictos sont teintés de l'accent du rayon, 24 dp (44 dp pour le visuel de repli de la Carte recette), dans le Panneau +, la Fiche recette et le visuel de repli de la Carte recette ; toujours absents de la Liste et de la Revue. La Fiche article (story 6) gagne le choix du Picto dans une grille du pack avec recherche, enregistré dans `picto_key` par le repository `catalogue`."
-verify = "Les tests montrent : chaque picto_key de articles.json résout vers un asset existant ou vers le repli, et au moins 90 % vers un asset ; un test de widget du Panneau + et de la Carte recette sans photo rend l'image teintée de l'accent du rayon ; choisir un picto dans la grille de la Fiche article le change dans le Panneau + ; la planche de comparaison est écrite dans le dossier de l'epic pour Antoine."
+description = "Résout la question ouverte du pack (C7) : Phosphor Icons (MIT, style regular), choisi par Antoine le 2026-11-05 sur la planche `planche-pictos.html`. Le résolveur unique de `core/pictos` (AD-18) traduit chaque `picto_key` du catalogue fourni selon `pictos-phosphor.json` (dossier de l'epic, plusieurs clés partagent un picto) ; une clé sans picto prend le repli de son rayon (un picto par rayon, dans le même fichier), qui remplace le rond neutre, aussi pour les articles créés par Antoine et hors catalogue. Pictos teintés de l'accent du rayon, 24 dp (44 dp pour le visuel de repli de la Carte recette), dans le Panneau +, la Fiche recette, Paramètres › Articles et Fréquents et la Carte recette ; toujours absents de la Liste et de la Revue. Paquet Flutter du pack (police d'icônes, licence jointe) ou SVG en assets, au choix de la story, version épinglée. La Fiche article (story 6) gagne le choix du Picto dans une grille du pack avec recherche, enregistré dans `picto_key` par le repository `catalogue`."
+verify = "Les tests montrent : chaque picto_key de articles.json résout vers le picto de pictos-phosphor.json ou vers le repli de son rayon ; un article créé par Antoine prend le repli de son rayon ; le Panneau + et la Carte recette sans photo rendent le picto teinté de l'accent du rayon ; choisir un picto dans la grille de la Fiche article le change dans le Panneau +."
 covers = ["R8"]
 after = [8]
 hitl = false
 risk = "medium"
-notes = ["Antoine attend des propositions de pack : la planche les lui montre, il tranche au test de fin d'epic ; changer de pack ne change que le résolveur et les assets."]
+notes = ["Antoine a corrigé la correspondance sur la planche : repli feuille pour Fruits et légumes, burger pour Viande et poisson, Lait comme les yaourts, Jus d'orange comme l'eau ; le reste est à revalider à la vérification finale."]
 
 [[entry]]
 id = 9
