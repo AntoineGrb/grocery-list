@@ -155,10 +155,7 @@ void main() {
     final chiliPicto = find.descendant(
       of: recipeCard('Chili con carne'),
       matching: find.byWidgetPredicate(
-        (w) =>
-            w is SizedBox &&
-            w.width == KadiSpacing.recipePicto &&
-            w.height == KadiSpacing.recipePicto,
+        (w) => w is Picto && w.size == KadiSpacing.recipePicto,
       ),
     );
     expect(chiliPicto, findsOneWidget);

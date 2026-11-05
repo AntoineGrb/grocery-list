@@ -23,6 +23,7 @@ import 'package:kadi/features/reglages/ui/article_lines.dart';
 import 'package:kadi/features/reglages/ui/article_sheet.dart';
 import 'package:kadi/features/reglages/ui/articles_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
+import 'package:kadi/features/reglages/ui/picto_grid_sheet.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -39,6 +40,7 @@ class _FailingCatalogue extends CatalogueRepository {
     required String name,
     required Rayon rayon,
     required Unit? unit,
+    String? pictoKey,
   }) async => throw StateError('échec simulé');
 
   @override
@@ -46,6 +48,7 @@ class _FailingCatalogue extends CatalogueRepository {
     String name, {
     required Rayon rayon,
     required Unit? unit,
+    String? pictoKey,
   }) async => throw StateError('échec simulé');
 }
 
@@ -143,6 +146,18 @@ Future<void> _openSheet(WidgetTester tester, String query, String name) async {
   await _tap(tester, _line(name));
   expect(_sheet, findsOneWidget);
 }
+
+/// Bouton « Changer le picto » de la fiche.
+Finder get _pictoButton => _inSheet(find.byKey(const ValueKey('picto-button')));
+
+/// Grille de pictos et son Champ de recherche.
+final _grid = find.byType(PictoGridSheet);
+Finder get _gridSearch =>
+    find.descendant(of: _grid, matching: find.byType(TextField));
+
+/// Picto [name] de la grille.
+Finder _choice(String name) =>
+    find.byWidgetPredicate((w) => w is PictoChoice && w.name == name);
 
 Future<void> _save(WidgetTester tester) async {
   expect(_saveEnabled(tester), isTrue);
@@ -612,13 +627,167 @@ void main() {
       tester.widget<RayonPicker>(_inSheet(find.byType(RayonPicker))).selected,
       Rayon.fruitsLegumes,
     );
-    // Picto de l'article, hors de tout bouton : le choix vient avec le pack.
+    // Picto de l'article, dans le bouton « Changer le picto » de 48 dp.
     final picto = _inSheet(find.byType(Picto));
     expect(picto, findsOneWidget);
     expect(tester.widget<Picto>(picto).pictoKey, 'tomates');
+    expect(find.ancestor(of: picto, matching: _pictoButton), findsOneWidget);
+    expect(tester.getSize(_pictoButton).width, greaterThanOrEqualTo(48));
+    expect(tester.getSize(_pictoButton).height, greaterThanOrEqualTo(48));
+  });
+
+  testWidgets('choisir un picto : Tomates → orange → Enregistrer ; le '
+      'Panneau + montre orange pour Tomates', (tester) async {
+    final db = await _pumpArticles(tester);
+    await _openSheet(tester, 'tomates', 'Tomates');
+
+    await _tapInSheet(tester, _pictoButton);
+    expect(_grid, findsOneWidget);
+    // Le picto affiché (repli Fruits et légumes) est marqué.
+    final scheme = Theme.of(tester.element(_grid)).colorScheme;
+    expect(tester.widget<PictoChoice>(_choice('leaf')).selected, isTrue);
+    final leafBox = tester.widget<Container>(
+      find.descendant(of: _choice('leaf'), matching: find.byType(Container)),
+    );
+    final border = (leafBox.decoration! as BoxDecoration).border! as Border;
+    expect(border.top.color, scheme.onSurface);
+    expect(border.top.color, isNot(scheme.primary));
+
+    await tester.enterText(_gridSearch, 'orange');
+    await tester.pumpAndSettle();
+    expect(_choice('orange'), findsOneWidget);
+    expect(_choice('cheese'), findsNothing);
+    await _tap(tester, _choice('orange'));
+
+    expect(_grid, findsNothing);
     expect(
-      find.ancestor(of: picto, matching: find.byType(InkWell)),
-      findsNothing,
+      tester.widget<Picto>(_inSheet(find.byType(Picto))).pictoKey,
+      'orange',
+    );
+    expect((await _article(db, SeedIds.tomates)).pictoKey, 'tomates');
+    await _save(tester);
+
+    expect(_sheet, findsNothing);
+    expect((await _article(db, SeedIds.tomates)).pictoKey, 'orange');
+
+    await _backToTabs(tester);
+    await _searchInPanel(tester, 'tomates');
+    final panelPicto = tester.widget<Picto>(
+      find.descendant(
+        of: _panelResult('Tomates'),
+        matching: find.byType(Picto),
+      ),
+    );
+    expect(
+      PictoResolver.iconNameFor(panelPicto.pictoKey, panelPicto.rayon),
+      'orange',
+    );
+  });
+
+  testWidgets('recherche par nom d’article ; grille fermée sans choix : rien '
+      'ne change, rien n’est écrit', (tester) async {
+    final db = await _pumpArticles(tester);
+    await _openSheet(tester, 'camembert', 'Camembert');
+    expect(_saveEnabled(tester), isFalse);
+
+    await _tapInSheet(tester, _pictoButton);
+    await tester.enterText(_gridSearch, 'camembert');
+    await tester.pumpAndSettle();
+    expect(_choice('cheese'), findsOneWidget);
+    expect(find.byType(PictoChoice), findsOneWidget);
+    await tester.enterText(_gridSearch, 'zzzz');
+    await tester.pumpAndSettle();
+    expect(find.byType(PictoChoice), findsNothing);
+    expect(find.text(StringsFr.aucunPicto), findsOneWidget);
+
+    Navigator.of(tester.element(_grid)).pop();
+    await tester.pumpAndSettle();
+    expect(_grid, findsNothing);
+    expect(_sheet, findsOneWidget);
+    expect(
+      tester.widget<Picto>(_inSheet(find.byType(Picto))).pictoKey,
+      'camembert',
+    );
+    expect(_saveEnabled(tester), isFalse);
+    final camembert = (await _activeNamed(db, 'camembert')).single;
+    expect(camembert.pictoKey, 'camembert');
+  });
+
+  testWidgets('TalkBack : bouton « Changer le picto », champ « Chercher un '
+      'picto », pictos lus par leur nom, le choisi marqué', (tester) async {
+    final handle = tester.ensureSemantics();
+    await _pumpArticles(tester);
+    await _openSheet(tester, 'tomates', 'Tomates');
+
+    expect(
+      tester.getSemantics(_pictoButton),
+      isSemantics(
+        tooltip: StringsFr.changerLePicto,
+        isButton: true,
+        hasTapAction: true,
+      ),
+    );
+    tester.semantics.tap(
+      find.semantics.byPredicate(
+        (node) => node.tooltip == StringsFr.changerLePicto,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(_grid, findsOneWidget);
+    expect(
+      tester.getSemantics(_gridSearch),
+      isSemantics(label: StringsFr.chercherUnPicto, isTextField: true),
+    );
+    expect(
+      tester.getSemantics(_choice('leaf')),
+      isSemantics(
+        label: 'leaf',
+        isButton: true,
+        hasSelectedState: true,
+        isSelected: true,
+        hasTapAction: true,
+      ),
+    );
+    expect(
+      tester.getSemantics(_choice('orange-slice')),
+      isSemantics(
+        label: 'orange slice',
+        isButton: true,
+        hasSelectedState: true,
+        isSelected: false,
+        hasTapAction: true,
+      ),
+    );
+    handle.dispose();
+  });
+
+  testWidgets('police ×2 sur 360 dp : grille de pictos sans débordement', (
+    tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(360, 800);
+    addTearDown(tester.view.reset);
+    await pumpKadi(tester);
+    await _openArticles(tester);
+    await _openSheet(tester, 'tomates', 'Tomates');
+
+    await _tapInSheet(tester, _pictoButton);
+    expect(tester.takeException(), isNull);
+    expect(_grid, findsOneWidget);
+    expect(_gridSearch.hitTestable(), findsOneWidget);
+    final first = find.byType(PictoChoice).first;
+    expect(tester.getRect(first).right, lessThanOrEqualTo(360));
+    expect(tester.getSize(first).width, greaterThanOrEqualTo(48));
+    expect(tester.getSize(first).height, greaterThanOrEqualTo(48));
+
+    await tester.enterText(_gridSearch, 'zzzz');
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getRect(find.text(StringsFr.aucunPicto)).right,
+      lessThanOrEqualTo(360),
     );
   });
 

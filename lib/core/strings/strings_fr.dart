@@ -228,6 +228,11 @@ abstract final class StringsFr {
   static const nomDejaPris = 'Un article porte déjà ce nom.';
   static const articleImpossible = 'Article impossible à enregistrer.';
 
+  // Fiche article : bouton du Picto et grille de pictos.
+  static const changerLePicto = 'Changer le picto';
+  static const chercherUnPicto = 'Chercher un picto';
+  static const aucunPicto = 'Aucun picto ne correspond.';
+
   // Paramètres › Fréquents : ligne de navigation, titre de l'écran, Champ de
   // recherche, état vide, retrait (Annuler) et snackbar d'échec.
   static const frequentsTitre = 'Fréquents';

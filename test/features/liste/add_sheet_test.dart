@@ -224,6 +224,46 @@ void main() {
     },
   );
 
+  testWidgets('Panneau + ouvert : chaque Ajout fréquent montre un picto '
+      'Phosphor teinté de son rayon, jamais un rond neutre', (tester) async {
+    await _pumpApp(tester);
+    await _openSheet(tester);
+
+    final colors = KadiColors.of(tester.element(_sheet));
+    final rows = find.byType(FrequentRow);
+    expect(rows, findsNWidgets(31));
+    for (final row in tester.widgetList<FrequentRow>(rows)) {
+      final article = row.article;
+      final icon = tester.widget<Icon>(
+        find.descendant(
+          of: find.descendant(
+            of: find.byWidget(row),
+            matching: find.byType(Picto),
+          ),
+          matching: find.byType(Icon),
+        ),
+      );
+      expect(
+        icon.icon,
+        PictoResolver.iconFor(article.pictoKey, article.rayon),
+        reason: article.name,
+      );
+      expect(icon.color, colors.rayon(article.rayon).accent);
+    }
+    expect(_inSheet(find.byIcon(Icons.circle_outlined)), findsNothing);
+    // Lait : jar, correction d'Antoine.
+    final lait = tester.widget<Icon>(
+      find.descendant(
+        of: find.descendant(
+          of: _frequent('Lait'),
+          matching: find.byType(Picto),
+        ),
+        matching: find.byType(Icon),
+      ),
+    );
+    expect(lait.icon, PictoResolver.iconFor('jar', Rayon.cremerie));
+  });
+
   testWidgets('parcours avec Crèmerie avant Fruits & légumes : Lait avant '
       'Tomates', (tester) async {
     final db = await _pumpApp(tester);

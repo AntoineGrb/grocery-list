@@ -132,8 +132,8 @@ class CatalogueRepository {
     Unit? unit,
     bool inCatalogue = true,
   }) async {
-    // Un article hors catalogue garde le repli neutre (EXPERIENCE, Picto),
-    // même quand un pack de pictos connaît son nom.
+    // Un article hors catalogue garde le repli de son rayon (EXPERIENCE,
+    // Picto), même quand le pack de pictos connaît son nom.
     final pictoKey = inCatalogue
         ? normalized.replaceAll(RegExp('[^a-z0-9]'), '')
         : '';
@@ -160,9 +160,11 @@ class CatalogueRepository {
   /// Seule écriture d'un article existant (Fiche article de Paramètres ›
   /// Articles, rayon d'un fréquent de Paramètres › Fréquents), en une
   /// transaction : nom [cleanName] et son `normalized_name`, [rayon] et
-  /// [unit] par défaut (`null` = sans) ; `picto_key` et `in_catalogue` ne
-  /// changent pas. Les lignes de liste et les ingrédients existants ne
-  /// bougent pas : la modification vaut pour les ajouts suivants (AD-15).
+  /// [unit] par défaut (`null` = sans) ; [pictoKey], le nom d'une icône
+  /// choisie dans la Fiche article, devient la `picto_key` (`null` = ne
+  /// change pas) ; `in_catalogue` ne change pas. Les lignes de liste et les
+  /// ingrédients existants ne bougent pas : la modification vaut pour les
+  /// ajouts suivants (AD-15).
   ///
   /// Un rayon changé passe le fréquent actif de l'article en dernier
   /// (`position` = max des positions actives + 1, AD-17), dans la même
@@ -177,13 +179,21 @@ class CatalogueRepository {
     required String name,
     required Rayon rayon,
     required Unit? unit,
+    String? pictoKey,
   }) => _db.transaction(
-    () => _update(articleId, name: name, rayon: rayon, unit: unit),
+    () => _update(
+      articleId,
+      name: name,
+      rayon: rayon,
+      unit: unit,
+      pictoKey: pictoKey,
+    ),
   );
 
   /// Création depuis la Fiche article de Paramètres › Articles, en une
   /// transaction : [createArticle], puis les valeurs de la fiche par
-  /// [updateArticle] (nom [cleanName], [rayon], [unit]). Un nom porté par un
+  /// [updateArticle] (nom [cleanName], [rayon], [unit], [pictoKey] s'il
+  /// est donné). Un nom porté par un
   /// article hors catalogue le fait entrer au catalogue, même id, avec ces
   /// valeurs (AD-17).
   ///
@@ -194,6 +204,7 @@ class CatalogueRepository {
     String name, {
     required Rayon rayon,
     required Unit? unit,
+    String? pictoKey,
   }) => _db.transaction(() async {
     final cleaned = cleanName(name);
     final normalized = normalizeName(cleaned);
@@ -205,7 +216,13 @@ class CatalogueRepository {
       throw const ArticleNameTakenException();
     }
     final created = await createArticle(cleaned, rayon: rayon, unit: unit);
-    return _update(created.id, name: cleaned, rayon: rayon, unit: unit);
+    return _update(
+      created.id,
+      name: cleaned,
+      rayon: rayon,
+      unit: unit,
+      pictoKey: pictoKey,
+    );
   });
 
   /// Voir [updateArticle], à appeler dans une transaction.
@@ -214,6 +231,7 @@ class CatalogueRepository {
     required String name,
     required Rayon rayon,
     required Unit? unit,
+    String? pictoKey,
   }) async {
     final row =
         await (_db.select(_db.articles)
@@ -238,10 +256,12 @@ class CatalogueRepository {
     if (other != null) throw const ArticleNameTakenException();
 
     final rayonChanged = row.rayon != rayon.code;
+    final newPictoKey = pictoKey ?? row.pictoKey;
     if (row.name == cleaned &&
         row.normalizedName == normalized &&
         !rayonChanged &&
-        row.unit == unit?.code) {
+        row.unit == unit?.code &&
+        row.pictoKey == newPictoKey) {
       return _toModel(row);
     }
     await (_db.update(
@@ -252,6 +272,7 @@ class CatalogueRepository {
         normalizedName: Value(normalized),
         rayon: Value(rayon.code),
         unit: Value(unit?.code),
+        pictoKey: Value(newPictoKey),
         updatedAt: Value(_clock.stamp(row.updatedAt)),
       ),
     );
@@ -261,7 +282,7 @@ class CatalogueRepository {
       name: cleaned,
       rayon: rayon,
       unit: unit,
-      pictoKey: row.pictoKey,
+      pictoKey: newPictoKey,
     );
   }
 

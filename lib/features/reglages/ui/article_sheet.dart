@@ -1,5 +1,6 @@
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -11,8 +12,10 @@ import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'article_lines.dart';
+import 'picto_grid_sheet.dart';
 
-/// Clé de picto d'un article en création : le repli neutre.
+/// Clé de picto d'un article en création sans picto choisi : le repli du
+/// rayon.
 const _newArticlePicto = 'article';
 
 /// Ouvre la Fiche article (AD-13 : feuille modale du navigateur racine) :
@@ -31,8 +34,10 @@ Future<void> showArticleSheet(
 );
 
 /// Fiche article (DESIGN `article-sheet`) : titre (nom de l'article ou
-/// « Nouvel article ») à côté de son Picto, affiché sans être modifiable
-/// (repli neutre pour une création) ; champ Nom ; « Rayon par défaut » par
+/// « Nouvel article ») à côté de son Picto (repli du rayon pour une
+/// création), un bouton lu « Changer le picto » qui ouvre la grille de
+/// pictos ; le picto choisi s'affiche dans la fiche et « Enregistrer »
+/// l'écrit ; champ Nom ; « Rayon par défaut » par
 /// le Choix de rayon ; « Unité par défaut » par les puces pièce · g · ml ·
 /// sans (jamais kg ni L, AD-6) ; « Enregistrer ».
 ///
@@ -61,6 +66,10 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
   late Rayon _rayon = widget.article?.rayon ?? Rayon.divers;
   late Unit? _unit = widget.article?.unit;
 
+  /// `picto_key` affichée : celle de l'article, ou le nom de l'icône
+  /// choisie dans la grille.
+  late String _pictoKey = widget.article?.pictoKey ?? _newArticlePicto;
+
   /// « Un article porte déjà ce nom. », jusqu'à la prochaine frappe.
   String? _nameError;
   bool _saving = false;
@@ -84,7 +93,19 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
     if (article == null) return true;
     return name != article.name ||
         _rayon != article.rayon ||
-        _unit != article.unit;
+        _unit != article.unit ||
+        _pictoKey != article.pictoKey;
+  }
+
+  /// Ouvre la grille de pictos ; l'icône choisie s'affiche dans la fiche.
+  /// Fermée sans choix, rien ne change.
+  Future<void> _choosePicto() async {
+    final chosen = await showPictoGridSheet(
+      context,
+      selected: PictoResolver.iconNameFor(_pictoKey, _rayon),
+      rayon: _rayon,
+    );
+    if (chosen != null && mounted) setState(() => _pictoKey = chosen);
   }
 
   Future<void> _save() async {
@@ -100,6 +121,7 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
           name,
           rayon: _rayon,
           unit: _unit,
+          pictoKey: _pictoKey == _newArticlePicto ? null : _pictoKey,
         );
       } else {
         await repository.updateArticle(
@@ -107,6 +129,7 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
           name: name,
           rayon: _rayon,
           unit: _unit,
+          pictoKey: _pictoKey,
         );
       }
     } on ArticleNameTakenException {
@@ -156,11 +179,11 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Picto affiché, non modifiable : le choix vient avec le pack.
             ArticleSheetTitle(
-              pictoKey: article?.pictoKey ?? _newArticlePicto,
+              pictoKey: _pictoKey,
               rayon: _rayon,
               title: article?.name ?? StringsFr.nouvelArticle,
+              onPictoTap: _saving ? null : _choosePicto,
             ),
             const SizedBox(height: KadiSpacing.s4),
             // Le champ porte lui-même le nom lu « Nom ».

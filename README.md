@@ -15,3 +15,10 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+## Licences
+
+Les pictos des articles viennent de [Phosphor Icons](https://phosphoricons.com/)
+2.1.1 (style regular) : police `assets/fonts/Phosphor-Regular.ttf`, reprise de
+`@phosphor-icons/web` 2.1.1. Licence MIT, Copyright (c) 2020-2021 Phosphor
+Icons ; texte complet dans `assets/fonts/LICENSE`.

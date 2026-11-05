@@ -2,6 +2,7 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
+import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -535,6 +536,57 @@ void main() {
         unit: Unit.piece,
       );
       expect((await article(SeedIds.lait)).name, 'LAIT');
+    });
+
+    test('pictoKey choisi : écrit dans picto_key et résolu tel quel ; '
+        'absent, picto_key ne change pas', () async {
+      now = 6000;
+      final updated = await repo.updateArticle(
+        SeedIds.tomates,
+        name: 'Tomates',
+        rayon: Rayon.fruitsLegumes,
+        unit: Unit.g,
+        pictoKey: 'orange',
+      );
+      expect(updated.pictoKey, 'orange');
+      final row = await article(SeedIds.tomates);
+      expect(row.pictoKey, 'orange');
+      expect(row.updatedAt, greaterThanOrEqualTo(6000));
+      expect(
+        PictoResolver.iconNameFor(row.pictoKey, Rayon.fruitsLegumes),
+        'orange',
+      );
+
+      await repo.updateArticle(
+        SeedIds.tomates,
+        name: 'Tomates',
+        rayon: Rayon.fruitsLegumes,
+        unit: Unit.g,
+      );
+      expect((await article(SeedIds.tomates)).pictoKey, 'orange');
+    });
+
+    test('créer « Kombucha » en Boissons : clé dérivée inconnue, repli '
+        'Boissons ; avec un picto choisi, sa picto_key', () async {
+      final kombucha = await repo.createCatalogueArticle(
+        'Kombucha',
+        rayon: Rayon.boissons,
+        unit: null,
+      );
+      expect(kombucha.pictoKey, 'kombucha');
+      expect(
+        PictoResolver.iconNameFor(kombucha.pictoKey, Rayon.boissons),
+        PictoResolver.fallbackFor(Rayon.boissons),
+      );
+
+      final piment = await repo.createCatalogueArticle(
+        'Piment',
+        rayon: Rayon.fruitsLegumes,
+        unit: null,
+        pictoKey: 'pepper',
+      );
+      expect(piment.pictoKey, 'pepper');
+      expect((await activeNamed('piment')).single.pictoKey, 'pepper');
     });
 
     test('créer « piment » : article du catalogue Piment, avec le rayon et '

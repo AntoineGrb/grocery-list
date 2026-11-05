@@ -256,27 +256,44 @@ class ArticleList extends StatelessWidget {
 }
 
 /// Titre d'une feuille d'article (Fiche article, Choix de rayon d'un
-/// fréquent) : le Picto ([pictoKey], [rayon]), affiché sans être modifiable
-/// et sans lecture, puis [title] en `title-medium`, lu comme titre.
+/// fréquent) : le Picto ([pictoKey], [rayon]), puis [title] en
+/// `title-medium`, lu comme titre.
+///
+/// Sans [onPictoTap], le Picto est affiché sans être modifiable et sans
+/// lecture ; avec, il devient un bouton de 48 dp lu « Changer le picto ».
 class ArticleSheetTitle extends StatelessWidget {
   const ArticleSheetTitle({
     super.key,
     required this.pictoKey,
     required this.rayon,
     required this.title,
+    this.onPictoTap,
   });
 
   final String pictoKey;
   final Rayon rayon;
   final String title;
+  final VoidCallback? onPictoTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onPictoTap = this.onPictoTap;
+    final picto = Picto(pictoKey: pictoKey, rayon: rayon);
     return Row(
       children: [
-        Picto(pictoKey: pictoKey, rayon: rayon),
-        const SizedBox(width: KadiSpacing.s4),
+        if (onPictoTap == null) ...[
+          picto,
+          const SizedBox(width: KadiSpacing.s4),
+        ] else ...[
+          IconButton(
+            key: const ValueKey('picto-button'),
+            tooltip: StringsFr.changerLePicto,
+            onPressed: onPictoTap,
+            icon: picto,
+          ),
+          const SizedBox(width: KadiSpacing.s2),
+        ],
         Expanded(
           child: Semantics(
             header: true,

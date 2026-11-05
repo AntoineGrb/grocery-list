@@ -51,6 +51,7 @@ class _FailingCatalogue extends CatalogueRepository {
     required String name,
     required Rayon rayon,
     required Unit? unit,
+    String? pictoKey,
   }) async => throw StateError('échec simulé');
 }
 
