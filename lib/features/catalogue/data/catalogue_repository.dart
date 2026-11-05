@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:uuid/uuid.dart';
 
@@ -275,6 +276,19 @@ class CatalogueRepository {
               ..limit(1))
             .getSingleOrNull();
     if (frequent == null) return;
+    await (_db.update(
+      _db.frequents,
+    )..where((f) => f.id.equals(frequent.id))).write(
+      FrequentsCompanion(
+        position: Value(await _nextFrequentPosition()),
+        updatedAt: Value(_clock.stamp(frequent.updatedAt)),
+      ),
+    );
+  }
+
+  /// Position d'un fréquent passé en dernier : max des positions actives
+  /// + 1, 0 sans fréquent actif (AD-17).
+  Future<int> _nextFrequentPosition() async {
     final maxPosition = _db.frequents.position.max();
     final max =
         await (_db.selectOnly(_db.frequents)
@@ -282,15 +296,97 @@ class CatalogueRepository {
               ..where(_db.frequents.deletedAt.isNull()))
             .map((r) => r.read(maxPosition))
             .getSingle();
-    await (_db.update(
+    return max == null ? 0 : max + 1;
+  }
+
+  /// Ajoute l'article [articleId] aux fréquents (Paramètres › Fréquents), en
+  /// une transaction : en dernier (`position` = max des positions actives
+  /// + 1), donc en dernier de son rayon (AD-17). Le fréquent prend l'id
+  /// dérivé de l'article ([frequentId]) ; s'il existe supprimé, il est
+  /// réactivé, même id. Déjà fréquent : rien n'est écrit.
+  ///
+  /// Lève une [StateError] si l'article est absent ou supprimé : rien n'est
+  /// écrit.
+  Future<void> addFrequent(String articleId) =>
+      _db.transaction(() => _addFrequent(articleId));
+
+  /// Crée au catalogue l'article [name] ([createArticle] : Divers, sans
+  /// unité ; un nom porté par un article hors catalogue le fait entrer au
+  /// catalogue, même id) puis l'ajoute aux fréquents ([addFrequent]), en
+  /// une transaction. Rend l'article. Lève une [ArgumentError] pour un nom
+  /// vide : rien n'est écrit.
+  Future<CatalogueArticle> createFrequentArticle(String name) =>
+      _db.transaction(() async {
+        final article = await createArticle(name);
+        await _addFrequent(article.id);
+        return article;
+      });
+
+  /// Voir [addFrequent], à appeler dans une transaction.
+  Future<void> _addFrequent(String articleId) async {
+    final article =
+        await (_db.select(_db.articles)
+              ..where((a) => a.id.equals(articleId) & a.deletedAt.isNull()))
+            .getSingleOrNull();
+    if (article == null) throw StateError('Article absent : $articleId');
+    final active =
+        await (_db.select(_db.frequents)
+              ..where(
+                (f) => f.articleId.equals(articleId) & f.deletedAt.isNull(),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (active != null) return;
+
+    final id = frequentId(articleId);
+    final position = await _nextFrequentPosition();
+    final previous = await (_db.select(
       _db.frequents,
-    )..where((f) => f.id.equals(frequent.id))).write(
+    )..where((f) => f.id.equals(id))).getSingleOrNull();
+    if (previous == null) {
+      await _db
+          .into(_db.frequents)
+          .insert(
+            FrequentsCompanion.insert(
+              id: id,
+              updatedAt: _clock.stamp(),
+              articleId: articleId,
+              position: position,
+            ),
+          );
+      return;
+    }
+    await (_db.update(_db.frequents)..where((f) => f.id.equals(id))).write(
       FrequentsCompanion(
-        position: Value((max ?? frequent.position) + 1),
-        updatedAt: Value(_clock.stamp(frequent.updatedAt)),
+        articleId: Value(articleId),
+        position: Value(position),
+        deletedAt: const Value(null),
+        updatedAt: Value(_clock.stamp(previous.updatedAt)),
       ),
     );
   }
+
+  /// Retire l'article [articleId] des fréquents (Paramètres › Fréquents) :
+  /// son fréquent actif est supprimé logiquement, dans une transaction
+  /// (AD-7). Rend son état d'avant pour Annuler (AD-10), qui le remet à la
+  /// même position ; sans fréquent actif, rien n'est écrit et la liste est
+  /// vide.
+  Future<List<UndoRow>> removeFrequent(
+    String articleId,
+  ) => _db.transaction(() async {
+    final frequents =
+        await (_db.select(_db.frequents)..where(
+              (f) => f.articleId.equals(articleId) & f.deletedAt.isNull(),
+            ))
+            .get();
+    for (final f in frequents) {
+      final stamp = _clock.stamp(f.updatedAt);
+      await (_db.update(_db.frequents)..where((x) => x.id.equals(f.id))).write(
+        FrequentsCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+    }
+    return [for (final f in frequents) UndoRow.before(_db.frequents, f)];
+  });
 
   /// Réconcilie les articles après la fusion d'une sauvegarde (AD-9), à
   /// appeler dans la transaction de l'import : parmi les articles actifs de

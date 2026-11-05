@@ -11,6 +11,7 @@ import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:kadi/features/reglages/ui/articles_screen.dart';
+import 'package:kadi/features/reglages/ui/frequents_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -112,6 +113,10 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
       GoRoute(
         path: AppRoutes.articles,
         builder: (context, state) => const ArticlesScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.frequents,
+        builder: (context, state) => const FrequentsScreen(),
       ),
     ],
   );

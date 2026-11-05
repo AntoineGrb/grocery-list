@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
+import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 
 import '../../helpers/test_db.dart';
@@ -699,6 +701,211 @@ void main() {
         ),
         throwsA(anything),
       );
+      expect(await db.select(db.articles).get(), articles);
+      expect(await db.select(db.frequents).get(), frequents);
+    });
+  });
+
+  group('Paramètres › Fréquents : ajouter, réactiver, retirer (AD-10, '
+      'AD-17)', () {
+    const piles = '647841c6-7cff-40f4-a8dd-69d7e781eb8b'; // Divers
+    const lessive = '5fbd7732-9a3d-4f27-989a-e8c5c9c835be'; // Entretien
+
+    late AppDatabase db;
+    late Clock clock;
+    late CatalogueRepository repo;
+    var now = 1000;
+
+    setUp(() async {
+      db = await seededDatabase();
+      now = 1000;
+      clock = Clock(now: () => now);
+      repo = CatalogueRepository(db, clock);
+    });
+    tearDown(() => db.close());
+
+    Future<Frequent?> frequentRow(String articleId) => (db.select(
+      db.frequents,
+    )..where((f) => f.id.equals(frequentId(articleId)))).getSingleOrNull();
+
+    Future<int> maxActivePosition() async =>
+        (await db.select(db.frequents).get())
+            .where((f) => f.deletedAt == null)
+            .map((f) => f.position)
+            .reduce((a, b) => a > b ? a : b);
+
+    Future<List<String>> inRoute() async => [
+      for (final a in frequentsInRoute(
+        await repo.watchFrequents().first,
+        Rayon.values,
+      ))
+        a.id,
+    ];
+
+    Future<List<Article>> activeNamed(String normalized) =>
+        (db.select(db.articles)..where(
+              (a) => a.normalizedName.equals(normalized) & a.deletedAt.isNull(),
+            ))
+            .get();
+
+    test('retirer Lait : absent des fréquents ; Annuler le remet à sa '
+        'place, même position', () async {
+      final before = await inRoute();
+      final row = (await frequentRow(SeedIds.lait))!;
+      now = 3000;
+
+      final rows = await repo.removeFrequent(SeedIds.lait);
+      expect(rows, hasLength(1));
+      final removed = (await frequentRow(SeedIds.lait))!;
+      expect(removed.deletedAt, greaterThanOrEqualTo(3000));
+      expect(await inRoute(), isNot(contains(SeedIds.lait)));
+
+      final undo = Undo(db, clock);
+      final entry = undo.record(rows);
+      expect(await undo.undo(entry), isTrue);
+      final restored = (await frequentRow(SeedIds.lait))!;
+      expect(restored.deletedAt, isNull);
+      expect(restored.position, row.position);
+      expect(await inRoute(), before);
+    });
+
+    test(
+      'retirer un article qui n’est pas fréquent : rien n’est écrit',
+      () async {
+        final before = await db.select(db.frequents).get();
+        expect(await repo.removeFrequent(piles), isEmpty);
+        expect(await db.select(db.frequents).get(), before);
+        expect(clock.last, 0);
+      },
+    );
+
+    test('ajouter Lessive : id dérivé de l’article, en dernier '
+        'd’Entretien ; les autres ne bougent pas', () async {
+      final before = await db.select(db.frequents).get();
+      final max = await maxActivePosition();
+
+      await repo.addFrequent(lessive);
+
+      final row = (await frequentRow(lessive))!;
+      expect(row.articleId, lessive);
+      expect(row.position, max + 1);
+      expect(row.deletedAt, isNull);
+      final entretien = [
+        for (final a in frequentsInRoute(
+          await repo.watchFrequents().first,
+          Rayon.values,
+        ))
+          if (a.rayon == Rayon.entretien) a.id,
+      ];
+      expect(entretien.last, lessive);
+      expect(entretien.length, greaterThan(1));
+      expect(
+        (await db.select(db.frequents).get()).where((f) => f.id != row.id),
+        before,
+      );
+    });
+
+    test('ajouter Piles : en dernier de son rayon (Divers)', () async {
+      await repo.addFrequent(piles);
+      final ids = await inRoute();
+      expect(ids.last, piles);
+    });
+
+    test('réactiver : Lait retiré puis ajouté de nouveau garde son id, '
+        'actif, en dernier de son rayon', () async {
+      await repo.removeFrequent(SeedIds.lait);
+      final max = await maxActivePosition();
+      now = 5000;
+
+      await repo.addFrequent(SeedIds.lait);
+
+      final rows = await (db.select(
+        db.frequents,
+      )..where((f) => f.articleId.equals(SeedIds.lait))).get();
+      expect(rows, hasLength(1));
+      expect(rows.single.id, frequentId(SeedIds.lait));
+      expect(rows.single.deletedAt, isNull);
+      expect(rows.single.position, max + 1);
+      expect(rows.single.updatedAt, greaterThanOrEqualTo(5000));
+      final cremerie = [
+        for (final a in frequentsInRoute(
+          await repo.watchFrequents().first,
+          Rayon.values,
+        ))
+          if (a.rayon == Rayon.cremerie) a.id,
+      ];
+      expect(cremerie.last, SeedIds.lait);
+    });
+
+    test('déjà fréquent : rien n’est écrit', () async {
+      final before = await db.select(db.frequents).get();
+      await repo.addFrequent(SeedIds.lait);
+      expect(await db.select(db.frequents).get(), before);
+      expect(clock.last, 0);
+    });
+
+    test('article absent ou supprimé : refusé, rien n’est écrit', () async {
+      await (db.update(db.articles)..where((a) => a.id.equals(piles))).write(
+        const ArticlesCompanion(deletedAt: Value(1), updatedAt: Value(1)),
+      );
+      final before = await db.select(db.frequents).get();
+      await expectLater(repo.addFrequent(piles), throwsStateError);
+      await expectLater(repo.addFrequent('inconnu'), throwsStateError);
+      expect(await db.select(db.frequents).get(), before);
+    });
+
+    test('créer « kombucha » : article du catalogue Kombucha (Divers, sans '
+        'unité) et son fréquent, en dernier', () async {
+      final created = await repo.createFrequentArticle('  kombucha ');
+      expect(created.name, 'Kombucha');
+      final row = (await activeNamed('kombucha')).single;
+      expect(row.id, created.id);
+      expect(row.inCatalogue, isTrue);
+      expect(row.rayon, Rayon.divers.code);
+      expect(row.unit, isNull);
+      final frequent = (await frequentRow(created.id))!;
+      expect(frequent.deletedAt, isNull);
+      expect((await inRoute()).last, created.id);
+      expect((await repo.watchSearch('kombu').first).single.id, created.id);
+    });
+
+    test('créer un nom hors catalogue : même id, entre au catalogue et '
+        'devient fréquent', () async {
+      final typed = await repo.resolveTypedArticle('physalis');
+      final created = await repo.createFrequentArticle('Physalis');
+      expect(created.id, typed.id);
+      final row = (await activeNamed('physalis')).single;
+      expect(row.inCatalogue, isTrue);
+      expect((await frequentRow(typed.id))!.deletedAt, isNull);
+    });
+
+    test('créer un nom vide : refusé, rien n’est écrit', () async {
+      final articles = await db.select(db.articles).get();
+      final frequents = await db.select(db.frequents).get();
+      await expectLater(repo.createFrequentArticle('   '), throwsArgumentError);
+      expect(await db.select(db.articles).get(), articles);
+      expect(await db.select(db.frequents).get(), frequents);
+    });
+
+    test('écriture qui échoue : la transaction est annulée, rien n’est '
+        'écrit', () async {
+      await db.customStatement(
+        'CREATE TRIGGER fail_insert BEFORE INSERT ON frequents '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END;",
+      );
+      await db.customStatement(
+        'CREATE TRIGGER fail_update BEFORE UPDATE ON frequents '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END;",
+      );
+      final articles = await db.select(db.articles).get();
+      final frequents = await db.select(db.frequents).get();
+
+      await expectLater(
+        repo.createFrequentArticle('Kombucha'),
+        throwsA(anything),
+      );
+      await expectLater(repo.addFrequent(lessive), throwsA(anything));
+      await expectLater(repo.removeFrequent(SeedIds.lait), throwsA(anything));
       expect(await db.select(db.articles).get(), articles);
       expect(await db.select(db.frequents).get(), frequents);
     });

@@ -13,8 +13,9 @@ import 'package:material_ui/material_ui.dart';
 /// Paramètres : écran poussé plein écran, flèche retour, sans Barre de
 /// navigation. Lignes de paramètre (`settings-row`) en Switch M3 :
 /// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, la
-/// lignes de navigation « Parcours » (Paramètres › Parcours, R19) et
-/// « Articles » (Paramètres › Articles, R18), puis les
+/// lignes de navigation « Parcours » (Paramètres › Parcours, R19),
+/// « Articles » (Paramètres › Articles, R18) et « Fréquents » (Paramètres ›
+/// Fréquents, R16), puis les
 /// lignes « Exporter mes données » et « Importer une sauvegarde » (R21).
 ///
 /// Les switches suivent les réglages en base (AD-1) et y écrivent par le
@@ -68,6 +69,11 @@ class ParametresScreen extends ConsumerWidget {
                   title: StringsFr.articlesTitre,
                   subtitle: StringsFr.articlesDetail,
                   onTap: () => context.push(AppRoutes.articles),
+                ),
+                _NavigationRow(
+                  title: StringsFr.frequentsTitre,
+                  subtitle: StringsFr.frequentsDetail,
+                  onTap: () => context.push(AppRoutes.frequents),
                 ),
                 const _ExportRow(),
                 const _ImportRow(),

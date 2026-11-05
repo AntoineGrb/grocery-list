@@ -61,3 +61,21 @@ enum Rayon {
     _ => label,
   };
 }
+
+/// Regroupe [items] par rayon ([rayonOf]) dans l'ordre [routeOrder] : un
+/// couple (rayon, éléments) par rayon non vide. Dans un rayon, l'ordre reçu
+/// est conservé. Partagé par la Liste, la Revue et les fréquents.
+List<(Rayon, List<T>)> groupByRayon<T>(
+  List<T> items,
+  Rayon Function(T item) rayonOf,
+  List<Rayon> routeOrder,
+) {
+  final byRayon = <Rayon, List<T>>{};
+  for (final item in items) {
+    byRayon.putIfAbsent(rayonOf(item), () => []).add(item);
+  }
+  return [
+    for (final rayon in routeOrder)
+      if (byRayon[rayon] case final group?) (rayon, group),
+  ];
+}

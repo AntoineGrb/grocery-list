@@ -17,6 +17,7 @@ import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/item_edit_sheet.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
+import 'package:kadi/features/reglages/ui/frequents_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -248,20 +249,23 @@ void main() {
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
   });
 
-  testWidgets('bouton Gérer : rien ne se passe, le panneau reste ouvert', (
-    tester,
-  ) async {
+  testWidgets('bouton Gérer : le panneau se ferme et Paramètres › Fréquents '
+      's’ouvre ; au retour, la Liste, panneau fermé', (tester) async {
     await _pumpApp(tester);
     await _openSheet(tester);
 
     await tester.tap(find.widgetWithText(TextButton, StringsFr.gerer));
     await tester.pumpAndSettle();
 
-    expect(_sheet, findsOneWidget);
+    expect(_sheet, findsNothing);
     expect(_editSheet, findsNothing);
-    expect(find.byType(SnackBar), findsNothing);
-    expect(_title, findsOneWidget);
-    expect(find.byType(FrequentRow), findsNWidgets(31));
+    expect(find.byType(FrequentsScreen), findsOneWidget);
+
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    expect(find.byType(FrequentsScreen), findsNothing);
+    expect(_sheet, findsNothing);
+    expect(find.byType(FloatingActionButton).hitTestable(), findsOneWidget);
   });
 
   testWidgets('aucun fréquent : message d’état vide, sans action', (

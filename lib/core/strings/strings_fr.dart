@@ -228,6 +228,29 @@ abstract final class StringsFr {
   static const nomDejaPris = 'Un article porte déjà ce nom.';
   static const articleImpossible = 'Article impossible à enregistrer.';
 
+  // Paramètres › Fréquents : ligne de navigation, titre de l'écran, Champ de
+  // recherche, état vide, retrait (Annuler) et snackbar d'échec.
+  static const frequentsTitre = 'Fréquents';
+  static const frequentsDetail = 'Tes ajouts fréquents du bouton +';
+  static const ajouterUnFrequent = 'Ajouter un fréquent';
+  static const pasEncoreDeFrequents =
+      'Pas encore de fréquents. Cherche un article pour l’ajouter.';
+  static const frequentImpossible = 'Fréquent impossible à enregistrer.';
+
+  /// Indication TalkBack d'un résultat qui n'est pas encore fréquent.
+  static const ajouterAuxFrequents = 'ajouter aux fréquents';
+
+  /// Résultat déjà fréquent, lu « Lait, déjà dans les fréquents ».
+  static String dejaFrequent(String name) => '$name, déjà dans les fréquents';
+
+  /// Icône de retrait d'un fréquent : « Retirer Lait des fréquents ».
+  static String retirerDesFrequents(String name) =>
+      'Retirer $name des fréquents';
+
+  /// Snackbar Annuler d'un retrait : « Retiré des fréquents : Lait ».
+  static String retireDesFrequents(String name) =>
+      'Retiré des fréquents : $name';
+
   /// Ligne de parcours lue par TalkBack, et annonce après « Monter » ou
   /// « Descendre » : « Boulangerie, position 2 sur 13 ».
   static String positionSur(String rayon, int position, int total) =>

@@ -6,6 +6,7 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
+import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
 

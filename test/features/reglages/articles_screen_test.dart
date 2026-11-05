@@ -19,6 +19,7 @@ import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
+import 'package:kadi/features/reglages/ui/article_lines.dart';
 import 'package:kadi/features/reglages/ui/article_sheet.dart';
 import 'package:kadi/features/reglages/ui/articles_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';

@@ -1,5 +1,7 @@
+import 'package:go_router/go_router.dart';
 import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -98,8 +100,9 @@ class AddTypedRow extends StatelessWidget {
 
 /// Titre de la section des fréquents du Panneau + : « Ajouts fréquents »,
 /// annoncé comme titre, et un bouton « Gérer » à droite, lu « Gérer les ajouts
-/// fréquents ». Il mènera à Paramètres › Fréquents (epic 3) ; d'ici là, il ne
-/// fait rien. Un tap sur le titre ferme le clavier, pour voir les fréquents.
+/// fréquents », qui ferme le panneau puis pousse Paramètres › Fréquents ; au
+/// retour, la Liste est affichée, panneau fermé. Un tap sur le titre ferme
+/// le clavier, pour voir les fréquents.
 class FrequentsTitle extends StatelessWidget {
   const FrequentsTitle({super.key});
 
@@ -143,8 +146,13 @@ class FrequentsTitle extends StatelessWidget {
             ),
           ),
           TextButton(
-            // Sans action avant l'epic 3, mais un bouton actif.
-            onPressed: () {},
+            onPressed: () {
+              // Le panneau est la feuille du dessus, sur le navigateur racine :
+              // il se ferme, puis l'écran est poussé au-dessus de la Liste.
+              final router = GoRouter.of(context);
+              Navigator.pop(context);
+              router.push(AppRoutes.frequents);
+            },
             style: TextButton.styleFrom(
               foregroundColor: scheme.onSurfaceVariant,
               padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.s3),
