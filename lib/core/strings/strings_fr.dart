@@ -211,6 +211,23 @@ abstract final class StringsFr {
   static const monter = 'Monter';
   static const descendre = 'Descendre';
 
+  // Paramètres › Articles : ligne de navigation, titre de l'écran, Champ de
+  // recherche et Fiche article.
+  static const articlesTitre = 'Articles';
+  static const articlesDetail = 'Ton catalogue d’articles';
+  static const chercherUnArticle = 'Chercher un article';
+
+  /// Titre de la Fiche article d'une création.
+  static const nouvelArticle = 'Nouvel article';
+  static const nom = 'Nom';
+  static const rayonParDefaut = 'Rayon par défaut';
+  static const uniteParDefaut = 'Unité par défaut';
+
+  /// Puce « sans unité » de l'unité par défaut d'un article.
+  static const puceUniteSans = 'sans';
+  static const nomDejaPris = 'Un article porte déjà ce nom.';
+  static const articleImpossible = 'Article impossible à enregistrer.';
+
   /// Ligne de parcours lue par TalkBack, et annonce après « Monter » ou
   /// « Descendre » : « Boulangerie, position 2 sur 13 ».
   static String positionSur(String rayon, int position, int total) =>

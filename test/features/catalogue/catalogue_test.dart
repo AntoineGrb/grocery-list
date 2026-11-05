@@ -7,6 +7,7 @@ import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/catalogue/data/normalize_name.dart';
+import 'package:kadi/features/liste/data/liste_repository.dart';
 
 import '../../helpers/test_db.dart';
 
@@ -360,24 +361,346 @@ void main() {
       expect((await repo.watchSearch('pil').first).single.id, typed.id);
     });
 
-    test('rayon d’un article : rayon et updated_at changent ; même rayon ou '
-        'article supprimé : rien n’est écrit', () async {
+    test('rayon d’un article : rayon et updated_at changent ; même rayon : '
+        'rien n’est écrit ; article supprimé : refusé', () async {
       final piles = await repo.createArticle('piles');
       now = 2000;
-      await repo.setArticleRayon(piles.id, Rayon.entretien);
+      await repo.updateArticle(
+        piles.id,
+        name: piles.name,
+        rayon: Rayon.entretien,
+        unit: piles.unit,
+      );
       var row = (await activeNamed('piles')).single;
       expect(row.rayon, 'entretien');
       expect(row.updatedAt, 2000);
 
       now = 3000;
-      await repo.setArticleRayon(piles.id, Rayon.entretien);
-      await repo.setArticleRayon(pilesId, Rayon.hygiene);
+      await repo.updateArticle(
+        piles.id,
+        name: piles.name,
+        rayon: Rayon.entretien,
+        unit: piles.unit,
+      );
+      await expectLater(
+        repo.updateArticle(
+          pilesId,
+          name: 'Piles',
+          rayon: Rayon.hygiene,
+          unit: null,
+        ),
+        throwsStateError,
+      );
       row = (await activeNamed('piles')).single;
       expect(row.updatedAt, 2000);
       final seeded = await (db.select(
         db.articles,
       )..where((a) => a.id.equals(pilesId))).getSingle();
       expect(seeded.rayon, 'divers');
+    });
+  });
+
+  group('Paramètres › Articles : chercher, créer, modifier (AD-15, AD-17)', () {
+    late AppDatabase db;
+    late Clock clock;
+    late CatalogueRepository repo;
+    late ListeRepository liste;
+    var now = 1000;
+
+    setUp(() async {
+      db = await seededDatabase();
+      now = 1000;
+      clock = Clock(now: () => now);
+      repo = CatalogueRepository(db, clock);
+      liste = ListeRepository(db, clock);
+    });
+    tearDown(() => db.close());
+
+    Future<Article> article(String id) =>
+        (db.select(db.articles)..where((a) => a.id.equals(id))).getSingle();
+
+    Future<List<Article>> activeNamed(String normalized) =>
+        (db.select(db.articles)..where(
+              (a) => a.normalizedName.equals(normalized) & a.deletedAt.isNull(),
+            ))
+            .get();
+
+    Future<Frequent> frequentOf(String articleId) => (db.select(
+      db.frequents,
+    )..where((f) => f.id.equals(frequentId(articleId)))).getSingle();
+
+    Future<ListLine> line(String id) =>
+        (db.select(db.listLines)..where((l) => l.id.equals(id))).getSingle();
+
+    test('catalogue entier : articles actifs du catalogue par ordre '
+        'alphabétique du nom normalisé ; hors catalogue et supprimés '
+        'exclus', () async {
+      final typed = await repo.resolveTypedArticle('Physalis');
+      await (db.update(
+        db.articles,
+      )..where((a) => a.id.equals(SeedIds.riz))).write(
+        const ArticlesCompanion(deletedAt: Value(1), updatedAt: Value(1)),
+      );
+
+      final all = await repo.watchCatalogue().first;
+      final expected =
+          (await (db.select(db.articles)..where(
+                    (a) => a.deletedAt.isNull() & a.inCatalogue.equals(true),
+                  ))
+                  .get())
+              .map((a) => a.normalizedName)
+              .toList()
+            ..sort();
+      expect(all.map((a) => normalizeName(a.name)), expected);
+      expect(all.map((a) => a.id), isNot(contains(typed.id)));
+      expect(all.map((a) => a.id), isNot(contains(SeedIds.riz)));
+      expect(all.map((a) => a.id), contains(SeedIds.tomates));
+    });
+
+    test('recherche « tom » : Tomates, Fruits & légumes', () async {
+      final hits = await repo.watchSearch('tom').first;
+      final tomates = hits.singleWhere((a) => a.id == SeedIds.tomates);
+      expect(tomates.rayon, Rayon.fruitsLegumes);
+      expect(hits.every((a) => normalizeName(a.name).contains('tom')), isTrue);
+    });
+
+    test('modifier Tomates en Épicerie salée et ml : l’article change, '
+        'picto inchangé ; la ligne et l’ingrédient existants ne bougent '
+        'pas ; un nouvel ajout prend le nouveau rayon', () async {
+      final ingredientsBefore = await (db.select(
+        db.recipeIngredients,
+      )..where((i) => i.articleId.equals(SeedIds.tomates))).get();
+      expect(ingredientsBefore, isNotEmpty);
+      final old = await liste.addArticle(SeedIds.tomates);
+      // Cochée, elle n'est jamais complétée : un nouvel ajout crée une ligne.
+      await liste.check(old.lineId);
+      now = 5000;
+
+      final updated = await repo.updateArticle(
+        SeedIds.tomates,
+        name: 'Tomates',
+        rayon: Rayon.epicerieSalee,
+        unit: Unit.ml,
+      );
+      expect(updated.rayon, Rayon.epicerieSalee);
+      expect(updated.unit, Unit.ml);
+      expect(updated.pictoKey, 'tomates');
+
+      final row = await article(SeedIds.tomates);
+      expect(row.name, 'Tomates');
+      expect(row.normalizedName, 'tomates');
+      expect(row.rayon, 'epicerie-salee');
+      expect(row.unit, 'ml');
+      expect(row.pictoKey, 'tomates');
+      expect(row.inCatalogue, isTrue);
+      expect(row.updatedAt, greaterThanOrEqualTo(5000));
+
+      expect((await line(old.lineId)).rayon, 'fruits-legumes');
+      final added = await liste.addArticle(SeedIds.tomates);
+      expect(added.lineId, isNot(old.lineId));
+      expect((await line(added.lineId)).rayon, 'epicerie-salee');
+      expect((await line(old.lineId)).rayon, 'fruits-legumes');
+      expect(
+        await (db.select(
+          db.recipeIngredients,
+        )..where((i) => i.articleId.equals(SeedIds.tomates))).get(),
+        ingredientsBefore,
+      );
+    });
+
+    test('renommer : nom nettoyé et nom normalisé écrits, trouvé sous son '
+        'nouveau nom', () async {
+      final updated = await repo.updateArticle(
+        SeedIds.tomates,
+        name: '  tomates   cerises ',
+        rayon: Rayon.fruitsLegumes,
+        unit: Unit.g,
+      );
+      expect(updated.name, 'Tomates cerises');
+      final row = await article(SeedIds.tomates);
+      expect(row.name, 'Tomates cerises');
+      expect(row.normalizedName, 'tomatescerises');
+      expect(row.pictoKey, 'tomates');
+      final hits = await repo.watchSearch('cerises').first;
+      expect(hits.single.id, SeedIds.tomates);
+    });
+
+    test('son propre nom dans une autre casse : accepté', () async {
+      await repo.updateArticle(
+        SeedIds.lait,
+        name: 'LAIT',
+        rayon: Rayon.cremerie,
+        unit: Unit.piece,
+      );
+      expect((await article(SeedIds.lait)).name, 'LAIT');
+    });
+
+    test('créer « piment » : article du catalogue Piment, avec le rayon et '
+        'l’unité de la fiche, trouvé ensuite par la recherche', () async {
+      final created = await repo.createCatalogueArticle(
+        'piment',
+        rayon: Rayon.fruitsLegumes,
+        unit: Unit.g,
+      );
+      expect(created.name, 'Piment');
+      expect(created.rayon, Rayon.fruitsLegumes);
+      expect(created.unit, Unit.g);
+      final row = (await activeNamed('piment')).single;
+      expect(row.id, created.id);
+      expect(row.inCatalogue, isTrue);
+      expect(row.rayon, 'fruits-legumes');
+      expect(row.unit, 'g');
+      expect(row.pictoKey, 'piment');
+      expect((await repo.watchSearch('pim').first).single.id, created.id);
+      expect(
+        (await repo.watchCatalogue().first).map((a) => a.id),
+        contains(created.id),
+      );
+    });
+
+    test('créer un nom hors catalogue : même id, entre au catalogue avec '
+        'les valeurs de la fiche', () async {
+      final typed = await repo.resolveTypedArticle('physalis');
+      expect(await repo.watchSearch('physalis').first, isEmpty);
+      now = 2000;
+
+      final created = await repo.createCatalogueArticle(
+        'PHYSALIS',
+        rayon: Rayon.fruitsLegumes,
+        unit: Unit.piece,
+      );
+      expect(created.id, typed.id);
+      final row = (await activeNamed('physalis')).single;
+      expect(row.id, typed.id);
+      expect(row.inCatalogue, isTrue);
+      expect(row.name, 'PHYSALIS');
+      expect(row.rayon, 'fruits-legumes');
+      expect(row.unit, 'piece');
+      expect((await repo.watchSearch('physalis').first).single.id, typed.id);
+    });
+
+    test('nom pris : Lait renommé « tomates » ou en un nom hors catalogue, '
+        'ou création de « TOMATES » : refusé, rien n’est écrit', () async {
+      await repo.resolveTypedArticle('Physalis');
+      final before = await db.select(db.articles).get();
+      final stamp = clock.last;
+
+      for (final name in ['tomates', ' Tomâtes ', 'physalis']) {
+        await expectLater(
+          repo.updateArticle(
+            SeedIds.lait,
+            name: name,
+            rayon: Rayon.boissons,
+            unit: Unit.ml,
+          ),
+          throwsA(isA<ArticleNameTakenException>()),
+          reason: name,
+        );
+      }
+      await expectLater(
+        repo.createCatalogueArticle('TOMATES', rayon: Rayon.divers, unit: null),
+        throwsA(isA<ArticleNameTakenException>()),
+      );
+      expect(await db.select(db.articles).get(), before);
+      expect(clock.last, stamp);
+      expect((await frequentOf(SeedIds.lait)).deletedAt, isNull);
+    });
+
+    test('nom vide : refusé, rien n’est écrit', () async {
+      final before = await db.select(db.articles).get();
+      await expectLater(
+        repo.updateArticle(
+          SeedIds.lait,
+          name: '   ',
+          rayon: Rayon.cremerie,
+          unit: Unit.piece,
+        ),
+        throwsArgumentError,
+      );
+      await expectLater(
+        repo.createCatalogueArticle('  ', rayon: Rayon.divers, unit: null),
+        throwsArgumentError,
+      );
+      expect(await db.select(db.articles).get(), before);
+    });
+
+    test('Lait (fréquent) passé en Boissons : rayon changé, fréquent en '
+        'dernier, les autres fréquents ne bougent pas', () async {
+      final before = await db.select(db.frequents).get();
+      final max = before
+          .where((f) => f.deletedAt == null)
+          .map((f) => f.position)
+          .reduce((a, b) => a > b ? a : b);
+      now = 4000;
+
+      await repo.updateArticle(
+        SeedIds.lait,
+        name: 'Lait',
+        rayon: Rayon.boissons,
+        unit: Unit.piece,
+      );
+
+      expect((await article(SeedIds.lait)).rayon, 'boissons');
+      final lait = await frequentOf(SeedIds.lait);
+      expect(lait.position, max + 1);
+      expect(lait.updatedAt, greaterThanOrEqualTo(4000));
+      expect(lait.deletedAt, isNull);
+      final others = (await db.select(db.frequents).get())
+          .where((f) => f.articleId != SeedIds.lait)
+          .toList();
+      expect(others, before.where((f) => f.articleId != SeedIds.lait));
+
+      // Le Panneau + le montre en dernier de Boissons.
+      final frequents = await repo.watchFrequents().first;
+      final boissons = frequents.where((a) => a.rayon == Rayon.boissons);
+      expect(boissons.last.id, SeedIds.lait);
+    });
+
+    test('nom ou unité changés sans le rayon : le fréquent garde sa '
+        'place', () async {
+      final position = (await frequentOf(SeedIds.lait)).position;
+      await repo.updateArticle(
+        SeedIds.lait,
+        name: 'Lait demi-écrémé',
+        rayon: Rayon.cremerie,
+        unit: Unit.ml,
+      );
+      expect((await frequentOf(SeedIds.lait)).position, position);
+      expect((await article(SeedIds.lait)).unit, 'ml');
+    });
+
+    test('aucune valeur changée : rien n’est écrit', () async {
+      final before = await db.select(db.articles).get();
+      await repo.updateArticle(
+        SeedIds.lait,
+        name: ' lait ',
+        rayon: Rayon.cremerie,
+        unit: Unit.piece,
+      );
+      expect(await db.select(db.articles).get(), before);
+      expect(clock.last, 0);
+    });
+
+    test('écriture qui échoue : la transaction est annulée, rien n’est '
+        'écrit', () async {
+      await db.customStatement(
+        'CREATE TRIGGER fail_frequents BEFORE UPDATE ON frequents '
+        "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END;",
+      );
+      final articles = await db.select(db.articles).get();
+      final frequents = await db.select(db.frequents).get();
+
+      await expectLater(
+        repo.updateArticle(
+          SeedIds.lait,
+          name: 'Lait',
+          rayon: Rayon.boissons,
+          unit: Unit.piece,
+        ),
+        throwsA(anything),
+      );
+      expect(await db.select(db.articles).get(), articles);
+      expect(await db.select(db.frequents).get(), frequents);
     });
   });
 }

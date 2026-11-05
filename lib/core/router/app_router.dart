@@ -26,6 +26,10 @@ abstract final class AppRoutes {
   /// Paramètres › Parcours (ligne « Parcours ») : poussée au-dessus des
   /// Paramètres.
   static const parcours = '/parametres/parcours';
+
+  /// Paramètres › Articles (ligne « Articles ») : poussée au-dessus des
+  /// Paramètres.
+  static const articles = '/parametres/articles';
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,

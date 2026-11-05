@@ -15,7 +15,15 @@ final frequentsProvider = StreamProvider<List<CatalogueArticle>>(
   (ref) => ref.watch(catalogueRepositoryProvider).watchFrequents(),
 );
 
-/// Résultats de recherche pour une saisie du Panneau +.
+/// Tout le catalogue par ordre alphabétique (Paramètres › Articles, champ de
+/// recherche vide).
+final catalogueArticlesProvider =
+    StreamProvider.autoDispose<List<CatalogueArticle>>(
+      (ref) => ref.watch(catalogueRepositoryProvider).watchCatalogue(),
+    );
+
+/// Résultats de recherche pour une saisie du Panneau +, de la Fiche recette
+/// ou de Paramètres › Articles.
 final articleSearchProvider = StreamProvider.autoDispose
     .family<List<CatalogueArticle>, String>(
       (ref, query) => ref.watch(catalogueRepositoryProvider).watchSearch(query),

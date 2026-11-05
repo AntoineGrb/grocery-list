@@ -25,6 +25,14 @@ class CatalogueArticle {
   final String pictoKey;
 }
 
+/// Nom refusé : un autre article actif porte déjà ce nom normalisé (AD-17).
+class ArticleNameTakenException implements Exception {
+  const ArticleNameTakenException();
+
+  @override
+  String toString() => 'ArticleNameTakenException';
+}
+
 /// Propriétaire de `articles` et `frequents` (AD-2).
 class CatalogueRepository {
   CatalogueRepository(this._db, this._clock, {this._uuid = const Uuid()});
@@ -148,22 +156,138 @@ class CatalogueRepository {
     );
   }
 
-  /// Change le rayon par défaut de l'article [articleId], à appeler dans une
-  /// transaction : seuls `rayon` et `updated_at` changent ; les lignes
-  /// existantes ne bougent pas (AD-15). Rien n'est écrit si l'article est
-  /// absent, supprimé ou déjà dans ce rayon.
-  Future<void> setArticleRayon(String articleId, Rayon rayon) async {
-    final article =
+  /// Seule écriture d'un article existant (Fiche article de Paramètres ›
+  /// Articles, rayon d'un fréquent de Paramètres › Fréquents), en une
+  /// transaction : nom [cleanName] et son `normalized_name`, [rayon] et
+  /// [unit] par défaut (`null` = sans) ; `picto_key` et `in_catalogue` ne
+  /// changent pas. Les lignes de liste et les ingrédients existants ne
+  /// bougent pas : la modification vaut pour les ajouts suivants (AD-15).
+  ///
+  /// Un rayon changé passe le fréquent actif de l'article en dernier
+  /// (`position` = max des positions actives + 1, AD-17), dans la même
+  /// transaction. Rien n'est écrit si aucune valeur ne change.
+  ///
+  /// Lève une [ArticleNameTakenException] si un autre article actif, au
+  /// catalogue ou non, porte ce nom normalisé, une [ArgumentError] pour un
+  /// nom vide et une [StateError] si l'article est absent ou supprimé : rien
+  /// n'est écrit.
+  Future<CatalogueArticle> updateArticle(
+    String articleId, {
+    required String name,
+    required Rayon rayon,
+    required Unit? unit,
+  }) => _db.transaction(
+    () => _update(articleId, name: name, rayon: rayon, unit: unit),
+  );
+
+  /// Création depuis la Fiche article de Paramètres › Articles, en une
+  /// transaction : [createArticle], puis les valeurs de la fiche par
+  /// [updateArticle] (nom [cleanName], [rayon], [unit]). Un nom porté par un
+  /// article hors catalogue le fait entrer au catalogue, même id, avec ces
+  /// valeurs (AD-17).
+  ///
+  /// Lève une [ArticleNameTakenException] si un article du catalogue porte
+  /// déjà ce nom normalisé, une [ArgumentError] pour un nom vide : rien
+  /// n'est écrit.
+  Future<CatalogueArticle> createCatalogueArticle(
+    String name, {
+    required Rayon rayon,
+    required Unit? unit,
+  }) => _db.transaction(() async {
+    final cleaned = cleanName(name);
+    final normalized = normalizeName(cleaned);
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Nom vide');
+    }
+    final holder = await _activeRowNamed(normalized);
+    if (holder != null && holder.inCatalogue) {
+      throw const ArticleNameTakenException();
+    }
+    final created = await createArticle(cleaned, rayon: rayon, unit: unit);
+    return _update(created.id, name: cleaned, rayon: rayon, unit: unit);
+  });
+
+  /// Voir [updateArticle], à appeler dans une transaction.
+  Future<CatalogueArticle> _update(
+    String articleId, {
+    required String name,
+    required Rayon rayon,
+    required Unit? unit,
+  }) async {
+    final row =
         await (_db.select(_db.articles)
               ..where((a) => a.id.equals(articleId) & a.deletedAt.isNull()))
             .getSingleOrNull();
-    if (article == null || article.rayon == rayon.code) return;
+    if (row == null) throw StateError('Article absent : $articleId');
+    final cleaned = cleanName(name);
+    final normalized = normalizeName(cleaned);
+    if (normalized.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Nom vide');
+    }
+    final other =
+        await (_db.select(_db.articles)
+              ..where(
+                (a) =>
+                    a.normalizedName.equals(normalized) &
+                    a.deletedAt.isNull() &
+                    a.id.equals(articleId).not(),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (other != null) throw const ArticleNameTakenException();
+
+    final rayonChanged = row.rayon != rayon.code;
+    if (row.name == cleaned &&
+        row.normalizedName == normalized &&
+        !rayonChanged &&
+        row.unit == unit?.code) {
+      return _toModel(row);
+    }
     await (_db.update(
       _db.articles,
     )..where((a) => a.id.equals(articleId))).write(
       ArticlesCompanion(
+        name: Value(cleaned),
+        normalizedName: Value(normalized),
         rayon: Value(rayon.code),
-        updatedAt: Value(_clock.stamp(article.updatedAt)),
+        unit: Value(unit?.code),
+        updatedAt: Value(_clock.stamp(row.updatedAt)),
+      ),
+    );
+    if (rayonChanged) await _moveFrequentLast(articleId);
+    return CatalogueArticle(
+      id: row.id,
+      name: cleaned,
+      rayon: rayon,
+      unit: unit,
+      pictoKey: row.pictoKey,
+    );
+  }
+
+  /// Passe le fréquent actif de [articleId], s'il existe, en dernier :
+  /// `position` = max des positions actives + 1 (AD-17).
+  Future<void> _moveFrequentLast(String articleId) async {
+    final frequent =
+        await (_db.select(_db.frequents)
+              ..where(
+                (f) => f.articleId.equals(articleId) & f.deletedAt.isNull(),
+              )
+              ..limit(1))
+            .getSingleOrNull();
+    if (frequent == null) return;
+    final maxPosition = _db.frequents.position.max();
+    final max =
+        await (_db.selectOnly(_db.frequents)
+              ..addColumns([maxPosition])
+              ..where(_db.frequents.deletedAt.isNull()))
+            .map((r) => r.read(maxPosition))
+            .getSingle();
+    await (_db.update(
+      _db.frequents,
+    )..where((f) => f.id.equals(frequent.id))).write(
+      FrequentsCompanion(
+        position: Value((max ?? frequent.position) + 1),
+        updatedAt: Value(_clock.stamp(frequent.updatedAt)),
       ),
     );
   }
@@ -310,6 +434,20 @@ class CatalogueRepository {
         });
       return hits.map(_toModel).toList(growable: false);
     });
+  }
+
+  /// Tous les articles actifs du catalogue, par ordre alphabétique du nom
+  /// normalisé ; un article hors catalogue n'en sort jamais (AD-17).
+  Stream<List<CatalogueArticle>> watchCatalogue() {
+    final select = _db.select(_db.articles)
+      ..where((a) => a.deletedAt.isNull() & a.inCatalogue.equals(true))
+      ..orderBy([
+        (a) => OrderingTerm.asc(a.normalizedName),
+        (a) => OrderingTerm.asc(a.id),
+      ]);
+    return select.watch().map(
+      (rows) => rows.map(_toModel).toList(growable: false),
+    );
   }
 
   /// Articles des fréquents actifs dont l'article est actif, par `position`
