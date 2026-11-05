@@ -400,11 +400,17 @@ class CatalogueRepository {
   /// à la même position ; si l'article gardé a déjà un fréquent actif, ce
   /// fréquent en double est seulement supprimé logiquement.
   ///
+  /// Enfin, un fréquent importé ([insertedFrequents], les ids de fréquents
+  /// insérés par la fusion) ou reporté dont la position est déjà prise dans
+  /// son rayon passe en dernier, comme tout fréquent ajouté ou déplacé
+  /// (AD-17) : voir [_separateFrequentPositions].
+  ///
   /// Rend l'article gardé de chaque article supprimé (id supprimé → id
   /// gardé), pour que `liste` et `recettes` y reportent leurs références.
   Future<Map<String, String>> reconcileImportedArticles(
-    Set<String> inserted,
-  ) async {
+    Set<String> inserted, {
+    Set<String> insertedFrequents = const {},
+  }) async {
     final active = await (_db.select(
       _db.articles,
     )..where((a) => a.deletedAt.isNull())).get();
@@ -444,13 +450,65 @@ class CatalogueRepository {
         replaced[other.id] = kept.id;
       }
     }
-    if (replaced.isNotEmpty) await _moveFrequents(replaced);
+    final moved = replaced.isEmpty
+        ? const <String>{}
+        : await _moveFrequents(replaced);
+    await _separateFrequentPositions({...insertedFrequents, ...moved});
     return replaced;
   }
 
+  /// Départage les fréquents actifs (d'article actif) de même rayon et de
+  /// même `position`, à appeler dans la transaction de l'import : dans
+  /// chaque groupe, un seul garde sa position, celui qui était là avant
+  /// l'import (absent de [arrived], les fréquents importés ou reportés),
+  /// sinon le plus petit id. Les autres passent en dernier (max des
+  /// positions actives + 1, AD-17), dans l'ordre de leur position puis de
+  /// leur id : leur ordre relatif est gardé.
+  Future<void> _separateFrequentPositions(Set<String> arrived) async {
+    final f = _db.frequents;
+    final a = _db.articles;
+    final rows = await (_db.select(f).join([
+      innerJoin(a, a.id.equalsExp(f.articleId) & a.deletedAt.isNull()),
+    ])..where(f.deletedAt.isNull())).get();
+    final groups = <(Rayon, int), List<Frequent>>{};
+    for (final row in rows) {
+      final frequent = row.readTable(f);
+      final rayon = Rayon.tryFromCode(row.readTable(a).rayon) ?? Rayon.divers;
+      groups.putIfAbsent((rayon, frequent.position), () => []).add(frequent);
+    }
+    final last = <Frequent>[];
+    for (final group in groups.values) {
+      if (group.length < 2) continue;
+      group.sort((x, y) {
+        final byOrigin =
+            (arrived.contains(x.id) ? 1 : 0) - (arrived.contains(y.id) ? 1 : 0);
+        return byOrigin != 0 ? byOrigin : x.id.compareTo(y.id);
+      });
+      last.addAll(group.skip(1));
+    }
+    if (last.isEmpty) return;
+    last.sort((x, y) {
+      final byPosition = x.position - y.position;
+      return byPosition != 0 ? byPosition : x.id.compareTo(y.id);
+    });
+    var position = await _nextFrequentPosition();
+    for (final frequent in last) {
+      await (_db.update(
+        _db.frequents,
+      )..where((x) => x.id.equals(frequent.id))).write(
+        FrequentsCompanion(
+          position: Value(position++),
+          updatedAt: Value(_clock.stamp(frequent.updatedAt)),
+        ),
+      );
+    }
+  }
+
   /// Reporte les fréquents actifs des articles supprimés [replaced] sur leur
-  /// article gardé (voir [reconcileImportedArticles]).
-  Future<void> _moveFrequents(Map<String, String> replaced) async {
+  /// article gardé (voir [reconcileImportedArticles]). Rend les ids des
+  /// fréquents reportés, actifs sur l'article gardé.
+  Future<Set<String>> _moveFrequents(Map<String, String> replaced) async {
+    final reported = <String>{};
     final moved =
         await (_db.select(_db.frequents)
               ..where(
@@ -474,11 +532,15 @@ class CatalogueRepository {
             updatedAt: Value(_clock.stamp(f.updatedAt)),
           ),
         );
+        reported.add(f.id);
         continue;
       }
       final target = await (_db.select(
         _db.frequents,
       )..where((x) => x.id.equals(targetId))).getSingleOrNull();
+      if (target == null || target.deletedAt != null) {
+        reported.add(targetId);
+      }
       if (target == null) {
         await _db
             .into(_db.frequents)
@@ -508,6 +570,7 @@ class CatalogueRepository {
         FrequentsCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
       );
     }
+    return reported;
   }
 
   /// Articles actifs du catalogue dont le nom normalisé contient [query]

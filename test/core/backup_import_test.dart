@@ -471,6 +471,77 @@ void main() {
     expect(fromFile.deletedAt, isNotNull);
   });
 
+  /// Ajoute aux fréquents de [p] l'article [articleId] à [position].
+  Future<void> frequentAt(_Phone p, String articleId, int position) => p.db
+      .into(p.db.frequents)
+      .insert(
+        FrequentsCompanion.insert(
+          id: frequentId(articleId),
+          updatedAt: p.clock.stamp(),
+          articleId: articleId,
+          position: position,
+        ),
+      );
+
+  /// Position du fréquent actif de [articleId] sur [p].
+  Future<int> positionOf(_Phone p, String articleId) async =>
+      (await p.activeRows(
+            'frequents',
+            "article_id = '$articleId'",
+          )).single['position']!
+          as int;
+
+  test('Fréquent importé à une position déjà prise dans son rayon : il passe '
+      'en dernier, le local garde la sienne ; dans un autre rayon, rien ne '
+      'bouge', () async {
+    final b = await phone('b');
+    final ficelle = await b.db.transaction(
+      () => b.catalogue.createArticle('Ficelle'),
+    );
+    await frequentAt(b, ficelle.id, 40);
+
+    final a = await phone('a');
+    final (corde, bougie) = await a.db.transaction(
+      () async => (
+        await a.catalogue.createArticle('Corde'),
+        await a.catalogue.createArticle('Bougie', rayon: Rayon.entretien),
+      ),
+    );
+    await frequentAt(a, corde.id, 40);
+    await frequentAt(a, bougie.id, 40);
+
+    await b.import(await exportOf(a));
+
+    expect(await positionOf(b, ficelle.id), 40);
+    expect(await positionOf(b, corde.id), 41);
+    expect(await positionOf(b, bougie.id), 40);
+    // Divers, dans l'ordre affiché : Ficelle puis Corde.
+    final divers = [
+      for (final article in await b.catalogue.watchFrequents().first)
+        if (article.rayon == Rayon.divers) article.id,
+    ];
+    expect(divers, [ficelle.id, corde.id]);
+  });
+
+  test('Fréquent reporté sur l’article gardé à une position déjà prise dans '
+      'son rayon : il passe en dernier', () async {
+    final (b, x, y, bytes) = await duplicateArticles();
+    final bougie = await b.db.transaction(
+      () => b.catalogue.createArticle('Bougie'),
+    );
+    await frequentAt(b, bougie.id, 42);
+
+    await b.import(bytes);
+
+    expect(await positionOf(b, bougie.id), 42);
+    expect(await positionOf(b, x), 43);
+    final divers = [
+      for (final article in await b.catalogue.watchFrequents().first)
+        if (article.rayon == Rayon.divers) article.id,
+    ];
+    expect(divers, [bougie.id, x]);
+  });
+
   test('Lignes en double : deux lignes non cochées Lait / g deviennent une '
       'seule, contributions réunies, quantité = somme, manuelle', () async {
     final a = await phone('a');
@@ -690,9 +761,8 @@ void main() {
         '${BackupFormat.photosFolder}.': [7],
       }),
       'photo de recette en chemin': () => withData(
-        (d) =>
-            ((tablesIn(d)['recipes']! as List).first as Map)['photo'] =
-                '../../x',
+        (d) => ((tablesIn(d)['recipes']! as List).first as Map)['photo'] =
+            '../../x',
       ),
       'entrée photos/sous/x.jpg': () => zip({
         BackupFormat.dataFile: json(data),

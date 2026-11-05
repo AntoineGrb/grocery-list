@@ -425,6 +425,48 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('après un glisser annulé, « Descendre » reste un seul cran', (
+      tester,
+    ) async {
+      final handle = tester.ensureSemantics();
+      final db = await _pumpParcours(tester);
+
+      // Glisser commencé sur Crèmerie, puis le doigt est perdu : la liste
+      // n'appelle pas onReorderEnd.
+      final gesture = await tester.startGesture(
+        tester.getCenter(_handle(Rayon.cremerie)),
+      );
+      await tester.pump();
+      for (var i = 0; i < 4; i++) {
+        await gesture.moveBy(Offset(0, 0.2 * _rowHeight(tester)));
+        await tester.pump();
+      }
+      // Glisser en cours : Crèmerie est soulevée hors de la liste, dans
+      // l'overlay.
+      final inList = find.descendant(
+        of: find.byType(ReorderableListView),
+        matching: _row(Rayon.cremerie),
+      );
+      expect(inList, findsNothing);
+      expect(_row(Rayon.cremerie), findsOneWidget);
+      await gesture.cancel();
+      await tester.pumpAndSettle();
+      expect(inList, findsOneWidget);
+      expect(_shown(tester), Rayon.values);
+
+      // « Descendre » est aussi l'action « à la fin » de la liste : suivre
+      // le glisser annulé enverrait Fruits et légumes en dernier.
+      tester.semantics.customAction(
+        find.semantics.byLabel(_label(Rayon.fruitsLegumes, 1)),
+        _descendre,
+      );
+      await tester.pumpAndSettle();
+      final expected = _withAt(Rayon.fruitsLegumes, 1);
+      expect(_shown(tester), expected);
+      expect(await _stored(db), expected);
+      handle.dispose();
+    });
+
     testWidgets('écriture qui échoue : pas d’annonce, snackbar, ordre de la '
         'base', (tester) async {
       final handle = tester.ensureSemantics();

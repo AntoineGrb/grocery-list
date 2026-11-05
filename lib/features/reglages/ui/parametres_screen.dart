@@ -12,11 +12,11 @@ import 'package:material_ui/material_ui.dart';
 
 /// Paramètres : écran poussé plein écran, flèche retour, sans Barre de
 /// navigation. Lignes de paramètre (`settings-row`) en Switch M3 :
-/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, la
+/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, les
 /// lignes de navigation « Parcours » (Paramètres › Parcours, R19),
 /// « Articles » (Paramètres › Articles, R18) et « Fréquents » (Paramètres ›
-/// Fréquents, R16), puis les
-/// lignes « Exporter mes données » et « Importer une sauvegarde » (R21).
+/// Fréquents, R16), puis les lignes « Exporter mes données » et « Importer
+/// une sauvegarde » (R21).
 ///
 /// Les switches suivent les réglages en base (AD-1) et y écrivent par le
 /// `SettingsRepository` (AD-2) : une écriture qui échoue laisse le switch à
@@ -60,17 +60,20 @@ class ParametresScreen extends ConsumerWidget {
                   onChanged: (value) =>
                       _write(context, ref, (r) => r.setGroupByRayon(value)),
                 ),
-                _NavigationRow(
+                _SettingsRow(
+                  chevron: true,
                   title: StringsFr.parcours,
                   subtitle: StringsFr.parcoursDetail,
                   onTap: () => context.push(AppRoutes.parcours),
                 ),
-                _NavigationRow(
+                _SettingsRow(
+                  chevron: true,
                   title: StringsFr.articlesTitre,
                   subtitle: StringsFr.articlesDetail,
                   onTap: () => context.push(AppRoutes.articles),
                 ),
-                _NavigationRow(
+                _SettingsRow(
+                  chevron: true,
                   title: StringsFr.frequentsTitre,
                   subtitle: StringsFr.frequentsDetail,
                   onTap: () => context.push(AppRoutes.frequents),
@@ -100,47 +103,71 @@ class _SettingsSwitch extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return SwitchListTile(
-      value: value,
-      onChanged: onChanged,
-      title: Text(title, style: theme.textTheme.bodyLarge),
-      subtitle: Text(
-        subtitle,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SwitchListTile(
+    value: value,
+    onChanged: onChanged,
+    title: _RowTitle(title),
+    subtitle: _RowHelp(subtitle),
+  );
 }
 
-/// Ligne de paramètre de navigation : libellé, texte d'aide et chevron en
-/// `on-surface-variant` ; pousse son sous-écran ([onTap]).
-class _NavigationRow extends StatelessWidget {
-  const _NavigationRow({
+/// Ligne de paramètre sans switch : libellé, texte d'aide et, pour une
+/// ligne de navigation ([chevron]), un chevron en `on-surface-variant`.
+/// [onTap] nul : la ligne est désactivée.
+class _SettingsRow extends StatelessWidget {
+  const _SettingsRow({
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.chevron = false,
   });
 
   final String title;
   final String subtitle;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool chevron;
+
+  @override
+  Widget build(BuildContext context) => ListTile(
+    enabled: onTap != null,
+    onTap: onTap,
+    title: _RowTitle(title),
+    subtitle: _RowHelp(subtitle),
+    trailing: chevron
+        ? Icon(
+            Icons.chevron_right,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          )
+        : null,
+  );
+}
+
+/// Libellé d'une ligne de paramètre, en `body-large`.
+class _RowTitle extends StatelessWidget {
+  const _RowTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: Theme.of(context).textTheme.bodyLarge);
+}
+
+/// Texte d'aide d'une ligne de paramètre, en `body-medium`
+/// `on-surface-variant`.
+class _RowHelp extends StatelessWidget {
+  const _RowHelp(this.text);
+
+  final String text;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final variant = theme.colorScheme.onSurfaceVariant;
-    return ListTile(
-      onTap: onTap,
-      title: Text(title, style: theme.textTheme.bodyLarge),
-      subtitle: Text(
-        subtitle,
-        style: theme.textTheme.bodyMedium?.copyWith(color: variant),
+    return Text(
+      text,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurfaceVariant,
       ),
-      trailing: Icon(Icons.chevron_right, color: variant),
     );
   }
 }
@@ -179,23 +206,11 @@ class _ExportRowState extends ConsumerState<_ExportRow> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListTile(
-      enabled: !_exporting,
-      onTap: _exporting ? null : _export,
-      title: Text(
-        StringsFr.exporterMesDonnees,
-        style: theme.textTheme.bodyLarge,
-      ),
-      subtitle: Text(
-        StringsFr.exporterMesDonneesDetail,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _SettingsRow(
+    title: StringsFr.exporterMesDonnees,
+    subtitle: StringsFr.exporterMesDonneesDetail,
+    onTap: _exporting ? null : _export,
+  );
 }
 
 /// Ligne « Importer une sauvegarde » : ouvre le sélecteur de fichier et
@@ -236,21 +251,9 @@ class _ImportRowState extends ConsumerState<_ImportRow> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return ListTile(
-      enabled: !_importing,
-      onTap: _importing ? null : _import,
-      title: Text(
-        StringsFr.importerUneSauvegarde,
-        style: theme.textTheme.bodyLarge,
-      ),
-      subtitle: Text(
-        StringsFr.importerUneSauvegardeDetail,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => _SettingsRow(
+    title: StringsFr.importerUneSauvegarde,
+    subtitle: StringsFr.importerUneSauvegardeDetail,
+    onTap: _importing ? null : _import,
+  );
 }

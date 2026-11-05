@@ -63,6 +63,8 @@ class ImporterUneSauvegarde {
         final inserted = await _importer.merge(contents);
         final articles = await _catalogue.reconcileImportedArticles(
           inserted[_db.articles.actualTableName] ?? const {},
+          insertedFrequents:
+              inserted[_db.frequents.actualTableName] ?? const {},
         );
         final selections = await _recettes.reconcileImported(articles);
         await _liste.reconcileImported(

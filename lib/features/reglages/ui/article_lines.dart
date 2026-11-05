@@ -1,4 +1,5 @@
 import 'package:kadi/core/pictos/picto.dart';
+import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
@@ -122,52 +123,29 @@ class ArticleLine extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         excludeFromSemantics: true,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: KadiSpacing.rowMinHeight,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: KadiSpacing.margin,
-              vertical: KadiSpacing.s2,
-            ),
-            child: Row(
+        child: _LineFrame(
+          // Le Picto n'a pas de lecture.
+          leading: Picto(pictoKey: article.pictoKey, rayon: article.rayon),
+          body: ExcludeSemantics(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ExcludeSemantics(
-                  child: Picto(
-                    pictoKey: article.pictoKey,
-                    rayon: article.rayon,
+                Text(
+                  article.name,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: scheme.onSurface,
                   ),
                 ),
-                const SizedBox(width: KadiSpacing.s4),
-                Expanded(
-                  child: ExcludeSemantics(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          article.name,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: scheme.onSurface,
-                          ),
-                        ),
-                        Text(
-                          article.rayon.label,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
+                Text(
+                  article.rayon.label,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: scheme.onSurfaceVariant,
                   ),
                 ),
-                if (trailing != null) ...[
-                  const SizedBox(width: KadiSpacing.s2),
-                  trailing,
-                ],
               ],
             ),
           ),
+          trailing: trailing,
         ),
       ),
     );
@@ -197,35 +175,120 @@ class CreateArticleLine extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: KadiSpacing.rowMinHeight,
+        child: _LineFrame(
+          leading: SizedBox.square(
+            dimension: KadiSpacing.picto,
+            child: Icon(Icons.add, color: scheme.onSurfaceVariant),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: KadiSpacing.margin,
-              vertical: KadiSpacing.s2,
-            ),
-            child: Row(
-              children: [
-                SizedBox.square(
-                  dimension: KadiSpacing.picto,
-                  child: Icon(Icons.add, color: scheme.onSurfaceVariant),
-                ),
-                const SizedBox(width: KadiSpacing.s4),
-                Expanded(
-                  child: Text(
-                    label,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          body: Text(
+            label,
+            style: theme.textTheme.bodyLarge?.copyWith(color: scheme.onSurface),
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Cadre commun des lignes de Paramètres › Articles et › Fréquents : cible
+/// de 48 dp au moins, marges de l'écran ; [leading] (Picto ou signe),
+/// [body] qui prend la place et, s'il est donné, [trailing] à droite.
+class _LineFrame extends StatelessWidget {
+  const _LineFrame({required this.leading, required this.body, this.trailing});
+
+  final Widget leading;
+  final Widget body;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final trailing = this.trailing;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: KadiSpacing.rowMinHeight),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: KadiSpacing.margin,
+          vertical: KadiSpacing.s2,
+        ),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: KadiSpacing.s4),
+            Expanded(child: body),
+            if (trailing != null) ...[
+              const SizedBox(width: KadiSpacing.s2),
+              trailing,
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Liste de Paramètres › Articles et › Fréquents : [header] (la ligne
+/// « Créer « … » »), s'il est donné, en tête, puis la ligne [lineOf] de
+/// chaque article de [articles]. Glisser la liste ferme le clavier.
+class ArticleList extends StatelessWidget {
+  const ArticleList({
+    super.key,
+    required this.articles,
+    required this.lineOf,
+    this.header,
+  });
+
+  final List<CatalogueArticle> articles;
+  final Widget Function(CatalogueArticle article) lineOf;
+  final Widget? header;
+
+  @override
+  Widget build(BuildContext context) {
+    final header = this.header;
+    final offset = header == null ? 0 : 1;
+    return ListView.builder(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
+      itemCount: articles.length + offset,
+      itemBuilder: (context, i) =>
+          header != null && i == 0 ? header : lineOf(articles[i - offset]),
+    );
+  }
+}
+
+/// Titre d'une feuille d'article (Fiche article, Choix de rayon d'un
+/// fréquent) : le Picto ([pictoKey], [rayon]), affiché sans être modifiable
+/// et sans lecture, puis [title] en `title-medium`, lu comme titre.
+class ArticleSheetTitle extends StatelessWidget {
+  const ArticleSheetTitle({
+    super.key,
+    required this.pictoKey,
+    required this.rayon,
+    required this.title,
+  });
+
+  final String pictoKey;
+  final Rayon rayon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Picto(pictoKey: pictoKey, rayon: rayon),
+        const SizedBox(width: KadiSpacing.s4),
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

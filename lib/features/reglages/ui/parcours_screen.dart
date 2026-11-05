@@ -35,26 +35,35 @@ class _ParcoursScreenState extends ConsumerState<ParcoursScreen> {
   /// renvoie, ou que son écriture échoue.
   List<Rayon>? _pending;
 
-  /// Index de départ du glisser en cours ; nul hors glisser. Un
-  /// déplacement reçu sans glisser vient d'une action TalkBack.
+  /// Index de départ du glisser en cours ; nul hors glisser. Un glisser
+  /// annulé (doigt perdu) ne le remet pas à zéro : la liste ne le signale
+  /// pas. Il ne décide donc de rien seul : voir [_dropping].
   int? _dragFrom;
 
-  void _onReorderStart(int index) => _dragFrom = index;
+  /// Vrai entre un déposer qui déplace la ligne et le déplacement qu'il
+  /// annonce. Tout déplacement reçu hors de cette fenêtre vient d'une action
+  /// TalkBack, même après un glisser annulé ou fini.
+  bool _dropping = false;
+
+  void _onReorderStart(int index) {
+    _dragFrom = index;
+    _dropping = false;
+  }
 
   /// [insertIndex] compte la ligne glissée encore en place : déposée sur
   /// elle-même (même index ou le suivant), aucun déplacement ne suivra.
   void _onReorderEnd(int insertIndex) {
     final from = _dragFrom;
-    if (from != null && (insertIndex == from || insertIndex == from + 1)) {
-      _dragFrom = null;
-    }
+    _dragFrom = null;
+    _dropping = from != null && insertIndex != from && insertIndex != from + 1;
   }
 
   /// Déplacement de [oldIndex] à [newIndex] (index après retrait de la
-  /// ligne). Hors glisser, c'est « Monter » ou « Descendre » : un cran vers
+  /// ligne). Hors déposer, c'est « Monter » ou « Descendre » : un cran vers
   /// le voisin, dans le sens demandé, puis annoncé.
   void _onReorderItem(List<Rayon> order, int oldIndex, int newIndex) {
-    final byDrag = _dragFrom != null;
+    final byDrag = _dropping;
+    _dropping = false;
     _dragFrom = null;
     if (byDrag) {
       _move(order, oldIndex, newIndex);

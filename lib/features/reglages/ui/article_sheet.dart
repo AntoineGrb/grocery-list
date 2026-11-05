@@ -1,6 +1,5 @@
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -10,6 +9,8 @@ import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
+
+import 'article_lines.dart';
 
 /// Clé de picto d'un article en création : le repli neutre.
 const _newArticlePicto = 'article';
@@ -155,26 +156,11 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                // Affiché, non modifiable : le choix vient avec le pack.
-                Picto(
-                  pictoKey: article?.pictoKey ?? _newArticlePicto,
-                  rayon: _rayon,
-                ),
-                const SizedBox(width: KadiSpacing.s4),
-                Expanded(
-                  child: Semantics(
-                    header: true,
-                    child: Text(
-                      article?.name ?? StringsFr.nouvelArticle,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: scheme.onSurface,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            // Picto affiché, non modifiable : le choix vient avec le pack.
+            ArticleSheetTitle(
+              pictoKey: article?.pictoKey ?? _newArticlePicto,
+              rayon: _rayon,
+              title: article?.name ?? StringsFr.nouvelArticle,
             ),
             const SizedBox(height: KadiSpacing.s4),
             // Le champ porte lui-même le nom lu « Nom ».

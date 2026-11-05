@@ -418,9 +418,7 @@ class RecettesRepository {
       final kept = articles.values.toSet();
       final onKept =
           await (_db.select(_db.recipeIngredients)
-                ..where(
-                  (i) => i.articleId.isIn(kept) & i.deletedAt.isNull(),
-                )
+                ..where((i) => i.articleId.isIn(kept) & i.deletedAt.isNull())
                 ..orderBy([
                   (i) => OrderingTerm(expression: i.position),
                   (i) => OrderingTerm(expression: i.id),

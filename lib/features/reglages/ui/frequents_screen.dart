@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -132,47 +131,36 @@ class _FrequentsScreenState extends ConsumerState<FrequentsScreen> {
       };
       // « Créer « … » » attend les résultats de cette saisie.
       final showCreate = fresh != null && !hasExactName(fresh, query);
-      final offset = showCreate ? 1 : 0;
-      content = ListView.builder(
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
-        itemCount: results.length + offset,
-        itemBuilder: (context, i) {
-          if (showCreate && i == 0) {
-            final name = CatalogueRepository.cleanName(query);
-            return CreateArticleLine(
-              key: const ValueKey(CreateArticleLine),
-              name: name,
-              onTap: () => _add(name: name),
-            );
-          }
-          final article = results[i - offset];
-          return FrequentResultLine(
-            key: ValueKey(article.id),
-            article: article,
-            frequent: frequentIds.contains(article.id),
-            onAdd: () => _add(article: article),
-          );
-        },
+      final name = CatalogueRepository.cleanName(query);
+      content = ArticleList(
+        articles: results,
+        header: showCreate
+            ? CreateArticleLine(
+                key: const ValueKey(CreateArticleLine),
+                name: name,
+                onTap: () => _add(name: name),
+              )
+            : null,
+        lineOf: (article) => FrequentResultLine(
+          key: ValueKey(article.id),
+          article: article,
+          frequent: frequentIds.contains(article.id),
+          onAdd: () => _add(article: article),
+        ),
       );
     } else {
       final frequents = ref.watch(frequentsInRouteProvider).value;
       content = switch (frequents) {
         null => const SizedBox.shrink(),
         [] => const EmptyState(message: StringsFr.pasEncoreDeFrequents),
-        _ => ListView.builder(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
-          itemCount: frequents.length,
-          itemBuilder: (context, i) {
-            final article = frequents[i];
-            return FrequentLine(
-              key: ValueKey(article.id),
-              article: article,
-              onTap: () => _chooseRayon(article),
-              onRemove: () => _remove(article),
-            );
-          },
+        _ => ArticleList(
+          articles: frequents,
+          lineOf: (article) => FrequentLine(
+            key: ValueKey(article.id),
+            article: article,
+            onTap: () => _chooseRayon(article),
+            onRemove: () => _remove(article),
+          ),
         ),
       };
     }
@@ -289,7 +277,6 @@ class FrequentRayonSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         KadiSpacing.margin,
@@ -301,30 +288,16 @@ class FrequentRayonSheet extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              ExcludeSemantics(
-                child: Picto(pictoKey: article.pictoKey, rayon: article.rayon),
-              ),
-              const SizedBox(width: KadiSpacing.s4),
-              Expanded(
-                child: Semantics(
-                  header: true,
-                  child: Text(
-                    article.name,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: scheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          ArticleSheetTitle(
+            pictoKey: article.pictoKey,
+            rayon: article.rayon,
+            title: article.name,
           ),
           const SizedBox(height: KadiSpacing.s4),
           Text(
             StringsFr.rayonParDefaut,
             style: theme.textTheme.titleSmall?.copyWith(
-              color: scheme.onSurfaceVariant,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(height: KadiSpacing.s2),
