@@ -199,7 +199,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
 
   /// Hauteur de la rangée des tags à la dernière mesure : une cible tactile
   /// avant la première, puis ce que la rangée occupe vraiment.
-  double _tagsHeight = KadiSpacing.touchTarget;
+  double? _tagsHeight;
 
   /// Rangée des tags mesurée à [height] : le budget du panneau la suit, pour
   /// que la rangée passée sur deux lignes ne prenne pas la place des
@@ -520,7 +520,11 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     final height = addPanelHeight(
       media.copyWith(padding: EdgeInsets.only(top: view.padding.top)),
       rows: rows,
-      tagsHeight: _tagsHeight,
+      // Avant la première mesure : un tag de 36 dp ou sa ligne de texte
+      // agrandie, plus 12 dp de cible.
+      tagsHeight:
+          _tagsHeight ??
+          math.max(KadiSpacing.touchTarget, media.textScaler.scale(20) + 12),
     );
     // Clavier fermé, la carte reste au-dessus de la barre de gestes.
     final bottom =
@@ -646,7 +650,8 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                                     setState(() => _frequentsOpen = false);
                                   }
                                 },
-                                onChanged: (_) => setState(() {}),
+                                onChanged: (_) =>
+                                    setState(() => _frequentsOpen = false),
                                 onSubmitted: (_) => _addTyped(),
                                 // Le clavier reste ouvert après Entrée.
                                 onEditingComplete: () {},
@@ -684,7 +689,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                       onHeight: _onTagsHeight,
                       child: Padding(
                         padding: const EdgeInsetsDirectional.only(
-                          start: KadiSpacing.margin - KadiSpacing.s2,
+                          start: KadiSpacing.margin - 3,
                           end: KadiSpacing.s1,
                         ),
                         child: Row(
@@ -693,62 +698,69 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                             Expanded(
                               child: Align(
                                 alignment: AlignmentDirectional.centerStart,
-                                // En grande police, le Tag Rayon passe à la ligne.
-                                child: Wrap(
-                                  children: [
-                                    PanelQuantityTag(
-                                      value: quantityValue,
-                                      emptyLabel: StringsFr.quantite,
-                                      semanticLabel: StringsFr.quantiteTag(
-                                        quantityValue,
+                                // Une seule rangée, sans retour à la ligne
+                                // (V2 2f) : elle défile si la place manque.
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      PanelQuantityTag(
+                                        value: quantityValue,
+                                        emptyLabel: StringsFr.quantite,
+                                        semanticLabel: StringsFr.quantiteTag(
+                                          quantityValue,
+                                        ),
+                                        onTap: _editDraftQuantity,
                                       ),
-                                      onTap: _editDraftQuantity,
-                                    ),
-                                    RayonTag(
-                                      rayon:
-                                          draftRayon ??
-                                          _exactArticle(query)?.rayon ??
-                                          Rayon.divers,
-                                      chosen: draftRayon != null,
-                                      route: route,
-                                      onSelected: (rayon) =>
-                                          setState(() => _draftRayon = rayon),
-                                    ),
-                                    AddTag(
-                                      color: _frequentsOpen
-                                          ? scheme.onSurface
-                                          : scheme.surfaceContainerHigh,
-                                      selected: _frequentsOpen,
-                                      semanticLabel: StringsFr.frequents,
-                                      onTap: _toggleFrequents,
-                                      padding: const EdgeInsetsDirectional.only(
-                                        start: 6,
-                                        end: 10,
+                                      RayonTag(
+                                        rayon:
+                                            draftRayon ??
+                                            _exactArticle(query)?.rayon ??
+                                            Rayon.divers,
+                                        chosen: draftRayon != null,
+                                        route: route,
+                                        onSelected: (rayon) =>
+                                            setState(() => _draftRayon = rayon),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.bolt,
-                                            size: 18,
-                                            color: _frequentsOpen
-                                                ? scheme.surface
-                                                : scheme.onSurface,
-                                          ),
-                                          const SizedBox(width: 2),
-                                          Text(
-                                            StringsFr.frequents,
-                                            style: addTagTextStyle(
-                                              context,
-                                              _frequentsOpen
+                                      AddTag(
+                                        color: _frequentsOpen
+                                            ? scheme.onSurface
+                                            : scheme.surfaceContainerHigh,
+                                        selected: _frequentsOpen,
+                                        semanticLabel: StringsFr.frequents,
+                                        onTap: _toggleFrequents,
+                                        padding:
+                                            const EdgeInsetsDirectional.only(
+                                              start: 6,
+                                              end: 10,
+                                            ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.bolt,
+                                              size: 18,
+                                              color: _frequentsOpen
                                                   ? scheme.surface
                                                   : scheme.onSurface,
                                             ),
-                                          ),
-                                        ],
+                                            const SizedBox(width: 2),
+                                            Text(
+                                              StringsFr.frequents,
+                                              style: addTagTextStyle(
+                                                context,
+                                                _frequentsOpen
+                                                    ? scheme.surface
+                                                    : scheme.onSurface,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

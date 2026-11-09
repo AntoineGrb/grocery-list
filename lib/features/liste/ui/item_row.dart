@@ -130,7 +130,6 @@ class _ItemRowState extends ConsumerState<ItemRow> {
     final spoken = [
       item.name,
       if (quantity.isNotEmpty) quantity,
-      ...item.recipeNames,
       item.rayon.spokenLabel,
     ].join(', ');
 

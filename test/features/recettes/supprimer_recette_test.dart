@@ -16,13 +16,17 @@ import '../../helpers/test_db.dart';
 Future<void> _edit(WidgetTester tester, String name) =>
     editRecipe(tester, name);
 
-Finder get _deleteButton =>
-    find.widgetWithText(TextButton, StringsFr.supprimerLaRecette);
+/// Menu ⋮ de la Fiche recette, présent pour une recette en base.
+Finder get _deleteButton => find.descendant(
+  of: find.byType(FicheRecetteScreen),
+  matching: find.byTooltip(StringsFr.plusDOptions),
+);
 
+/// « Supprimer la recette » par le menu ⋮ de la fiche.
 Future<void> _delete(WidgetTester tester) async {
-  await tester.ensureVisible(_deleteButton);
-  await tester.pumpAndSettle();
   await tester.tap(_deleteButton);
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(StringsFr.supprimerLaRecette));
   await tester.pumpAndSettle();
 }
 
@@ -143,9 +147,7 @@ void main() {
       await openTab(tester, StringsFr.tabRecettes);
       await tapRecipeCard(tester, 'Chili con carne');
       await openRevue(tester, 1);
-      await tester.tap(
-        find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
-      );
+      await tester.tap(revueAddButton);
       await tester.pumpAndSettle();
       expect(find.text('Poivrons'), findsOneWidget);
       final before = await _listAndSelections(db);
@@ -209,9 +211,10 @@ void main() {
       );
     });
 
-    testWidgets('bouton : en bas de la fiche, error, 48 dp, lu « Supprimer la '
-        'recette » ; absent d’une fiche neuve, ni tant qu’elle '
-        'n’est pas valide', (tester) async {
+    testWidgets('menu ⋮ de la fiche, 48 dp, avec « Supprimer la recette » ; '
+        'absent d’une fiche neuve, ni tant qu’elle n’est pas enregistrée', (
+      tester,
+    ) async {
       tallPhone(tester);
       final handle = tester.ensureSemantics();
       await pumpKadi(tester);
@@ -219,24 +222,12 @@ void main() {
 
       await _edit(tester, 'Chili con carne');
       expect(_deleteButton, findsOneWidget);
-      final scheme = Theme.of(tester.element(_deleteButton)).colorScheme;
-      final label = find.descendant(
-        of: _deleteButton,
-        matching: find.text(StringsFr.supprimerLaRecette),
-      );
-      expect(
-        DefaultTextStyle.of(tester.element(label)).style.color,
-        scheme.error,
-      );
       expect(
         tester.getSize(_deleteButton).height,
         greaterThanOrEqualTo(KadiSpacing.touchTarget),
       );
-      // Sous le champ « Lien ».
-      expect(
-        tester.getTopLeft(_deleteButton).dy,
-        greaterThan(tester.getBottomLeft(find.text(StringsFr.lien)).dy),
-      );
+      await tester.tap(_deleteButton);
+      await tester.pumpAndSettle();
       expect(
         tester.getSemantics(
           find.bySemanticsLabel(StringsFr.supprimerLaRecette),
@@ -247,6 +238,8 @@ void main() {
           hasTapAction: true,
         ),
       );
+      await tester.tapAt(const Offset(10, 700));
+      await tester.pumpAndSettle();
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
@@ -332,17 +325,16 @@ void main() {
         expect(welcome.overflow, isNull);
 
         await _edit(tester, 'Chili con carne');
-        await tester.ensureVisible(_deleteButton);
-        await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        await tester.tap(_deleteButton);
+        await tester.pumpAndSettle();
         final label = tester.widget<Text>(
-          find.descendant(
-            of: _deleteButton,
-            matching: find.text(StringsFr.supprimerLaRecette),
-          ),
+          find.text(StringsFr.supprimerLaRecette),
         );
         expect(label.maxLines, isNull);
         expect(label.overflow, isNull);
+        await tester.tapAt(const Offset(10, 700));
+        await tester.pumpAndSettle();
 
         await _delete(tester);
         expect(tester.takeException(), isNull);

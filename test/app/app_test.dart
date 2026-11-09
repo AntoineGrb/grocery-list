@@ -102,9 +102,10 @@ void main() {
 
       expect(find.text(StringsFr.listeVide), findsNothing);
       expect(find.text('Crèmerie'), findsOneWidget);
-      expect(find.text('1'), findsNothing);
+      // V2 : le nombre d'articles restants à droite de l'en-tête.
+      expect(find.text('1'), findsOneWidget);
       expect(find.text('Lait'), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp(r'^Crèmerie$')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'^Crèmerie, 1$')), findsOneWidget);
       expect(find.bySemanticsLabel('Lait, Crèmerie'), findsOneWidget);
       handle.dispose();
     },

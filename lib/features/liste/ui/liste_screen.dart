@@ -171,7 +171,7 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       delta = rowBottom - limit;
     } else if (rowTop < viewportTop) {
       // La marge laisse voir l'En-tête de rayon.
-      delta = rowTop - viewportTop - KadiSpacing.touchTarget;
+      delta = rowTop - viewportTop - KadiSpacing.touchTarget - KadiSpacing.s2;
     } else {
       return;
     }

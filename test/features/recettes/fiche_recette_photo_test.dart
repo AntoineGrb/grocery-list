@@ -10,11 +10,9 @@ import 'package:kadi/core/ui/recipe_monogram.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/recettes/data/recettes_repository.dart';
 import 'package:kadi/features/recettes/data/recipe_photos.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
-import 'package:kadi/features/recettes/ui/fiche_recette_photo.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -158,28 +156,52 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-/// « Ajouter une photo » (ou « Remplacer »), puis [source] dans la feuille.
+/// La pastille appareil photo du monogramme de la fiche.
+Finder get _badge => find.byKey(recipePhotoBadgeKey);
+
+/// Pastille appareil photo, puis [source] dans la feuille. [action] ne sert
+/// plus : la pastille ajoute ou remplace.
 Future<void> _pick(
   WidgetTester tester, {
   String action = StringsFr.ajouterUnePhoto,
   String source = StringsFr.galerie,
 }) async {
-  await _tap(tester, find.text(action));
-  expect(find.byType(PhotoSourceSheet), findsOneWidget);
+  await _tap(tester, _badge);
+  expect(find.text(StringsFr.galerie), findsOneWidget);
   await tester.tap(find.text(source));
   await tester.pumpAndSettle();
 }
 
-Finder get _linkField => find.ancestor(
-  of: find.text(StringsFr.lien),
-  matching: find.byType(TextField),
-);
+/// Pastille appareil photo, puis « Retirer la photo ».
+Future<void> _removePhoto(WidgetTester tester) async {
+  await _tap(tester, _badge);
+  await tester.tap(find.text(StringsFr.retirerLaPhoto));
+  await tester.pumpAndSettle();
+}
+
+/// Lien de la fiche par son dialogue : [text] saisi, puis OK.
+Future<void> _setLink(WidgetTester tester, String text) async {
+  final add = find.text(StringsFr.ajouterUnLien);
+  await _tap(
+    tester,
+    add.evaluate().isNotEmpty ? add : find.byIcon(Icons.link).first,
+  );
+  await tester.enterText(
+    find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    ),
+    text,
+  );
+  await tester.tap(find.text(StringsFr.ok));
+  await tester.pumpAndSettle();
+}
 
 Finder get _openLink => find.byTooltip(StringsFr.ouvrirLeLien);
 
-/// Aperçu de la photo dans la fiche.
+/// Photo dans le monogramme de la fiche.
 Finder get _preview => find.descendant(
-  of: find.byType(RecipePhotoZone),
+  of: find.byType(FicheRecetteScreen),
   matching: find.byType(Image),
 );
 
@@ -220,9 +242,6 @@ void main() {
 
     expect(env.picker.sources, [PhotoSource.galerie]);
     expect(_preview, findsOneWidget);
-    expect(find.text(StringsFr.remplacer), findsOneWidget);
-    expect(find.text(StringsFr.retirer), findsOneWidget);
-    expect(find.text(StringsFr.ajouterUnePhoto), findsNothing);
     expect(env.photos.files, {'photo-1.jpg'});
     // Rien d'écrit avant « Enregistrer ».
     expect((await recipeNamed(env.db, 'Chili con carne'))!.photo, isNull);
@@ -269,15 +288,14 @@ void main() {
 
     expect(env.picker.sources, [PhotoSource.appareilPhoto]);
     expect(_preview, findsNothing);
-    expect(find.text(StringsFr.ajouterUnePhoto), findsOneWidget);
     expect(env.photos.files, isEmpty);
     expect(await env.db.select(env.db.recipes).get(), before);
 
     // Feuille fermée sans choix : le sélecteur n'est pas ouvert.
-    await _tap(tester, find.text(StringsFr.ajouterUnePhoto));
+    await _tap(tester, _badge);
     await tester.tapAt(const Offset(200, 50));
     await tester.pumpAndSettle();
-    expect(find.byType(PhotoSourceSheet), findsNothing);
+    expect(find.text(StringsFr.galerie), findsNothing);
     expect(env.picker.sources, hasLength(1));
   });
 
@@ -330,9 +348,8 @@ void main() {
     await editRecipe(tester, 'Chili con carne');
     // Photo lue de la base : son aperçu est là.
     expect(_preview, findsOneWidget);
-    await _tap(tester, find.text(StringsFr.retirer));
+    await _removePhoto(tester);
     expect(_preview, findsNothing);
-    expect(find.text(StringsFr.ajouterUnePhoto), findsOneWidget);
     expect(
       (await recipeNamed(env.db, 'Chili con carne'))!.photo,
       'photo-1.jpg',
@@ -393,7 +410,7 @@ void main() {
 
     // Photo retirée, puis Quitter : la photo reste.
     await editRecipe(tester, 'Soupe');
-    await _tap(tester, find.text(StringsFr.retirer));
+    await _removePhoto(tester);
     await quitFiche(tester);
     expect((await recipeNamed(env.db, 'Soupe'))!.photo, 'photo-3.jpg');
     expect(env.photos.files, {'photo-3.jpg'});
@@ -428,30 +445,25 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(_cardPicto('Chili con carne'), findsOneWidget);
 
-    // La fiche aussi s'ouvre sans erreur, avec « Remplacer » et « Retirer ».
+    // La fiche aussi s'ouvre sans erreur.
     await editRecipe(tester, 'Chili con carne');
     await _loadImages(tester);
     expect(tester.takeException(), isNull);
-    expect(find.text(StringsFr.retirer), findsOneWidget);
   });
 
-  testWidgets('Lien : enregistré nettoyé, l’icône ouvre https://… ; vidé, '
-      'lien nul et icône masquée', (tester) async {
+  testWidgets('Lien : « Ajouter un lien » par le dialogue, domaine montré, '
+      'l’icône ouvre https://… ; enregistré nettoyé ; vidé, lien nul', (
+    tester,
+  ) async {
     final env = await _openRecettes(tester);
     await editRecipe(tester, 'Chili con carne');
     expect(_openLink, findsNothing);
-    final field = tester.widget<TextField>(_linkField);
-    expect(field.keyboardType, TextInputType.url);
+    expect(find.text(StringsFr.ajouterUnLien), findsOneWidget);
 
-    await tester.ensureVisible(_linkField);
-    await tester.enterText(_linkField, ' marmiton.org/chili ');
-    await tester.pumpAndSettle();
+    await _setLink(tester, ' marmiton.org/chili ');
     expect((await recipeNamed(env.db, 'Chili con carne'))!.link, isNull);
+    expect(find.text('marmiton.org'), findsOneWidget);
     expect(_openLink, findsOneWidget);
-    expect(
-      tester.getSize(_openLink),
-      const Size.square(KadiSpacing.touchTarget),
-    );
     await _tap(tester, _openLink);
     expect(env.browser.opened, [Uri.parse('https://marmiton.org/chili')]);
     expect(find.text(StringsFr.lienImpossible), findsNothing);
@@ -462,18 +474,9 @@ void main() {
       'marmiton.org/chili',
     );
     await editRecipe(tester, 'Chili con carne');
-    expect(
-      tester.widget<TextField>(_linkField).controller!.text,
-      'marmiton.org/chili',
-    );
-    await tester.ensureVisible(_linkField);
-    await tester.enterText(_linkField, '');
-    await tester.pumpAndSettle();
+    await _setLink(tester, '');
     expect(_openLink, findsNothing);
-    expect(
-      (await recipeNamed(env.db, 'Chili con carne'))!.link,
-      'marmiton.org/chili',
-    );
+    expect(find.text(StringsFr.ajouterUnLien), findsOneWidget);
     await saveFiche(tester);
     expect((await recipeNamed(env.db, 'Chili con carne'))!.link, isNull);
   });
@@ -482,9 +485,7 @@ void main() {
       'lien. »', (tester) async {
     final env = await _openRecettes(tester);
     await editRecipe(tester, 'Chili con carne');
-    await tester.ensureVisible(_linkField);
-    await tester.enterText(_linkField, 'https://exemple.fr');
-    await tester.pumpAndSettle();
+    await _setLink(tester, 'https://exemple.fr');
 
     env.browser.result = false;
     await _tap(tester, _openLink);
@@ -500,9 +501,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('TalkBack : « Ajouter une photo », « Galerie », « Appareil '
-      'photo », « Photo de Chili con carne », « Remplacer la photo », '
-      '« Retirer la photo », « Lien », « Ouvrir le lien »', (tester) async {
+  testWidgets('TalkBack : pastille « Ajouter une photo », puis « Remplacer la '
+      'photo » ; « Galerie », « Appareil photo », « Retirer la photo » ; '
+      '« Ouvrir le lien »', (tester) async {
     final handle = tester.ensureSemantics();
     final env = await _openRecettes(tester);
     await editRecipe(tester, 'Chili con carne');
@@ -512,36 +513,24 @@ void main() {
         label: StringsFr.ajouterUnePhoto,
         isButton: true,
         hasTapAction: true,
-        isEnabled: true,
-        hasEnabledState: true,
-        isFocusable: true,
       ),
     );
-    await _tap(tester, find.text(StringsFr.ajouterUnePhoto));
+    tester.semantics.tap(find.semantics.byLabel(StringsFr.ajouterUnePhoto));
+    await tester.pumpAndSettle();
     expect(find.bySemanticsLabel(StringsFr.galerie), findsOneWidget);
     expect(find.bySemanticsLabel(StringsFr.appareilPhoto), findsOneWidget);
     env.picker.results.add(env.source.path);
     await tester.tap(find.text(StringsFr.galerie));
     await tester.pumpAndSettle();
 
-    expect(find.bySemanticsLabel('Photo de Chili con carne'), findsOneWidget);
-    for (final label in [
-      StringsFr.remplacerLaPhoto,
-      StringsFr.retirerLaPhoto,
-    ]) {
-      expect(
-        tester.getSemantics(find.bySemanticsLabel(label)),
-        isSemantics(label: label, isButton: true, hasTapAction: true),
-      );
-    }
-    expect(find.bySemanticsLabel(RegExp('^${StringsFr.lien}')), findsWidgets);
-    await tester.ensureVisible(_linkField);
-    await tester.enterText(_linkField, 'marmiton.org');
+    expect(find.bySemanticsLabel(StringsFr.remplacerLaPhoto), findsOneWidget);
+    await _tap(tester, _badge);
+    expect(find.bySemanticsLabel(StringsFr.retirerLaPhoto), findsOneWidget);
+    await tester.tap(find.text(StringsFr.retirerLaPhoto));
     await tester.pumpAndSettle();
-    expect(
-      tester.getSemantics(_linkField),
-      isSemantics(label: StringsFr.lien, isTextField: true),
-    );
+    expect(_preview, findsNothing);
+
+    await _setLink(tester, 'marmiton.org');
     expect(
       tester.getSemantics(_openLink),
       isSemantics(
@@ -550,38 +539,24 @@ void main() {
         hasTapAction: true,
       ),
     );
-
-    // TalkBack « Retirer la photo » agit.
-    tester.semantics.tap(find.semantics.byLabel(StringsFr.retirerLaPhoto));
-    await tester.pumpAndSettle();
-    expect(find.bySemanticsLabel('Photo de Chili con carne'), findsNothing);
     handle.dispose();
   });
 
   for (final scale in [1.3, 2.0]) {
-    testWidgets('police ×$scale sur 360 dp : zone photo et lien sans '
-        'débordement ni troncature', (tester) async {
+    testWidgets('police ×$scale sur 360 dp : en-tête, photo et lien sans '
+        'débordement', (tester) async {
       tester.platformDispatcher.textScaleFactorTestValue = scale;
       addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       final env = await _openRecettes(tester, size: const Size(360, 800));
       await editRecipe(tester, 'Chili con carne');
-      await tester.ensureVisible(find.text(StringsFr.ajouterUnePhoto));
-      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       env.picker.results.add(env.source.path);
       await _pick(tester);
       expect(tester.takeException(), isNull);
-      for (final text in [StringsFr.remplacer, StringsFr.retirer]) {
-        final widget = tester.widget<Text>(find.text(text));
-        expect(widget.maxLines, isNull);
-        expect(widget.overflow, isNull);
-      }
-      await tester.ensureVisible(_linkField);
-      await tester.enterText(
-        _linkField,
+      await _setLink(
+        tester,
         'https://www.marmiton.org/recettes/recette_chili-con-carne.aspx',
       );
-      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       expect(_openLink.hitTestable(), findsOneWidget);
     });
@@ -594,10 +569,8 @@ void main() {
     env.picker.results.add(env.source.path);
     await _pick(tester);
 
-    await _tap(
-      tester,
-      find.widgetWithText(TextButton, StringsFr.supprimerLaRecette),
-    );
+    await _tap(tester, find.byTooltip(StringsFr.plusDOptions));
+    await _tap(tester, find.text(StringsFr.supprimerLaRecette));
 
     expect(find.byType(FicheRecetteScreen), findsNothing);
     expect(recipeCard('Chili con carne'), findsNothing);
@@ -672,16 +645,17 @@ void main() {
     expect(find.byType(FicheRecetteScreen), findsOneWidget);
     expect(saveEnabled(tester), isFalse);
 
-    await tester.tap(find.text(StringsFr.retirer), warnIfMissed: false);
+    await tester.tap(_badge, warnIfMissed: false);
     await tester.pumpAndSettle();
     // TalkBack : l'action est bloquée pendant l'écriture.
     expect(
       () => tester.semantics.tap(
-        find.semantics.byLabel(StringsFr.retirerLaPhoto),
+        find.semantics.byLabel(StringsFr.remplacerLaPhoto),
       ),
       throwsStateError,
     );
     await tester.pumpAndSettle();
+    expect(find.text(StringsFr.retirerLaPhoto), findsNothing);
     expect(_preview, findsOneWidget);
     expect(env.photos.files, {'photo-1.jpg'});
 

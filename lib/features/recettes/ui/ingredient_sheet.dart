@@ -293,7 +293,7 @@ class _IngredientSheetState extends ConsumerState<IngredientSheet> {
                 child: SheetHandle(),
               ),
               SizedBox(
-                height: 44,
+                height: KadiSpacing.touchTarget,
                 child: Row(
                   children: [
                     const SizedBox(width: KadiSpacing.margin),
@@ -329,7 +329,9 @@ class _IngredientSheetState extends ConsumerState<IngredientSheet> {
                 child: field,
               ),
               Expanded(
-                child: ListView(
+                // Au plus 6 résultats et la ligne de création : tout est
+                // bâti, la liste défile seulement.
+                child: SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.fromLTRB(
@@ -338,36 +340,39 @@ class _IngredientSheetState extends ConsumerState<IngredientSheet> {
                     KadiSpacing.s3,
                     KadiSpacing.s4,
                   ),
-                  children: [
-                    if (results.isNotEmpty || searching) overline,
-                    for (final article in results)
-                      IngredientResultRow(
-                        key: ValueKey(article.id),
-                        article: article,
-                        inRecipe: widget.inRecipe(article.id),
-                        onTap: () => _add(article),
-                      ),
-                    if (empty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: KadiSpacing.s3,
-                          vertical: KadiSpacing.s2,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (results.isNotEmpty || searching) overline,
+                      for (final article in results)
+                        IngredientResultRow(
+                          key: ValueKey(article.id),
+                          article: article,
+                          inRecipe: widget.inRecipe(article.id),
+                          onTap: () => _add(article),
                         ),
-                        child: Text(
-                          StringsFr.aucunIngredient,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontSize: 13,
-                            color: scheme.onSurfaceVariant,
+                      if (empty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: KadiSpacing.s3,
+                            vertical: KadiSpacing.s2,
+                          ),
+                          child: Text(
+                            StringsFr.aucunIngredient,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontSize: 13,
+                              color: scheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
-                      ),
-                    if (showCreate)
-                      CreateArticleRow(
-                        key: const ValueKey(CreateArticleRow),
-                        name: query.trim(),
-                        onTap: _create,
-                      ),
-                  ],
+                      if (showCreate)
+                        CreateArticleRow(
+                          key: const ValueKey(CreateArticleRow),
+                          name: query.trim(),
+                          onTap: _create,
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],

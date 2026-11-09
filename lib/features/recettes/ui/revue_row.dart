@@ -10,7 +10,7 @@ import 'package:material_ui/material_ui.dart';
 import '../state/revue.dart';
 
 /// Espace insécable entre le nombre et son unité.
-const _nbsp = ' ';
+const _nbsp = ' ';
 
 /// Quantité exacte d'une Ligne de Revue, dans l'unité de la ligne (sans
 /// l'arrondi de lecture de la Liste) : « 400 g », « 200 ml », « 6 pièces » ;
@@ -106,7 +106,9 @@ class RevueRow extends StatelessWidget {
             child: InkWell(
               onTap: () => _toggle(context),
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 42),
+                constraints: const BoxConstraints(
+                  minHeight: KadiSpacing.touchTarget,
+                ),
                 child: Padding(
                   padding: const EdgeInsets.only(left: 14),
                   child: Row(
@@ -151,16 +153,22 @@ class RevueRow extends StatelessWidget {
           ),
         ),
         if (checked)
-          Padding(
-            padding: const EdgeInsets.only(left: 10, right: 10),
-            child: QuantityTag(
-              name: line.name,
-              rayon: line.rayon,
-              quantity: quantity,
-              unit: unit,
-              height: 28,
-              tapHeight: 42,
-              onTap: onQuantityTap,
+          ConstrainedBox(
+            // Police agrandie : le tag garde au plus 40 % de la largeur.
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 10, right: 10),
+              child: QuantityTag(
+                name: line.name,
+                rayon: line.rayon,
+                quantity: quantity,
+                unit: unit,
+                height: 28,
+                tapHeight: KadiSpacing.touchTarget,
+                onTap: onQuantityTap,
+              ),
             ),
           ),
       ],

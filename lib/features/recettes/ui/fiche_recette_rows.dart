@@ -158,12 +158,18 @@ class IngredientRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: KadiSpacing.s3),
-              QuantityTag(
-                name: name,
-                rayon: ingredient.rayon,
-                quantity: value?.quantity,
-                unit: value?.unit,
-                onTap: onQuantityTap,
+              ConstrainedBox(
+                // Police agrandie : le tag garde au plus 40 % de la largeur.
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+                ),
+                child: QuantityTag(
+                  name: name,
+                  rayon: ingredient.rayon,
+                  quantity: value?.quantity,
+                  unit: value?.unit,
+                  onTap: onQuantityTap,
+                ),
               ),
             ],
           ),

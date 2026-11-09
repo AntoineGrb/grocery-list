@@ -4,9 +4,7 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
-import 'package:kadi/features/recettes/ui/revue_row.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
-import 'package:material_ui/material_ui.dart';
 
 import 'e2e_harness.dart';
 
@@ -33,29 +31,19 @@ Future<void> _choisirLaSemaine(
 
   await openRevue(tester, 4);
   expect(find.byType(RevueScreen), findsOneWidget);
-  expect(find.text(StringsFr.revueConsigne), findsOneWidget);
+  expect(find.text(StringsFr.revueConsigneV2), findsOneWidget);
   // Groupée par rayon, tout coché.
-  expect(
-    tester
-        .widgetList<Checkbox>(
-          find.descendant(
-            of: find.byType(RevueRow),
-            matching: find.byType(Checkbox),
-          ),
-        )
-        .every((c) => c.value == true),
-    isTrue,
-  );
+  expect(allRevueKept(tester), isTrue);
   expect(shownHeaders(tester), _inRouteOrder(shownHeaders(tester)));
 
   if (corriger) {
     // Il reste des pâtes ; six œufs suffisent (3 + 3 dans les recettes).
     await uncheckInRevue(tester, 'Pâtes');
-    expect(tester.widget<TextField>(revueField('Œufs')).controller!.text, '6');
-    await tester.ensureVisible(revueField('Œufs'));
-    await tester.tap(revueField('Œufs'));
-    await tester.enterText(revueField('Œufs'), '4');
-    await tester.pumpAndSettle();
+    expect(
+      revueQuantity(tester, 'Œufs'),
+      '6${String.fromCharCode(0xA0)}pièces',
+    );
+    await setRevueQuantity(tester, 'Œufs', '4');
   }
 
   await tapAndSettle(tester, ajouterALaListe);

@@ -3,6 +3,7 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
+import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
 import 'package:kadi/features/recettes/ui/recipe_row.dart';
 
@@ -18,6 +19,13 @@ const _exemples = [
 /// Supprime [name] par sa fiche (« Supprimer la recette »).
 Future<void> _supprimer(WidgetTester tester, String name) async {
   await editRecipe(tester, name);
+  await tapAndSettle(
+    tester,
+    find.descendant(
+      of: find.byType(FicheRecetteScreen),
+      matching: find.byTooltip(StringsFr.plusDOptions),
+    ),
+  );
   await tapAndSettle(tester, find.text(StringsFr.supprimerLaRecette));
   expect(find.byType(RecettesScreen), findsOneWidget);
 }

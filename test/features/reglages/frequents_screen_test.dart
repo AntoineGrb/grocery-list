@@ -23,6 +23,7 @@ import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/panneau.dart';
 import '../../helpers/test_db.dart';
 
 /// Articles fournis absents des fréquents.
@@ -150,7 +151,7 @@ List<CatalogueArticle> _shownFrequents(WidgetTester tester) => [
 
 /// Articles des Lignes de fréquent du Panneau +, dans l'ordre affiché.
 List<CatalogueArticle> _panelFrequents(WidgetTester tester) => [
-  for (final row in tester.widgetList<FrequentRow>(find.byType(FrequentRow)))
+  for (final row in tester.widgetList<FrequentChip>(find.byType(FrequentChip)))
     row.article,
 ];
 
@@ -167,8 +168,11 @@ Future<List<Article>> _activeNamed(AppDatabase db, String normalized) =>
         ))
         .get();
 
-Future<void> _openPanel(WidgetTester tester) =>
-    _tap(tester, find.byType(FloatingActionButton));
+/// Ouvre le Panneau +, fréquents affichés (⚡).
+Future<void> _openPanel(WidgetTester tester) async {
+  await _tap(tester, find.byType(FloatingActionButton));
+  await showFrequents(tester);
+}
 
 void main() {
   // Tous les fréquents tiennent dans le Panneau +.
@@ -338,8 +342,8 @@ void main() {
     await _tap(tester, find.byType(BackButton));
     await _tap(tester, find.byType(BackButton));
     await _openPanel(tester);
-    expect(find.widgetWithText(FrequentRow, 'Lait'), findsNothing);
-    expect(find.widgetWithText(FrequentRow, 'Œufs'), findsOneWidget);
+    expect(find.widgetWithText(FrequentChip, 'Lait'), findsNothing);
+    expect(find.widgetWithText(FrequentChip, 'Œufs'), findsOneWidget);
   });
 
   testWidgets('ajouter : « pil », + sur Piles : en dernier de son rayon, '

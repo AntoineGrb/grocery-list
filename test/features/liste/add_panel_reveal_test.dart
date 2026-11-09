@@ -17,7 +17,6 @@ import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
-import 'package:kadi/features/liste/ui/quantity_popup.dart';
 import 'package:kadi/features/liste/ui/quantity_tag.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:kadi/features/liste/ui/rayon_tag.dart';
@@ -25,6 +24,7 @@ import 'package:kadi/features/liste/ui/row_highlight.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/panneau.dart';
 import '../../helpers/test_db.dart';
 
 const _keyboard = 300.0;
@@ -67,7 +67,7 @@ final _body = _inSheet(find.byType(Scaffold));
 final _undoAction = find.widgetWithText(SnackBarAction, StringsFr.annuler);
 final _search = _inSheet(find.byType(TextField));
 
-Finder _frequent(String name) => find.widgetWithText(FrequentRow, name);
+Finder _frequent(String name) => find.widgetWithText(FrequentChip, name);
 Finder _row(String name) => find.widgetWithText(ItemRow, name);
 
 /// Partie visible de l'En-tête de [rayon], sous sa marge haute.
@@ -98,7 +98,14 @@ ScrollPosition _listScroll(WidgetTester tester) => tester
 
 /// Réserve du bas de la Liste.
 double _reserve(WidgetTester tester) => tester
-    .widget<SingleChildScrollView>(find.byType(SingleChildScrollView))
+    .widget<SingleChildScrollView>(
+      find
+          .descendant(
+            of: find.byType(ListeScreen),
+            matching: find.byType(SingleChildScrollView),
+          )
+          .first,
+    )
     .padding!
     .resolve(TextDirection.ltr)
     .bottom;
@@ -115,18 +122,11 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 
 /// Fait défiler les fréquents du panneau jusqu'à [name], puis le touche.
 Future<void> _tapFrequent(WidgetTester tester, String name) async {
-  await tester.scrollUntilVisible(
-    _frequent(name),
-    100,
-    scrollable: find
-        .descendant(
-          of: _inSheet(find.byType(ListView)),
-          matching: find.byType(Scrollable),
-        )
-        .first,
-  );
+  await showFrequents(tester);
+  await tester.ensureVisible(_frequent(name));
   await tester.pumpAndSettle();
-  await _tap(tester, _frequent(name));
+  await tester.tap(_frequent(name));
+  await tester.pumpAndSettle();
 }
 
 /// Tape [text] puis Entrée.
@@ -303,28 +303,23 @@ void main() {
   });
 
   group('le panneau', () {
-    testWidgets('412×914 et clavier de 300 dp : seul le titre des fréquents '
-        'dépasse, carte à 8 dp du clavier, Liste assombrie par un voile '
+    testWidgets('412×914 et clavier de 300 dp : au repos, le champ et les '
+        'tags seuls, panneau collé au clavier, Liste assombrie par un voile '
         'léger', (tester) async {
       await _pumpPhone(tester);
       await _openPanel(tester);
 
       final top = tester.getTopLeft(_body).dy;
       expect(top, closeTo(_panel(tester).top!, 0.01));
-      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard - 8);
-      expect(tester.getTopLeft(_body).dx, 8);
+      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard);
+      expect(tester.getTopLeft(_body).dx, 0);
       expect(
         tester.getSize(_body).height,
         KadiSpacing.panelHandleHeight +
             KadiSpacing.addFieldHeight +
-            KadiSpacing.touchTarget +
             KadiSpacing.touchTarget,
       );
-      expect(_inSheet(find.byType(FrequentsTitle)), findsOneWidget);
-      expect(
-        tester.getBottomLeft(_inSheet(find.byType(FrequentsTitle))).dy,
-        lessThanOrEqualTo(tester.getBottomLeft(_body).dy + 0.01),
-      );
+      expect(_inSheet(find.byType(FrequentsTitle)), findsNothing);
 
       final route = ModalRoute.of(tester.element(_sheet))!;
       final scheme = Theme.of(tester.element(_sheet)).colorScheme;
@@ -333,18 +328,22 @@ void main() {
       expect(route.barrierDismissible, isTrue);
     });
 
-    testWidgets('clavier fermé : le titre et quelques fréquents, la carte au '
-        'bas de l’écran', (tester) async {
+    testWidgets('⚡ Fréquents, clavier fermé : le titre et des rangées de '
+        'pastilles, panneau au bas de l’écran', (tester) async {
       await _pumpPhone(tester, keyboard: 0);
       await _openPanel(tester);
+      await showFrequents(tester);
 
-      expect(tester.getBottomLeft(_body).dy, 914 - 8);
+      expect(tester.getBottomLeft(_body).dy, 914);
+      expect(_inSheet(find.byType(FrequentsTitle)), findsOneWidget);
       expect(
         tester.getSize(_body).height,
-        KadiSpacing.panelHandleHeight +
-            KadiSpacing.addFieldHeight +
-            KadiSpacing.touchTarget +
-            KadiSpacing.rowMinHeight * 5.5,
+        greaterThan(
+          KadiSpacing.panelHandleHeight +
+              KadiSpacing.addFieldHeight +
+              KadiSpacing.touchTarget +
+              KadiSpacing.rowMinHeight * 2,
+        ),
       );
     });
 
@@ -399,14 +398,12 @@ void main() {
       // Tag Rayon « Fruits & légumes » sous le Tag Quantité.
       final tags = [
         find.byWidgetPredicate(
-          (w) => w is QuantityTag && w.emptyLabel == StringsFr.quantite,
+          (w) => w is PanelQuantityTag && w.emptyLabel == StringsFr.quantite,
         ),
         find.byType(RayonTag),
       ];
-      expect(
-        tester.getTopLeft(tags[1]).dy,
-        greaterThanOrEqualTo(tester.getBottomLeft(tags[0]).dy),
-      );
+      // Une seule rangée de tags, qui défile (V2 2f).
+      expect(tester.getTopLeft(tags[1]).dy, tester.getTopLeft(tags[0]).dy);
 
       final result = _inSheet(find.byType(SearchResultRow));
       expect(result, findsOneWidget);
@@ -422,7 +419,7 @@ void main() {
         greaterThanOrEqualTo(KadiSpacing.touchTarget),
       );
       expect(body.contains(row.center), isTrue);
-      expect(tester.getBottomLeft(_body).dy, 800 - _keyboard - 8);
+      expect(tester.getBottomLeft(_body).dy, 800 - _keyboard);
       expect(_panel(tester).top, closeTo(body.top, 0.01));
 
       await _tap(tester, result);
@@ -446,10 +443,10 @@ void main() {
       expect(shape.side, BorderSide.none);
       expect(
         shape.borderRadius,
-        const BorderRadius.all(Radius.circular(KadiRadius.xl)),
+        const BorderRadius.vertical(top: Radius.circular(KadiRadius.xl)),
       );
       expect(material.color, theme.colorScheme.surfaceContainer);
-      expect(material.elevation, 0);
+      expect(material.elevation, 4);
 
       expect(tester.getSize(find.byType(PanelHandle)).height, 20);
       expect(
@@ -517,24 +514,18 @@ void main() {
       await tester.pumpAndSettle();
       await _openPanel(tester);
       final withKeyboard = tester.getSize(_body).height;
-      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard - 8);
+      expect(tester.getBottomLeft(_body).dy, 914 - _keyboard);
 
       tester.view.viewInsets = FakeViewPadding.zero;
       await tester.pumpAndSettle();
 
+      // Au repos, même hauteur : le champ et les tags seuls (V2 2f).
       final height = tester.getSize(_body).height;
-      expect(height, greaterThan(withKeyboard));
-      expect(
-        height,
-        KadiSpacing.panelHandleHeight +
-            KadiSpacing.addFieldHeight +
-            KadiSpacing.touchTarget +
-            KadiSpacing.rowMinHeight * 5.5,
-      );
-      expect(tester.getBottomLeft(_body).dy, 914 - 8);
-      expect(_panel(tester).height, height + 8);
+      expect(height, withKeyboard);
+      expect(tester.getBottomLeft(_body).dy, 914);
+      expect(_panel(tester).height, height);
       expect(_panel(tester).top, closeTo(tester.getTopLeft(_body).dy, 0.01));
-      expect(_reserve(tester), height + 8);
+      expect(_reserve(tester), height);
 
       tester.view.viewInsets = const FakeViewPadding(bottom: _keyboard);
       await tester.pumpAndSettle();
@@ -704,7 +695,7 @@ void main() {
       _expectAbovePanel(tester, 'Lait');
       expect(
         tester.getTopLeft(_row('Lait')).dy,
-        closeTo(_appBarBottom + KadiSpacing.touchTarget, 1),
+        closeTo(_appBarBottom + KadiSpacing.touchTarget + KadiSpacing.s2, 1),
       );
       expect(
         tester.getTopLeft(_headerPastille('Crèmerie')).dy,
@@ -719,6 +710,7 @@ void main() {
       await repo.addArticle(SeedIds.tomates);
       await tester.pumpAndSettle();
       await _openPanel(tester);
+      await showFrequents(tester);
 
       await tester.tap(_frequent('Bananes'));
       await _pumpUntilFound(tester, _row('Bananes'));
@@ -823,19 +815,15 @@ void main() {
       await _tap(
         tester,
         find.byWidgetPredicate(
-          (w) => w is QuantityTag && w.emptyLabel == StringsFr.quantite,
+          (w) => w is PanelQuantityTag && w.emptyLabel == StringsFr.quantite,
         ),
       );
+      await _tap(tester, find.byKey(const Key('quantity-sheet-number')));
       await tester.enterText(
-        find.descendant(
-          of: find.byType(QuantityPopup),
-          matching: find.byType(TextField),
-        ),
+        find.byKey(const Key('quantity-sheet-input')),
         '2',
       );
-      await tester.pump();
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
+      await _tap(tester, find.text(StringsFr.ok));
       await tester.testTextInput.receiveAction(TextInputAction.done);
       await tester.pumpAndSettle();
 

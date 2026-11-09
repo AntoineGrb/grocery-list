@@ -7,7 +7,6 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
-import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/quantity_field.dart';
 import 'package:kadi/core/ui/rayon_picker.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -21,6 +20,7 @@ import 'package:kadi/features/reglages/ui/frequents_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/panneau.dart';
 import '../../helpers/test_db.dart';
 
 /// Monte Kadi sur une base en mémoire, dans une vue assez haute pour que
@@ -40,7 +40,7 @@ final _undoAction = find.widgetWithText(SnackBarAction, StringsFr.annuler);
 final _title = _inSheet(find.byType(FrequentsTitle));
 
 /// La Ligne de fréquent de [name].
-Finder _frequent(String name) => find.widgetWithText(FrequentRow, name);
+Finder _frequent(String name) => find.widgetWithText(FrequentChip, name);
 
 /// La Ligne de résultat de [name].
 Finder _result(String name) =>
@@ -50,9 +50,11 @@ Finder _result(String name) =>
 Finder _indicator(Finder row, IconData icon) =>
     find.descendant(of: row, matching: find.byIcon(icon));
 
+/// Ouvre le Panneau +, fréquents affichés (⚡).
 Future<void> _openSheet(WidgetTester tester) async {
   await tester.tap(find.byType(FloatingActionButton));
   await tester.pumpAndSettle();
+  await showFrequents(tester);
 }
 
 Future<void> _closeSheet(WidgetTester tester) async {
@@ -135,113 +137,80 @@ void main() {
   setUp(() => addPanelFrequentRows = 40);
   tearDown(() => addPanelFrequentRows = 4.5);
 
-  testWidgets(
-    'Panneau + ouvert : champ focalisé, « Ajouts fréquents » et son bouton, '
-    'puis les fréquents en liste plate dans l’ordre du parcours, sans '
-    'en-tête ni libellé de rayon, avec Picto, nom et +',
-    (tester) async {
-      await _pumpApp(tester);
-      await _openSheet(tester);
+  testWidgets('Panneau + au repos : champ focalisé, tags Quantité, Rayon et '
+      '⚡ Fréquents, rien d’autre ; ⚡ ferme le clavier et montre « Ajouts '
+      'fréquents », Gérer et les 31 pastilles dans l’ordre du parcours ; '
+      'retaper dans le champ rouvre le clavier', (tester) async {
+    await _pumpApp(tester);
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
 
-      final editable = tester.widget<EditableText>(find.byType(EditableText));
-      expect(editable.focusNode.hasFocus, isTrue);
+    final editable = tester.widget<EditableText>(find.byType(EditableText));
+    expect(editable.focusNode.hasFocus, isTrue);
+    expect(_inSheet(find.text(StringsFr.quantite)), findsOneWidget);
+    expect(_inSheet(find.text(Rayon.divers.label)), findsOneWidget);
+    expect(_inSheet(find.text(StringsFr.frequents)), findsOneWidget);
+    expect(_title, findsNothing);
+    expect(find.byType(FrequentChip), findsNothing);
 
-      // Titre « Ajouts fréquents » en title-small on-surface-variant, bouton
-      // « Gérer » à droite, cible de 48 dp, sans crayon.
-      expect(_title, findsOneWidget);
-      final titleText = find.descendant(
-        of: _title,
-        matching: find.text(StringsFr.ajoutsFrequents),
-      );
-      expect(titleText, findsOneWidget);
-      final theme = Theme.of(tester.element(_title));
-      final style = tester.widget<Text>(titleText).style!;
-      expect(style.fontSize, theme.textTheme.titleSmall!.fontSize);
-      expect(style.fontWeight, theme.textTheme.titleSmall!.fontWeight);
-      expect(style.color, theme.colorScheme.onSurfaceVariant);
-      expect(
-        find.descendant(of: _title, matching: find.byIcon(Icons.edit_outlined)),
-        findsNothing,
-      );
-      final manage = find.descendant(
-        of: _title,
-        matching: find.widgetWithText(TextButton, StringsFr.gerer),
-      );
-      expect(manage, findsOneWidget);
-      expect(tester.getSize(manage).width, greaterThanOrEqualTo(48));
-      expect(tester.getSize(manage).height, greaterThanOrEqualTo(48));
-      expect(
-        tester.getCenter(manage).dx,
-        greaterThan(tester.getCenter(titleText).dx),
-      );
-
-      // Aucun En-tête ni libellé de rayon.
-      expect(_inSheet(find.byType(RayonHeader)), findsNothing);
-      for (final rayon in Rayon.values) {
-        expect(
-          _inSheet(
-            find.descendant(
-              of: find.byType(ListView),
-              matching: find.text(rayon.label),
+    await showFrequents(tester);
+    expect(editable.focusNode.hasFocus, isFalse);
+    expect(_title, findsOneWidget);
+    final manage = find.descendant(
+      of: _title,
+      matching: find.widgetWithText(TextButton, StringsFr.gerer),
+    );
+    expect(manage, findsOneWidget);
+    expect(tester.getSize(manage).height, greaterThanOrEqualTo(48));
+    // ⚡ actif à l'encre, jamais d'argile (C6).
+    final scheme = Theme.of(tester.element(_sheet)).colorScheme;
+    expect(
+      tester
+          .widgetList<Material>(
+            find.ancestor(
+              of: _inSheet(find.text(StringsFr.frequents)),
+              matching: find.byType(Material),
             ),
-          ),
-          findsNothing,
-        );
-      }
+          )
+          .first
+          .color,
+      scheme.onSurface,
+    );
 
-      // Liste plate : rayons dans l'ordre du parcours (par défaut, celui des
-      // 13 rayons), puis `position` dans un rayon.
-      final rows = tester.widgetList<FrequentRow>(find.byType(FrequentRow));
-      final routeIndexes = [
-        for (final row in rows) Rayon.values.indexOf(row.article.rayon),
-      ];
-      expect(routeIndexes, [...routeIndexes]..sort());
-      expect(
-        tester.getTopLeft(_title).dy,
-        lessThan(tester.getTopLeft(_frequent('Tomates')).dy),
-      );
-      expect(
-        tester.getTopLeft(_frequent('Tomates')).dy,
-        lessThan(tester.getTopLeft(_frequent('Lait')).dy),
-      );
-      // Lait avant Œufs (position).
-      expect(
-        tester.getTopLeft(_frequent('Lait')).dy,
-        lessThan(tester.getTopLeft(_frequent('Œufs')).dy),
-      );
+    // Rayons dans l'ordre du parcours (par défaut), puis `position`.
+    final rows = tester.widgetList<FrequentChip>(find.byType(FrequentChip));
+    final routeIndexes = [
+      for (final row in rows) Rayon.values.indexOf(row.article.rayon),
+    ];
+    expect(routeIndexes, [...routeIndexes]..sort());
+    expect(find.byType(FrequentChip), findsNWidgets(31));
+    final lait = _frequent('Lait');
+    expect(_indicator(lait, Icons.add), findsOneWidget);
+    expect(tester.getSize(lait).height, greaterThanOrEqualTo(48));
 
-      expect(find.byType(FrequentRow), findsNWidgets(31));
-      expect(find.byType(SearchResultRow), findsNothing);
-      final lait = _frequent('Lait');
-      expect(find.descendant(of: lait, matching: find.byType(Picto)), findsOne);
-      expect(_indicator(lait, Icons.add), findsOneWidget);
-      expect(_indicator(lait, Icons.check), findsNothing);
-      expect(
-        tester.widget<Icon>(_indicator(lait, Icons.add)).color,
-        Theme.of(tester.element(lait)).colorScheme.onSurfaceVariant,
-      );
-      expect(tester.getSize(lait).height, greaterThanOrEqualTo(48));
-    },
-  );
+    await tester.tap(_search);
+    await tester.pumpAndSettle();
+    expect(_title, findsNothing);
+    expect(
+      tester.widget<EditableText>(find.byType(EditableText)).focusNode.hasFocus,
+      isTrue,
+    );
+  });
 
-  testWidgets('Panneau + ouvert : chaque Ajout fréquent montre un picto '
-      'Phosphor teinté de son rayon, jamais un rond neutre', (tester) async {
+  testWidgets('pastilles de fréquent : picto Phosphor teinté de son rayon, '
+      'jamais un rond neutre', (tester) async {
     await _pumpApp(tester);
     await _openSheet(tester);
 
     final colors = KadiColors.of(tester.element(_sheet));
-    final rows = find.byType(FrequentRow);
+    final rows = find.byType(FrequentChip);
     expect(rows, findsNWidgets(31));
-    for (final row in tester.widgetList<FrequentRow>(rows)) {
+    for (final row in tester.widgetList<FrequentChip>(rows)) {
       final article = row.article;
       final icon = tester.widget<Icon>(
-        find.descendant(
-          of: find.descendant(
-            of: find.byWidget(row),
-            matching: find.byType(Picto),
-          ),
-          matching: find.byType(Icon),
-        ),
+        find
+            .descendant(of: find.byWidget(row), matching: find.byType(Icon))
+            .first,
       );
       expect(
         icon.icon,
@@ -250,16 +219,9 @@ void main() {
       );
       expect(icon.color, colors.rayon(article.rayon).accent);
     }
-    expect(_inSheet(find.byIcon(Icons.circle_outlined)), findsNothing);
     // Lait : jar, correction d'Antoine.
     final lait = tester.widget<Icon>(
-      find.descendant(
-        of: find.descendant(
-          of: _frequent('Lait'),
-          matching: find.byType(Picto),
-        ),
-        matching: find.byType(Icon),
-      ),
+      find.descendant(of: _frequent('Lait'), matching: find.byType(Icon)).first,
     );
     expect(lait.icon, PictoResolver.iconFor('jar', Rayon.cremerie));
   });
@@ -320,7 +282,7 @@ void main() {
     await _openSheet(tester);
 
     expect(find.text(StringsFr.pasDeFrequents), findsOneWidget);
-    expect(find.byType(FrequentRow), findsNothing);
+    expect(find.byType(FrequentChip), findsNothing);
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
     expect(_title, findsNothing);
     expect(
@@ -343,16 +305,17 @@ void main() {
     final check = _indicator(_frequent('Lait'), Icons.check);
     expect(check, findsOneWidget);
     expect(_indicator(_frequent('Lait'), Icons.add), findsNothing);
-    // Coche ronde pleine à l'accent du rayon.
-    final circle = tester.widget<Container>(
-      find.ancestor(of: check, matching: find.byType(Container)).first,
-    );
-    final decoration = circle.decoration! as BoxDecoration;
-    expect(decoration.shape, BoxShape.circle);
-    expect(circle.constraints!.maxWidth, KadiSpacing.picto);
+    // Pastille passée à l'encre (C6).
     expect(
-      decoration.color,
-      KadiColors.of(tester.element(check)).rayon(Rayon.cremerie).accent,
+      tester
+          .widget<Material>(
+            find.descendant(
+              of: _frequent('Lait'),
+              matching: find.byType(Material),
+            ),
+          )
+          .color,
+      Theme.of(tester.element(check)).colorScheme.onSurface,
     );
     final line = (await _activeLines(db, SeedIds.lait)).single;
     expect(line.unit, isNull);
@@ -367,10 +330,13 @@ void main() {
         tester.getTopLeft(find.widgetWithText(RayonHeader, 'Crèmerie')).dy,
       ),
     );
-    // En-tête sans compteur.
+    // En-tête avec le nombre d'articles restants (V2).
     expect(
-      find.descendant(of: find.byType(RayonHeader), matching: find.text('1')),
-      findsNothing,
+      find.descendant(
+        of: find.widgetWithText(RayonHeader, 'Crèmerie'),
+        matching: find.text('1'),
+      ),
+      findsOneWidget,
     );
   });
 
@@ -478,25 +444,29 @@ void main() {
     await tester.enterText(find.byType(TextField), 'lai');
     await tester.pumpAndSettle();
 
-    expect(find.byType(FrequentRow), findsNothing);
+    expect(find.byType(FrequentChip), findsNothing);
     expect(_title, findsNothing);
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
     expect(find.byType(SearchResultRow), findsWidgets);
     expect(_indicator(_result('Lait'), Icons.add), findsOneWidget);
+    // V2 : le rayon sous le nom, comme dans l'ajout d'ingrédient.
     expect(
       find.descendant(
         of: _result('Lait'),
         matching: find.text(Rayon.cremerie.label),
       ),
-      findsNothing,
+      findsOneWidget,
     );
 
-    // Ajouté : le champ se vide, les fréquents reviennent.
+    // Ajouté : le champ se vide ; taper a ramené le clavier, les fréquents
+    // reviennent par ⚡ (V2 2g).
     await _tap(tester, _result('Lait'));
     expect(_sheet, findsOneWidget);
     expect(await _activeLines(db, SeedIds.lait), hasLength(1));
     expect(tester.widget<TextField>(_search).controller!.text, isEmpty);
     expect(find.byType(SearchResultRow), findsNothing);
+    expect(find.byType(FrequentChip), findsNothing);
+    await showFrequents(tester);
     expect(_indicator(_frequent('Lait'), Icons.check), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), 'lai');
@@ -511,13 +481,16 @@ void main() {
     );
     expect(_inSheet(_undoAction), findsOneWidget);
 
-    // Effacer la recherche : les fréquents reviennent.
+    // Effacer la recherche : plus de résultats ; les fréquents reviennent
+    // par ⚡ (V2 2g).
     await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
     await tester.pumpAndSettle();
-    expect(find.byType(FrequentRow), findsNWidgets(31));
-    expect(_title, findsOneWidget);
     expect(find.byType(SearchResultRow), findsNothing);
+    // Le snackbar fermé ne couvre plus le tag ⚡.
     await _letSnackBarClose(tester);
+    await showFrequents(tester);
+    expect(find.byType(FrequentChip), findsNWidgets(31));
+    expect(_title, findsOneWidget);
   });
 
   testWidgets('TalkBack : fréquents et résultats lus comme boutons, avec '
@@ -654,10 +627,10 @@ void main() {
         // Piles n'apparaît que dans la Liste, rien sous le champ.
         expect(_inSheet(find.text('Piles')), findsNothing);
         expect(_listRow('Piles'), findsOneWidget);
-        // Rien ne se déplie après Entrée ; les fréquents reviennent.
+        // Rien ne se déplie après Entrée ; le clavier reste (V2 2f).
         expect(_inSheet(find.byType(QuantityField)), findsNothing);
         expect(_inSheet(find.byType(RayonPicker)), findsNothing);
-        expect(_frequent('Lait'), findsOneWidget);
+        expect(_frequent('Lait'), findsNothing);
 
         await _type(tester, 'pil');
         expect(find.byType(SearchResultRow), findsNothing);
@@ -787,6 +760,9 @@ void main() {
       final db = await _pumpApp(tester);
       await _withoutPiles(tester, db);
       await _openSheet(tester);
+      // Retaper dans le champ : clavier rouvert.
+      await tester.tap(_search);
+      await tester.pumpAndSettle();
 
       expect(
         tester.getSemantics(find.byType(EditableText)),

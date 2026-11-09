@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kadi/core/ui/recipe_monogram.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
@@ -9,7 +10,6 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/recettes/data/recipe_photos.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
-import 'package:kadi/features/recettes/ui/fiche_recette_photo.dart';
 import 'package:kadi/features/reglages/ui/frequents_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
@@ -110,8 +110,8 @@ void sauvegarde() {
       await tester.enterText(ficheNameField, 'Gratin');
       await tester.pumpAndSettle();
       await addIngredientBySheet(tester, 'courg', 'Courgettes');
-      await tapAndSettle(tester, find.text(StringsFr.ajouterUnePhoto));
-      expect(find.byType(PhotoSourceSheet), findsOneWidget);
+      await tapAndSettle(tester, find.byKey(recipePhotoBadgeKey));
+      expect(find.text(StringsFr.galerie), findsOneWidget);
       await tapAndSettle(tester, find.text(StringsFr.galerie));
       await saveFiche(tester);
       expect((await recipeNamed(source, 'Gratin'))!.photo, 'gratin.jpg');

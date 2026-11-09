@@ -380,7 +380,7 @@ void main() {
         (w) => w is IngredientRow && w.ingredient.name == 'Tomates',
       ),
     );
-    expect(ingredient.ingredient.unit, InputUnit.ml);
+    expect(ingredient.ingredient.inputUnit, InputUnit.ml);
   });
 
   testWidgets('« Créer « Piment » » : fiche « Nouvel article » préremplie ; '

@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/liste/ui/checked_section.dart';
 import 'package:kadi/features/liste/ui/item_edit_sheet.dart';
-import 'package:kadi/features/liste/ui/quantity_popup.dart';
+import 'package:kadi/core/ui/quantity_sheet.dart';
 import 'package:kadi/features/liste/ui/quantity_tag.dart';
 import 'package:kadi/features/liste/ui/row_highlight.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
@@ -20,7 +20,7 @@ import 'e2e_harness.dart';
 typedef SurfaceCheck = Future<void> Function(String surface);
 
 final _quantityTag = find.byWidgetPredicate(
-  (w) => w is QuantityTag && w.emptyLabel == StringsFr.quantite,
+  (w) => w is PanelQuantityTag && w.emptyLabel == StringsFr.quantite,
 );
 
 /// Ferme la feuille, la popup ou le dialogue du dessus (geste retour).
@@ -67,10 +67,10 @@ Future<void> _visitSurfaces(WidgetTester tester, SurfaceCheck check) async {
   await openAddSheet(tester);
   await check('Liste avec Panneau +');
   await tapAndSettle(tester, _quantityTag);
-  expect(find.byType(QuantityPopup), findsOneWidget);
+  expect(find.byType(QuantitySheet), findsOneWidget);
   await check('Popup quantité');
   await _pressBack(tester);
-  expect(find.byType(QuantityPopup), findsNothing);
+  expect(find.byType(QuantitySheet), findsNothing);
   await closeAddSheet(tester);
 
   // Fiche recette et popup d'ajout d'ingrédient.

@@ -59,18 +59,23 @@ class QuantityTag extends StatelessWidget {
               color: colors.pastille,
               borderRadius: radius,
             ),
-            child: Text(
-              value,
-              maxLines: 1,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: theme.colorScheme.onSurface,
+            // Police agrandie : la valeur entière, réduite si la place manque.
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                value,
+                maxLines: 1,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurface,
+                ),
               ),
             ),
           );
 
     return Semantics(
+      container: true,
       button: true,
       label: value.isEmpty
           ? StringsFr.ajouterUneQuantiteA(name)

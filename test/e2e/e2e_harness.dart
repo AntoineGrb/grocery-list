@@ -14,12 +14,15 @@ import 'package:kadi/features/liste/ui/checked_section.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:kadi/features/recettes/ui/revue_row.dart';
+import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../helpers/panneau.dart';
 import '../helpers/pump_app.dart';
 import '../helpers/recettes.dart';
 
+export '../helpers/panneau.dart';
 export '../helpers/pump_app.dart';
 export '../helpers/recettes.dart';
 export '../helpers/test_db.dart';
@@ -167,6 +170,9 @@ Finder rayonHeader(String label) => find.widgetWithText(RayonHeader, label);
 
 /// Noms affichés des En-têtes de rayon, de haut en bas.
 List<String> shownHeaders(WidgetTester tester) {
+  if (find.byType(RevueRayonCard).evaluate().isNotEmpty) {
+    return [for (final r in revueRayons(tester)) r.label];
+  }
   final headers = [
     for (final e in find.byType(RayonHeader).evaluate())
       (e.widget as RayonHeader, tester.getTopLeft(find.byWidget(e.widget)).dy),
@@ -202,13 +208,10 @@ Finder revueRow(String name) =>
 Finder revueField(String name) =>
     find.descendant(of: revueRow(name), matching: find.byType(TextField));
 
-Future<void> uncheckInRevue(WidgetTester tester, String name) => tapAndSettle(
-  tester,
-  find.descendant(of: revueRow(name), matching: find.byType(Checkbox)),
-);
+Future<void> uncheckInRevue(WidgetTester tester, String name) =>
+    toggleRevueRow(tester, name);
 
-Finder get ajouterALaListe =>
-    find.widgetWithText(FilledButton, StringsFr.ajouterALaListe);
+Finder get ajouterALaListe => revueAddButton;
 
 // Panneau +.
 
@@ -219,8 +222,9 @@ Finder inAddSheet(Finder finder) =>
 /// Le Champ d'ajout du Panneau +.
 Finder get addField => inAddSheet(find.byType(TextField)).first;
 
-Finder frequentRow(String name) => find.widgetWithText(FrequentRow, name);
+Finder frequentRow(String name) => find.widgetWithText(FrequentChip, name);
 
+/// Ouvre le Panneau + (clavier ouvert, fréquents cachés derrière ⚡).
 Future<void> openAddSheet(WidgetTester tester) async {
   await tester.tap(find.byType(FloatingActionButton));
   await tester.pumpAndSettle();
@@ -236,6 +240,7 @@ Future<void> closeAddSheet(WidgetTester tester) async {
 
 /// Fait défiler les fréquents du panneau jusqu'à [name].
 Future<void> scrollToFrequent(WidgetTester tester, String name) async {
+  await showFrequents(tester);
   final scrollable = find
       .descendant(
         of: inAddSheet(find.byType(ListView)),

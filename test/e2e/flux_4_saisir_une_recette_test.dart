@@ -17,9 +17,6 @@ Finder _ingredientRow(String name) => find.byWidgetPredicate(
   (w) => w is IngredientRow && w.ingredient.name == name,
 );
 
-Finder _quantity(String name) =>
-    find.descendant(of: _ingredientRow(name), matching: find.byType(TextField));
-
 String _sheetText(WidgetTester tester) =>
     tester.widget<TextField>(ingredientSheetField).controller!.text;
 
@@ -43,7 +40,6 @@ Future<AppDatabase> _pumpRecettes(WidgetTester tester) async {
 Future<void> _nouvelleFiche(WidgetTester tester) async {
   await tapAndSettle(tester, find.byTooltip(StringsFr.nouvelleRecette));
   expect(find.byType(FicheRecetteScreen), findsOneWidget);
-  expect(find.text(StringsFr.nouvelleRecette), findsOneWidget);
 }
 
 void flux4SaisirUneRecette() {
@@ -92,15 +88,13 @@ void flux4SaisirUneRecette() {
       }
       await tester.enterText(ingredientSheetField, 'Épices');
       await tester.pumpAndSettle();
-      await tapAndSettle(tester, find.text(StringsFr.creerNom('Épices')));
+      await tapAndSettle(tester, find.text(StringsFr.ajouterNom('Épices')));
       expect(_ingredientRow('Épices'), findsOneWidget);
       expect(find.byType(IngredientSheet), findsOneWidget);
       await closeIngredientSheet(tester);
 
       // 5. 500 g de haricots rouges ; les épices restent sans quantité.
-      await tester.showKeyboard(_quantity('Haricots rouges'));
-      await tester.enterText(_quantity('Haricots rouges'), '500');
-      await tester.pumpAndSettle();
+      await setIngredientQuantity(tester, 'Haricots rouges', '500');
       expect(await recipeNamed(db, 'Chili'), isNull);
       await saveFiche(tester);
 

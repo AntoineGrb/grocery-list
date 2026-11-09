@@ -67,8 +67,14 @@ enum MonogramSize {
   final TextStyle style;
 }
 
+/// Clé de la pastille appareil photo (tests).
+const recipePhotoBadgeKey = Key('recipe-photo-badge');
+
 /// Taille de la pastille appareil photo de la Fiche.
 const _badgeSize = 26.0;
+
+/// Marge de cible autour de la pastille : 48 dp en tout.
+const _badgeMargin = (KadiSpacing.touchTarget - _badgeSize) / 2;
 
 /// Monogramme d'une recette (README redesign §4.1) : carré arrondi au fond de
 /// l'accent du rayon de l'ingrédient principal, initiales à la pastille de ce
@@ -132,19 +138,20 @@ class RecipeMonogram extends StatelessWidget {
           visual,
           Positioned(
             // Pastille débordant de 4 dp, plus sa marge de cible.
-            right: -4 - KadiSpacing.s1,
-            bottom: -4 - KadiSpacing.s1,
+            right: -4 - _badgeMargin,
+            bottom: -4 - _badgeMargin,
             child: Semantics(
               button: true,
               label: photoSemanticLabel ?? StringsFr.ajouterUnePhoto,
               excludeSemantics: true,
               onTap: onPhotoTap,
               child: GestureDetector(
+                key: recipePhotoBadgeKey,
                 behavior: HitTestBehavior.opaque,
                 onTap: onPhotoTap,
                 // Cible élargie autour de la pastille de 26 dp.
                 child: Padding(
-                  padding: const EdgeInsets.all(KadiSpacing.s1),
+                  padding: const EdgeInsets.all(_badgeMargin),
                   child: Container(
                     width: _badgeSize,
                     height: _badgeSize,

@@ -178,7 +178,7 @@ class _RevueScreenState extends ConsumerState<RevueScreen> {
                           KadiSpacing.s3,
                           10,
                         ),
-                        child: _RayonCard(
+                        child: RevueRayonCard(
                           group: group,
                           kept: group.lines
                               .where((l) => !_unchecked.contains(l.key))
@@ -232,8 +232,9 @@ class _RevueScreenState extends ConsumerState<RevueScreen> {
 
 /// Carte d'un rayon de la Revue : `surface-container`, rayon 18 ; en-tête
 /// avec le point du rayon, son nom et « gardés/total ».
-class _RayonCard extends StatelessWidget {
-  const _RayonCard({
+class RevueRayonCard extends StatelessWidget {
+  const RevueRayonCard({
+    super.key,
     required this.group,
     required this.kept,
     required this.rows,

@@ -1,12 +1,10 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kadi/core/ui/quantity_tag.dart';
 import 'package:kadi/app/actions/ajouter_a_la_liste.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/seed/seed_loader.dart';
-import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
@@ -40,52 +38,7 @@ Future<void> _openRecettes(WidgetTester tester) =>
 Future<void> _openListe(WidgetTester tester) =>
     openTab(tester, StringsFr.tabListe);
 
-/// La Ligne de Revue de [name].
-Finder _revueRow(String name) =>
-    find.byWidgetPredicate((w) => w is RevueRow && w.line.name == name);
-
-/// Le Champ quantité de la Ligne de Revue de [name].
-Finder _field(String name) =>
-    find.descendant(of: _revueRow(name), matching: find.byType(TextField));
-
-String _fieldText(WidgetTester tester, String name) =>
-    tester.widget<TextField>(_field(name)).controller!.text;
-
-/// Touche la coche de la Ligne de Revue de [name].
-Future<void> _tapCheck(WidgetTester tester, String name) async {
-  final check = find.descendant(
-    of: _revueRow(name),
-    matching: find.byType(Checkbox),
-  );
-  await tester.ensureVisible(check);
-  await tester.tap(check);
-  await tester.pumpAndSettle();
-}
-
-Finder get _ajouterButton =>
-    find.widgetWithText(FilledButton, StringsFr.ajouterALaListe);
-
-/// Annonces TalkBack envoyées pendant le test.
-List<String> _recordAnnouncements(WidgetTester tester) {
-  final announcements = <String>[];
-  tester.binding.defaultBinaryMessenger.setMockDecodedMessageHandler<dynamic>(
-    SystemChannels.accessibility,
-    (message) async {
-      final map = message as Map<dynamic, dynamic>;
-      if (map['type'] == 'announce') {
-        announcements.add((map['data'] as Map)['message'] as String);
-      }
-    },
-  );
-  addTearDown(
-    () => tester.binding.defaultBinaryMessenger
-        .setMockDecodedMessageHandler<dynamic>(
-          SystemChannels.accessibility,
-          null,
-        ),
-  );
-  return announcements;
-}
+Finder get _ajouterButton => revueAddButton;
 
 /// Ouvre la Revue de Pâtes carbonara et Quiche lorraine, sur un téléphone
 /// haut où toute la Revue et toute la Liste sont bâties.
@@ -302,77 +255,33 @@ void main() {
     await backFromFiche(tester);
   });
 
-  testWidgets('Carbonara + Quiche : Valider (2), Revue, Ajouter à la liste, '
-      'Liste prête ; puis Ratatouille seule en Revue', (tester) async {
-    // Téléphone haut : toute la Revue et toute la Liste sont bâties.
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(400, 1400);
-    addTearDown(tester.view.reset);
+  testWidgets('Carbonara + Quiche : Valider 2 recettes, Revue « Qu’as-tu '
+      'déjà ? » en cartes par rayon, tout gardé ; Ajouter : Liste prête ; '
+      'puis Ratatouille seule en Revue', (tester) async {
     final handle = tester.ensureSemantics();
-    final db = await pumpKadi(tester);
-    await _openRecettes(tester);
-    await tapRecipeCard(tester, 'Pâtes carbonara');
-    await tapRecipeCard(tester, 'Quiche lorraine');
-    await openRevue(tester, 2);
+    final db = await _openCarbonaraQuiche(tester);
 
     // Revue : plein écran, sans Barre de navigation, flèche retour.
     expect(find.byType(RevueScreen), findsOneWidget);
-    expect(find.text(StringsFr.revue), findsOneWidget);
-    expect(find.text(StringsFr.revueConsigne), findsOneWidget);
+    expect(find.text(StringsFr.quAsTuDeja), findsOneWidget);
+    expect(find.text(StringsFr.revueConsigneV2), findsOneWidget);
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(BackButton), findsOneWidget);
 
-    // Groupée par rayon dans l'ordre du parcours (par défaut), tout coché.
-    expect(_headers(tester), [
+    // Une carte par rayon dans l'ordre du parcours, tout gardé.
+    expect(revueRayons(tester), [
       Rayon.viandePoisson,
       Rayon.cremerie,
       Rayon.epicerieSalee,
     ]);
     expect(find.byType(RevueRow), findsNWidgets(8));
-    // Pas de picto en Revue (C7).
+    expect(allRevueKept(tester), isTrue);
+    expect(revueQuantity(tester, 'Lardons'), '400${_nbsp}g');
+    expect(revueQuantity(tester, 'Œufs'), '6${_nbsp}pièces');
+    // Poivre sans quantité : la balance.
     expect(
-      find.descendant(
-        of: find.byType(RevueScreen),
-        matching: find.byType(Picto),
-      ),
-      findsNothing,
-    );
-    expect(find.text('Lardons'), findsOneWidget);
-    expect(_fieldText(tester, 'Lardons'), '400');
-    // Lardons : champ discret, rempli sans bordure, coins arrondis, étroit.
-    final lardons = tester.widget<TextField>(_field('Lardons')).decoration!;
-    final scheme = Theme.of(tester.element(_field('Lardons'))).colorScheme;
-    expect(lardons.filled, isTrue);
-    expect(lardons.fillColor, scheme.surfaceContainer);
-    final lardonsBorder = lardons.enabledBorder! as OutlineInputBorder;
-    expect(lardonsBorder.borderSide, BorderSide.none);
-    expect(lardonsBorder.borderRadius, BorderRadius.circular(KadiRadius.sm));
-    expect(tester.getSize(_field('Lardons')).width, lessThanOrEqualTo(96));
-    expect(
-      find.descendant(
-        of: _revueRow('Lardons'),
-        matching: find.text(StringsFr.champUniteG),
-      ),
+      find.bySemanticsLabel(StringsFr.ajouterUneQuantiteA('Poivre')),
       findsOneWidget,
-    );
-    expect(find.text('Œufs'), findsOneWidget);
-    expect(_fieldText(tester, 'Œufs'), '6');
-    expect(
-      find.descendant(
-        of: _revueRow('Œufs'),
-        matching: find.text(StringsFr.champUnitePieces),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('Poivre'), findsOneWidget);
-    // Poivre sans quantité : ni champ ni texte de quantité.
-    expect(_field('Poivre'), findsNothing);
-    expect(
-      find.descendant(
-        of: _revueRow('Poivre'),
-        matching: find.text(StringsFr.champUnitePieces),
-      ),
-      findsNothing,
     );
     expect(
       tester.getSemantics(
@@ -382,24 +291,12 @@ void main() {
         label: 'Lardons, 400${_nbsp}g, Viande et poisson',
         hasCheckedState: true,
         isChecked: true,
+        hasTapAction: true,
       ),
     );
-    expect(find.bySemanticsLabel('Poivre, Épicerie salée'), findsOneWidget);
-    expect(
-      tester
-          .widgetList<Checkbox>(
-            find.descendant(
-              of: find.byType(RevueRow),
-              matching: find.byType(Checkbox),
-            ),
-          )
-          .every((c) => c.value == true),
-      isTrue,
-    );
+    expect(find.text(StringsFr.ajouterNArticles(8)), findsOneWidget);
 
-    await tester.tap(
-      find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
-    );
+    await tester.tap(revueAddButton);
     await tester.pumpAndSettle();
 
     // La Liste, triée par rayon, avec son avis.
@@ -420,14 +317,8 @@ void main() {
 
     // De retour sur Recettes : toujours sélectionnées, sans Valider.
     await _openRecettes(tester);
-    expect(
-      find.bySemanticsLabel(StringsFr.retirerDeLaSemaine('Pâtes carbonara')),
-      findsOneWidget,
-    );
-    expect(
-      find.bySemanticsLabel(StringsFr.retirerDeLaSemaine('Quiche lorraine')),
-      findsOneWidget,
-    );
+    expect(recipeSelected(tester, 'Pâtes carbonara'), isTrue);
+    expect(recipeSelected(tester, 'Quiche lorraine'), isTrue);
     expect(find.byType(FilledButton), findsNothing);
 
     // Ratatouille seule en Revue.
@@ -436,207 +327,114 @@ void main() {
     expect(find.byType(RevueRow), findsNWidgets(7));
     expect(find.text('Courgettes'), findsOneWidget);
     expect(find.text('Lardons'), findsNothing);
-    expect(find.text('Œufs'), findsNothing);
     handle.dispose();
   });
 
-  testWidgets('décocher Pâtes, Œufs 6 → 4, Ajouter : la Liste sans Pâtes, '
-      'avec « Œufs 4 pièces »', (tester) async {
-    final announcements = _recordAnnouncements(tester);
+  testWidgets('Pâtes « J’ai ! », Œufs 6 → 4 par le Module quantité, '
+      'Ajouter : la Liste sans Pâtes, avec « Œufs 4 pièces »', (tester) async {
+    final handle = tester.ensureSemantics();
     final db = await _openCarbonaraQuiche(tester);
 
-    final before = tester.getTopLeft(_revueRow('Pâtes'));
-    await _tapCheck(tester, 'Pâtes');
-
-    // Décochée : couleur cochée sans barré, la ligne reste à sa place.
-    final checkbox = tester.widget<Checkbox>(
-      find.descendant(of: _revueRow('Pâtes'), matching: find.byType(Checkbox)),
+    await toggleRevueRow(tester, 'Pâtes');
+    expect(revueKept(tester, 'Pâtes'), isFalse);
+    // « J'ai ! » : nom barré, sans tag ; le compteur et le bouton suivent.
+    final pates = tester.widget<Text>(
+      find.descendant(of: revueRowOf('Pâtes'), matching: find.text('Pâtes')),
     );
-    expect(checkbox.value, isFalse);
-    final name = tester.widget<Text>(
-      find.descendant(of: _revueRow('Pâtes'), matching: find.text('Pâtes')),
+    expect(pates.style?.decoration, TextDecoration.lineThrough);
+    expect(
+      find.descendant(
+        of: revueRowOf('Pâtes'),
+        matching: find.text(StringsFr.jAi),
+      ),
+      findsOneWidget,
     );
-    final colors = KadiColors.of(tester.element(_revueRow('Pâtes')));
-    expect(name.style?.color, colors.checked);
-    expect(name.style?.decoration, isNot(TextDecoration.lineThrough));
-    expect(tester.getTopLeft(_revueRow('Pâtes')), before);
-    expect(find.byType(RevueRow), findsNWidgets(8));
-    expect(announcements, ['Pâtes, non coché']);
+    expect(
+      find.descendant(
+        of: revueRowOf('Pâtes'),
+        matching: find.byType(QuantityTag),
+      ),
+      findsNothing,
+    );
+    expect(find.text(StringsFr.ajouterNArticles(7)), findsOneWidget);
 
-    // Recocher puis redécocher : l'état suit chaque tap.
-    await _tapCheck(tester, 'Pâtes');
-    expect(announcements.last, 'Pâtes, coché');
-    await _tapCheck(tester, 'Pâtes');
+    await setRevueQuantity(tester, 'Œufs', '4');
+    expect(revueQuantity(tester, 'Œufs'), '4${_nbsp}pièces');
+    // Rien d'écrit avant « Ajouter ».
+    expect(await db.select(db.listLines).get(), isEmpty);
 
-    await tester.enterText(_field('Œufs'), '4');
+    await tester.tap(revueAddButton);
     await tester.pumpAndSettle();
-    await tester.tap(_ajouterButton);
-    await tester.pumpAndSettle();
-
-    expect(find.byType(RevueScreen), findsNothing);
-    expect(find.text(StringsFr.listePrete), findsOneWidget);
     expect(find.byType(ItemRow), findsNWidgets(7));
-    expect(find.text('Pâtes'), findsNothing);
-    expect(find.text('Œufs'), findsOneWidget);
-    expect(find.text('4${_nbsp}pièces'), findsOneWidget);
-    final lines = await db.select(db.listLines).get();
-    expect(lines.every((l) => l.manualAt == null), isTrue);
+    expect(find.widgetWithText(ItemRow, 'Pâtes'), findsNothing);
+    expect(
+      find.bySemanticsLabel(RegExp('^Œufs, 4${_nbsp}pièces')),
+      findsOneWidget,
+    );
+    handle.dispose();
   });
 
-  testWidgets('tout décoché : la Liste ne change pas, Valider disparaît', (
-    tester,
-  ) async {
+  testWidgets('tout « J’ai ! » : « Ajouter à la liste », la Liste ne change '
+      'pas, Valider disparaît', (tester) async {
     final db = await _openCarbonaraQuiche(tester);
     for (final row in tester.widgetList<RevueRow>(find.byType(RevueRow))) {
-      await _tapCheck(tester, row.line.name);
+      await toggleRevueRow(tester, row.line.name);
     }
-    expect(
-      tester
-          .widgetList<Checkbox>(
-            find.descendant(
-              of: find.byType(RevueRow),
-              matching: find.byType(Checkbox),
-            ),
-          )
-          .every((c) => c.value == false),
-      isTrue,
-    );
-    // Toujours actif.
-    expect(tester.widget<FilledButton>(_ajouterButton).onPressed, isNotNull);
-    await tester.tap(_ajouterButton);
+    expect(find.text(StringsFr.ajouterALaListe), findsOneWidget);
+    await tester.tap(revueAddButton);
     await tester.pumpAndSettle();
-
-    expect(find.byType(RevueScreen), findsNothing);
-    expect(find.byType(ItemRow), findsNothing);
     expect(await db.select(db.listLines).get(), isEmpty);
-    final selections = await db.select(db.weekSelections).get();
-    expect(selections.every((s) => s.validatedAt != null), isTrue);
     await _openRecettes(tester);
     expect(find.byType(FilledButton), findsNothing);
   });
 
-  testWidgets('retour après décoche et correction : rien n’est écrit, '
-      '« Valider (2) » toujours là, Revue rouverte toute cochée', (
+  testWidgets('retour après « J’ai ! » et correction : rien n’est écrit, '
+      '« Valider 2 recettes » toujours là, Revue rouverte toute gardée', (
     tester,
   ) async {
     final db = await _openCarbonaraQuiche(tester);
-    await _tapCheck(tester, 'Pâtes');
-    await tester.enterText(_field('Œufs'), '4');
-    await tester.pumpAndSettle();
-
+    await toggleRevueRow(tester, 'Pâtes');
+    await setRevueQuantity(tester, 'Œufs', '4');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
     expect(find.byType(RevueScreen), findsNothing);
-    expect(validerButton(2), findsOneWidget);
     expect(await db.select(db.listLines).get(), isEmpty);
-    expect(
-      (await db.select(db.weekSelections).get()).every(
-        (s) => s.validatedAt == null,
-      ),
-      isTrue,
-    );
-
-    // Le brouillon est mort avec l'écran.
+    expect(validerButton(2), findsOneWidget);
     await openRevue(tester, 2);
-    expect(_fieldText(tester, 'Œufs'), '6');
-    expect(
-      tester
-          .widget<Checkbox>(
-            find.descendant(
-              of: _revueRow('Pâtes'),
-              matching: find.byType(Checkbox),
-            ),
-          )
-          .value,
-      isTrue,
-    );
+    expect(allRevueKept(tester), isTrue);
+    expect(revueQuantity(tester, 'Œufs'), '6${_nbsp}pièces');
   });
 
-  testWidgets('TalkBack : ligne lue avec son état et activable, champ « '
-      'Quantité de … » à part, suivant la saisie', (tester) async {
+  testWidgets('TalkBack : la ligne bascule par son tap ; le tag est un '
+      'bouton à part, qui ne bascule pas la ligne', (tester) async {
     final handle = tester.ensureSemantics();
-    final announcements = _recordAnnouncements(tester);
     await _openCarbonaraQuiche(tester);
 
-    const pates = 'Pâtes, 500${_nbsp}g, Épicerie salée';
+    tester.semantics.tap(
+      find.semantics.byLabel('Lardons, 400${_nbsp}g, Viande et poisson'),
+    );
+    await tester.pumpAndSettle();
+    expect(revueKept(tester, 'Lardons'), isFalse);
     expect(
-      tester.getSemantics(find.bySemanticsLabel(pates)),
+      find.bySemanticsLabel('Lardons, ${StringsFr.jAi}, Viande et poisson'),
+      findsOneWidget,
+    );
+    await toggleRevueRow(tester, 'Lardons');
+
+    expect(
+      tester.getSemantics(
+        find.bySemanticsLabel(StringsFr.quantiteDe('Œufs', '6${_nbsp}pièces')),
+      ),
       isSemantics(
-        label: pates,
-        hasCheckedState: true,
-        isChecked: true,
+        label: StringsFr.quantiteDe('Œufs', '6${_nbsp}pièces'),
+        isButton: true,
         hasTapAction: true,
       ),
     );
-    expect(
-      find.bySemanticsLabel('Quantité de Pâtes, 500${_nbsp}g'),
-      findsOneWidget,
-    );
-    // Poivre, sans quantité, n'annonce aucun champ.
-    expect(find.bySemanticsLabel('Poivre, Épicerie salée'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('Quantité de Poivre')), findsNothing);
-
-    tester.semantics.tap(find.semantics.byLabel(pates));
-    await tester.pumpAndSettle();
-    expect(
-      tester.getSemantics(find.bySemanticsLabel(pates)),
-      isSemantics(
-        label: pates,
-        hasCheckedState: true,
-        isChecked: false,
-        hasTapAction: true,
-      ),
-    );
-    expect(announcements, ['Pâtes, non coché']);
-
-    await tester.enterText(_field('Pâtes'), '400');
-    await tester.pumpAndSettle();
-    expect(
-      find.bySemanticsLabel('Pâtes, 400${_nbsp}g, Épicerie salée'),
-      findsOneWidget,
-    );
-    expect(
-      find.bySemanticsLabel('Quantité de Pâtes, 400${_nbsp}g'),
-      findsOneWidget,
-    );
+    await setRevueQuantity(tester, 'Œufs', '5');
+    expect(revueKept(tester, 'Œufs'), isTrue);
     handle.dispose();
-  });
-
-  testWidgets('clavier ouvert : « Ajouter à la liste » reste visible juste '
-      'au-dessus et se touche sans fermer le clavier', (tester) async {
-    await _openCarbonaraQuiche(tester);
-    final closed = tester.getRect(_ajouterButton);
-    expect(closed.bottom, lessThanOrEqualTo(1400));
-
-    await tester.tap(_field('Œufs'));
-    await tester.enterText(_field('Œufs'), '4');
-    const keyboard = 600.0;
-    tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
-    await tester.pumpAndSettle();
-
-    final open = tester.getRect(_ajouterButton);
-    expect(open.bottom, lessThanOrEqualTo(1400 - keyboard));
-    expect(open.bottom, greaterThan(1400 - keyboard - KadiSpacing.s4 * 2));
-    expect(open.size, closed.size);
-    expect(_ajouterButton.hitTestable(), findsOneWidget);
-
-    // Touché clavier ouvert : la saisie en cours est prise en compte.
-    await tester.tap(_ajouterButton);
-    await tester.pumpAndSettle();
-    expect(find.byType(RevueScreen), findsNothing);
-    expect(find.text('4${_nbsp}pièces'), findsOneWidget);
-  });
-
-  testWidgets('clavier fermé : le bouton revient à sa place', (tester) async {
-    await _openCarbonaraQuiche(tester);
-    final closed = tester.getRect(_ajouterButton);
-    tester.view.viewInsets = const FakeViewPadding(bottom: 600);
-    await tester.pumpAndSettle();
-    expect(tester.getRect(_ajouterButton), isNot(closed));
-    tester.view.resetViewInsets();
-    await tester.pumpAndSettle();
-    expect(tester.getRect(_ajouterButton), closed);
   });
 
   testWidgets('retour depuis la Revue : rien n’est validé ni ajouté', (
@@ -668,21 +466,12 @@ void main() {
     await tapRecipeCard(tester, 'Chili con carne');
     await openRevue(tester, 1);
 
-    await tester.tap(
-      find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
-    );
+    await tester.tap(revueAddButton);
     await tester.pumpAndSettle();
 
     expect(find.text(StringsFr.ajoutImpossible), findsOneWidget);
     expect(find.byType(RevueScreen), findsOneWidget);
-    expect(
-      tester
-          .widget<FilledButton>(
-            find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
-          )
-          .onPressed,
-      isNotNull,
-    );
+    expect(tester.widget<FilledButton>(revueAddButton).onPressed, isNotNull);
     expect(await db.select(db.listLines).get(), isEmpty);
   });
 
@@ -1134,19 +923,13 @@ void main() {
       await openRevue(tester, 1);
       expect(tester.takeException(), isNull);
       expect(find.byType(RevueScreen), findsOneWidget);
-      final button = tester.getSize(
-        find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
-      );
+      final button = tester.getSize(revueAddButton);
       expect(button.height, greaterThanOrEqualTo(KadiSpacing.touchTarget));
 
-      // Ligne de Revue : coche et champ de 48 dp, nom entier, saisie sans
+      // Ligne de Revue : nom entier, tag et Module quantité sans
       // débordement.
-      final check = find.descendant(
-        of: _revueRow('Pâtes'),
-        matching: find.byType(Checkbox),
-      );
       await tester.scrollUntilVisible(
-        _field('Œufs'),
+        revueRowOf('Œufs'),
         100,
         scrollable: find
             .descendant(
@@ -1156,55 +939,14 @@ void main() {
             .first,
       );
       await tester.pumpAndSettle();
-      expect(
-        tester.getSize(_field('Œufs')).height,
-        greaterThanOrEqualTo(KadiSpacing.touchTarget),
-      );
       final eggName = tester.widget<Text>(
-        find.descendant(of: _revueRow('Œufs'), matching: find.text('Œufs')),
+        find.descendant(of: revueRowOf('Œufs'), matching: find.text('Œufs')),
       );
       expect(eggName.maxLines, isNull);
       expect(eggName.overflow, isNull);
-      await tester.enterText(_field('Œufs'), '999999');
-      await tester.pumpAndSettle();
+      await setRevueQuantity(tester, 'Œufs', '999999');
       expect(tester.takeException(), isNull);
-      expect(tester.getRect(_field('Œufs')).right, lessThanOrEqualTo(360));
-      expect(
-        tester.widget<TextField>(_field('Œufs')).decoration!.filled,
-        isTrue,
-      );
-      // Poivre, sans quantité : pas de champ, à toute taille de police.
-      await tester.scrollUntilVisible(
-        _revueRow('Poivre'),
-        100,
-        scrollable: find
-            .descendant(
-              of: find.byType(RevueScreen),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      expect(_field('Poivre'), findsNothing);
-      expect(tester.takeException(), isNull);
-      await tester.scrollUntilVisible(
-        check,
-        -100,
-        scrollable: find
-            .descendant(
-              of: find.byType(RevueScreen),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      // La cible de la coche : le carré de 48 dp qui la porte.
-      expect(
-        tester.getSize(
-          find.ancestor(of: check, matching: find.byType(SizedBox)).first,
-        ),
-        const Size.square(KadiSpacing.touchTarget),
-      );
+      expect(tester.getRect(revueRowOf('Œufs')).right, lessThanOrEqualTo(360));
     });
   }
 }

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart' show BooleanExpressionOperators, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kadi/core/ui/rayon_menu.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
@@ -15,7 +16,7 @@ import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
-import 'package:kadi/features/liste/ui/quantity_popup.dart';
+import 'package:kadi/core/ui/quantity_sheet.dart';
 import 'package:kadi/features/liste/ui/quantity_tag.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:kadi/features/liste/ui/rayon_tag.dart';
@@ -23,6 +24,7 @@ import 'package:kadi/features/liste/ui/row_highlight.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/panneau.dart';
 import '../../helpers/test_db.dart';
 
 const _keyboard = 300.0;
@@ -56,19 +58,17 @@ Finder get _search => _inSheet(find.byType(TextField)).first;
 
 /// Le Tag Quantité du champ, pas celui d'une ligne.
 final _quantityTag = find.byWidgetPredicate(
-  (w) => w is QuantityTag && w.emptyLabel == StringsFr.quantite,
+  (w) => w is PanelQuantityTag && w.emptyLabel == StringsFr.quantite,
 );
 final _rayonTag = find.byType(RayonTag);
-final _title = _inSheet(find.byType(FrequentsTitle));
 final _menuEntries = find.byType(MenuItemButton);
 Finder _menuEntry(Rayon rayon) => find.byKey(ValueKey(rayon));
 
-final _popup = find.byType(QuantityPopup);
-Finder get _popupField =>
-    find.descendant(of: _popup, matching: find.byType(TextField));
+final _popup = find.byType(QuantitySheet);
+Finder get _popupField => find.byKey(const Key('quantity-sheet-input'));
 final _undoAction = find.widgetWithText(SnackBarAction, StringsFr.annuler);
 
-Finder _frequent(String name) => find.widgetWithText(FrequentRow, name);
+Finder _frequent(String name) => find.widgetWithText(FrequentChip, name);
 Finder _result(String name) =>
     find.ancestor(of: find.text(name), matching: find.byType(SearchResultRow));
 Finder _row(String name) => find.widgetWithText(ItemRow, name);
@@ -106,18 +106,22 @@ Future<void> _enter(WidgetTester tester) async {
 
 /// Ouvre le Tag Rayon et y choisit [rayon], après défilement du menu.
 Future<void> _chooseRayon(WidgetTester tester, Rayon rayon) async {
+  await tester.ensureVisible(_rayonTag);
+  await tester.pumpAndSettle();
   await _tap(tester, _rayonTag);
   await tester.ensureVisible(_menuEntry(rayon));
   await tester.pumpAndSettle();
   await _tap(tester, _menuEntry(rayon));
 }
 
-/// Règle le Tag Quantité : [text] tapé dans la popup, puis Entrée.
+/// Règle le Tag Quantité : [text] tapé dans le Module quantité (tap sur
+/// le grand nombre), puis OK.
 Future<void> _setQuantity(WidgetTester tester, String text) async {
   await _tap(tester, _quantityTag);
+  await _tap(tester, find.byKey(const Key('quantity-sheet-number')));
   await tester.enterText(_popupField, text);
   await tester.pump();
-  await _enter(tester);
+  await _tap(tester, find.text(StringsFr.ok));
 }
 
 /// Laisse se fermer le snackbar ouvert.
@@ -210,24 +214,16 @@ void main() {
       for (final tag in [_quantityTag, _rayonTag]) {
         expect(tag, findsOneWidget);
         expect(tester.getTopLeft(tag).dy, greaterThanOrEqualTo(fieldBottom));
-        expect(
-          tester.getBottomLeft(tag).dy,
-          lessThanOrEqualTo(tester.getTopLeft(_title).dy),
-        );
         expect(tester.getSize(tag).height, KadiSpacing.touchTarget);
-        expect(tester.getSize(_chip(tag)).height, KadiSpacing.tagHeight);
+        expect(tester.getSize(_chip(tag)).height, addTagHeight);
       }
       expect(
         tester.getCenter(_quantityTag).dx,
         lessThan(tester.getCenter(_rayonTag).dx),
       );
-      // Puces alignées sur le Champ d'ajout.
-      expect(
-        tester.getTopLeft(_chip(_quantityTag)).dx,
-        KadiSpacing.s2 + KadiSpacing.margin,
-      );
+      // Puces alignées sur le Champ d'ajout, à 16 dp du bord (V2 2f).
+      expect(tester.getTopLeft(_chip(_quantityTag)).dx, KadiSpacing.margin);
 
-      final theme = Theme.of(tester.element(_rayonTag));
       final divers = KadiColors.of(tester.element(_rayonTag))
           .rayon(Rayon.divers);
       expect(_inTag(_quantityTag, StringsFr.quantite), findsOneWidget);
@@ -241,11 +237,12 @@ void main() {
       );
       final chip = tester.widget<Material>(_chip(_rayonTag));
       final shape = chip.shape! as RoundedRectangleBorder;
-      expect(chip.color, theme.colorScheme.surfaceContainerHigh);
+      // V2 2f : le Tag Rayon est toujours sur la pastille de son rayon.
+      expect(chip.color, divers.pastille);
       expect(shape.side, BorderSide.none);
       expect(
         shape.borderRadius,
-        const BorderRadius.all(Radius.circular(KadiRadius.sm)),
+        const BorderRadius.all(Radius.circular(KadiRadius.tag)),
       );
       final dot = tester.widget<Container>(
         find.descendant(of: _rayonTag, matching: find.byType(Container)),
@@ -279,10 +276,9 @@ void main() {
         );
 
         await _tap(tester, _quantityTag);
-        await tester.enterText(_popupField, '500');
-        await tester.pump();
-        await _tap(tester, find.byKey(const ValueKey(InputUnit.g)));
-        await _enter(tester);
+        await _tap(tester, find.bySemanticsLabel(StringsFr.uniteDe('g')));
+        await _tap(tester, find.text('500 g'));
+        await _tap(tester, find.text(StringsFr.ok));
         final value = StringsFr.quantiteTag(formatQuantity(500, Unit.g));
         expect(value.replaceAll(' ', ' '), 'Quantité, 500 g');
         expect(find.bySemanticsLabel(value), findsOneWidget);
@@ -419,7 +415,10 @@ void main() {
         lessThanOrEqualTo(tester.getTopLeft(_chip(_rayonTag)).dy),
       );
       expect(tester.getTopLeft(menu).dy, greaterThanOrEqualTo(0));
-      expect(tester.getSize(menu).height, lessThanOrEqualTo(264));
+      expect(
+        tester.getSize(menu).height,
+        lessThanOrEqualTo(rayonMenuMaxHeight),
+      );
 
       final scroll = tester.state<ScrollableState>(
         find
@@ -467,9 +466,7 @@ void main() {
 
       await _tap(tester, _rayonTag);
       expect(_menuEntries, findsNWidgets(13));
-      await tester.tapAt(
-        tester.getCenter(_inSheet(find.byType(FrequentsTitle))),
-      );
+      await tester.tapAt(tester.getCenter(_search));
       await tester.pumpAndSettle();
       expect(_menuEntries, findsNothing);
       expect(await _lines(db, SeedIds.tomates), isEmpty);
@@ -586,76 +583,47 @@ void main() {
   });
 
   group('le Tag Quantité', () {
-    testWidgets('titre de la popup : le texte tapé, sinon « Quantité » ; unité '
-        'de l’article au nom exact, sinon pièce', (tester) async {
+    testWidgets('Module quantité : titre le texte tapé, sinon « Quantité » ; '
+        'unité de l’article au nom exact, sinon pièce', (tester) async {
       await _pumpTall(tester);
       await _openPanel(tester);
 
+      InputUnit unit() => tester.widget<QuantitySheet>(_popup).stepper.unit;
       await _tap(tester, _quantityTag);
-      // Nom lu par TalkBack seulement : la carte n'a plus de titre visible.
-      expect(tester.widget<QuantityPopup>(_popup).title, StringsFr.quantite);
-      expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
-            .selected,
-        isTrue,
-      );
+      expect(tester.widget<QuantitySheet>(_popup).title, StringsFr.quantite);
+      expect(unit(), InputUnit.piece);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
 
       await _type(tester, 'tom');
       await _tap(tester, _quantityTag);
-      expect(tester.widget<QuantityPopup>(_popup).title, 'tom');
-      expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.piece)))
-            .selected,
-        isTrue,
-      );
+      expect(tester.widget<QuantitySheet>(_popup).title, 'tom');
+      expect(unit(), InputUnit.piece);
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
 
       await _type(tester, 'tomates');
       await _tap(tester, _quantityTag);
-      expect(tester.widget<QuantityPopup>(_popup).title, 'tomates');
-      expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(const ValueKey(InputUnit.g)))
-            .selected,
-        isTrue,
-      );
+      expect(tester.widget<QuantitySheet>(_popup).title, 'tomates');
+      expect(unit(), InputUnit.g);
     });
 
-    for (final (name, close) in <(String, Future<void> Function(WidgetTester))>[
-      ('Entrée', _enter),
-      (
-        'retour',
-        (tester) async {
-          await tester.binding.handlePopRoute();
-          await tester.pumpAndSettle();
-        },
-      ),
-    ]) {
-      testWidgets('fermée par $name : le focus et le clavier reviennent au '
-          'champ', (tester) async {
-        await _pumpPhone(tester);
-        await _openPanel(tester);
+    testWidgets('fermé par OK ou par retour : le focus et le clavier '
+        'reviennent au champ', (tester) async {
+      await _pumpPhone(tester);
+      await _openPanel(tester);
 
-        await _tap(tester, _quantityTag);
-        expect(_focused(tester, _popupField), isTrue);
-        await tester.enterText(_popupField, '4');
-        await tester.pump();
-        await close(tester);
+      await _setQuantity(tester, '4');
+      expect(_popup, findsNothing);
+      expect(_focused(tester, _search), isTrue);
+      expect(_inTag(_quantityTag, formatQuantity(4000, Unit.piece)), findsOne);
 
-        expect(_popup, findsNothing);
-        expect(_focused(tester, _search), isTrue);
-        expect(tester.testTextInput.isVisible, isTrue);
-        expect(
-          _inTag(_quantityTag, formatQuantity(4000, Unit.piece)),
-          findsOne,
-        );
-      });
-    }
+      await _tap(tester, _quantityTag);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(_popup, findsNothing);
+      expect(_focused(tester, _search), isTrue);
+    });
 
     testWidgets('clavier fermé avant : le champ reprend quand même le focus', (
       tester,
@@ -672,8 +640,8 @@ void main() {
     });
 
     testWidgets(
-      'plein avec la valeur, rouvert sur elle ; vidé : « Quantité » en '
-      'contour',
+      'plein à l’encre avec la valeur, rouvert sur elle ; 0 : « Quantité » '
+      'neutre',
       (tester) async {
         await _pumpTall(tester);
         await _openPanel(tester);
@@ -684,13 +652,13 @@ void main() {
         expect(_inTag(_quantityTag, four), findsOneWidget);
         final theme = Theme.of(tester.element(_quantityTag));
         final filled = tester.widget<Material>(_chip(_quantityTag));
-        expect(filled.color, theme.colorScheme.onSurfaceVariant);
+        expect(filled.color, theme.colorScheme.onSurface);
 
         await _tap(tester, _quantityTag);
-        expect(tester.widget<TextField>(_popupField).controller!.text, '4');
-        await tester.enterText(_popupField, '');
-        await tester.pump();
-        await _enter(tester);
+        expect(tester.widget<QuantitySheet>(_popup).stepper.milli, 4000);
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        await _setQuantity(tester, '');
 
         expect(_inTag(_quantityTag, StringsFr.quantite), findsOneWidget);
         final empty = tester.widget<Material>(_chip(_quantityTag));
@@ -698,7 +666,7 @@ void main() {
       },
     );
 
-    testWidgets('fermée sans saisie : le tag garde sa valeur', (tester) async {
+    testWidgets('fermé sans saisie : le tag garde sa valeur', (tester) async {
       await _pumpTall(tester);
       await _openPanel(tester);
       await _setQuantity(tester, '4');
@@ -1078,6 +1046,7 @@ void main() {
       await _setQuantity(tester, '2');
       await _chooseRayon(tester, Rayon.boissons);
 
+      await showFrequents(tester);
       await _tap(tester, _frequent('Lait'));
 
       final line = (await _lines(db, SeedIds.lait)).single;

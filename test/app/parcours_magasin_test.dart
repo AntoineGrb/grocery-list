@@ -14,6 +14,7 @@ import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../helpers/panneau.dart';
 import '../helpers/pump_app.dart';
 import '../helpers/recettes.dart';
 import '../helpers/test_db.dart';
@@ -113,15 +114,16 @@ void main() {
     await openTab(tester, StringsFr.tabRecettes);
     await openRevue(tester, 1);
     expect(find.byType(RevueScreen), findsOneWidget);
-    expect(_headers(tester), [Rayon.boulangerie, Rayon.fruitsLegumes]);
+    expect(revueRayons(tester), [Rayon.boulangerie, Rayon.fruitsLegumes]);
     await _tap(tester, find.byType(BackButton));
 
     // Ajouts fréquents du Panneau + : les fréquents de Boulangerie d'abord.
     await openTab(tester, StringsFr.tabListe);
     await _tap(tester, find.byType(FloatingActionButton));
     expect(find.byType(AddSheet), findsOneWidget);
+    await showFrequents(tester);
     final frequents = tester
-        .widgetList<FrequentRow>(find.byType(FrequentRow))
+        .widgetList<FrequentChip>(find.byType(FrequentChip))
         .map((r) => r.article)
         .toList();
     // Baguettes et Pain de mie, puis les fruits et légumes.

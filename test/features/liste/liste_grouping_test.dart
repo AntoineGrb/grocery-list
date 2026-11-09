@@ -19,6 +19,7 @@ import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:kadi/features/liste/ui/row_highlight.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../../helpers/panneau.dart';
 import '../../helpers/pump_app.dart';
 import '../../helpers/test_db.dart';
 
@@ -155,8 +156,9 @@ void main() {
 
     await _tap(tester, find.byType(FloatingActionButton));
     expect(find.byType(AddSheet), findsOneWidget);
+    await showFrequents(tester);
 
-    final frequent = find.widgetWithText(FrequentRow, 'Oignons');
+    final frequent = find.widgetWithText(FrequentChip, 'Oignons');
     await tester.scrollUntilVisible(
       frequent,
       100,

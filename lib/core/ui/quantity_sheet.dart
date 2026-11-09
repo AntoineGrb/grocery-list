@@ -250,32 +250,42 @@ class _QuantitySheetState extends State<QuantitySheet> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _startTyping,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        _q.numberLabel,
-                        key: const Key('quantity-sheet-number'),
-                        style: KadiText.bigNumber.copyWith(
-                          color: scheme.onSurface,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  minHeight: KadiSpacing.touchTarget,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _q.numberLabel,
+                          key: const Key('quantity-sheet-number'),
+                          style: KadiText.bigNumber.copyWith(
+                            color: scheme.onSurface,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: KadiSpacing.s2),
-                  Text(
-                    _q.unitLabel,
-                    style: text.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.w500,
-                      color: scheme.onSurfaceVariant,
+                    const SizedBox(width: KadiSpacing.s2),
+                    Flexible(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          _q.unitLabel,
+                          style: text.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           )
@@ -316,7 +326,7 @@ class _QuantitySheetState extends State<QuantitySheet> {
                 label: unitSegmentLabel(unit),
                 semanticLabel: StringsFr.uniteDe(unitSegmentLabel(unit)),
                 selected: unit == _q.unit,
-                height: 30,
+                height: KadiSpacing.touchTarget,
                 radius: KadiRadius.full,
                 idle: Colors.transparent,
                 onTap: () => _update(() => _q.selectUnit(unit)),
@@ -335,7 +345,7 @@ class _QuantitySheetState extends State<QuantitySheet> {
             child: _Choice(
               label: QuantityStepper.pickLabel(_q.unit, milli),
               selected: typing == null && milli == _q.milli,
-              height: 36,
+              height: KadiSpacing.touchTarget,
               radius: KadiRadius.tag,
               idle: scheme.surface,
               onTap: () => _update(() => _q.milli = milli),
@@ -370,13 +380,18 @@ class _QuantitySheetState extends State<QuantitySheet> {
                       ),
                     ),
                   ),
-                  if (widget.caption case final caption?)
-                    Text(
-                      caption,
-                      style: text.bodySmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                  if (widget.caption case final caption?) ...[
+                    const SizedBox(width: KadiSpacing.s2),
+                    Flexible(
+                      child: Text(
+                        caption,
+                        textAlign: TextAlign.end,
+                        style: text.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
+                  ],
                 ],
               ),
               const SizedBox(height: KadiSpacing.s4),
