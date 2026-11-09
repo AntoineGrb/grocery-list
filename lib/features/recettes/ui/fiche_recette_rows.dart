@@ -1,279 +1,181 @@
-import 'package:kadi/core/pictos/picto.dart';
+import 'package:flutter/semantics.dart' show CustomSemanticsAction;
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
-import 'package:kadi/core/ui/quantity_field.dart';
+import 'package:kadi/core/ui/dashed_border.dart';
+import 'package:kadi/core/ui/picto_disc.dart';
+import 'package:kadi/core/ui/quantity_tag.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
-import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
-import 'package:kadi/features/liste/ui/quantity_input.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/recettes_repository.dart';
 
-/// Facteur de police au-delà duquel le rayon d'un résultat, ou le Champ
-/// quantité d'un ingrédient, passe sous le nom.
-const _inlineMaxTextScale = 1.3;
-
-/// Largeur du Champ quantité d'une Ligne d'ingrédient, suffixe d'unité
-/// tappable compris.
-const _fieldWidth = 144.0;
-
 /// Ingrédient du brouillon de la Fiche recette (brouillon d'écran) : son id
-/// stable, son article, le texte de son Champ quantité et l'unité de saisie.
+/// stable, son article, sa quantité et son rayon, modifiable (3d).
 class IngredientDraft {
   IngredientDraft._({
     required this.id,
     required this.articleId,
     required this.name,
     required this.pictoKey,
-    required this.rayon,
-    required InputUnit unit,
-    this.originalQuantity,
-    this.originalUnit,
-  }) : unit = unit,
-       _initialUnit = unit,
-       _originalText = quantityFieldText(originalQuantity, unit) {
-    controller = TextEditingController(text: _originalText);
-  }
+    required this.originalRayon,
+    required this.unit,
+    this.value,
+  }) : rayon = originalRayon;
 
-  /// Ingrédient lu de la base : son unité, sinon celle de l'article, sinon
-  /// pièce.
-  factory IngredientDraft.read(RecipeSheetIngredient ingredient) {
-    final unit = ingredient.unit ?? ingredient.articleUnit;
-    return IngredientDraft._(
-      id: ingredient.id,
-      articleId: ingredient.articleId,
-      name: ingredient.name,
-      pictoKey: ingredient.pictoKey,
-      rayon: ingredient.rayon,
-      unit: unit == null ? InputUnit.piece : InputUnit.of(unit),
-      originalQuantity: ingredient.quantity,
-      originalUnit: ingredient.unit,
-    );
-  }
+  /// Ingrédient lu de la base.
+  factory IngredientDraft.read(RecipeSheetIngredient ingredient) =>
+      IngredientDraft._(
+        id: ingredient.id,
+        articleId: ingredient.articleId,
+        name: ingredient.name,
+        pictoKey: ingredient.pictoKey,
+        originalRayon: ingredient.rayon,
+        unit: ingredient.unit ?? ingredient.articleUnit,
+        value: ingredient.quantity == null || ingredient.unit == null
+            ? null
+            : (quantity: ingredient.quantity!, unit: ingredient.unit!),
+      );
 
-  /// Ingrédient ajouté depuis la recherche, d'id [id] : sans quantité, dans
-  /// l'unité de l'article, sinon pièce (AD-15).
-  factory IngredientDraft.added(String id, CatalogueArticle article) {
-    final unit = article.unit;
-    return IngredientDraft._(
-      id: id,
-      articleId: article.id,
-      name: article.name,
-      pictoKey: article.pictoKey,
-      rayon: article.rayon,
-      unit: unit == null ? InputUnit.piece : InputUnit.of(unit),
-    );
-  }
+  /// Ingrédient ajouté depuis la recherche, d'id [id] : sans quantité.
+  factory IngredientDraft.added(String id, CatalogueArticle article) =>
+      IngredientDraft._(
+        id: id,
+        articleId: article.id,
+        name: article.name,
+        pictoKey: article.pictoKey,
+        originalRayon: article.rayon,
+        unit: article.unit,
+      );
 
   final String id;
   final String articleId;
   final String name;
   final String pictoKey;
-  final Rayon rayon;
 
-  /// Quantité stockée lue de la base, gardée telle quelle tant que le champ
-  /// et l'unité n'ont pas changé (le texte des pièces est arrondi).
-  final int? originalQuantity;
-  final Unit? originalUnit;
+  /// Rayon de l'article à l'ouverture.
+  final Rayon originalRayon;
 
-  final InputUnit _initialUnit;
-  final String _originalText;
+  /// Unité préchoisie du Module quantité : celle de l'ingrédient, sinon
+  /// celle de l'article ; nulle : pièce.
+  final Unit? unit;
 
-  late final TextEditingController controller;
-  final focusNode = FocusNode();
+  /// Rayon montré, écrit au catalogue à l'enregistrement s'il a changé.
+  Rayon rayon;
+
+  /// Quantité à écrire ; nulle : sans quantité.
+  StoredQuantity? value;
 
   /// Clé de sa Ligne d'ingrédient, pour la mesurer et la faire défiler.
   final rowKey = GlobalKey();
 
-  /// Unité de saisie du Champ quantité.
-  InputUnit unit;
-
-  /// Quantité à écrire : celle lue tant que rien n'a changé, sinon le texte
-  /// du champ dans [unit] (vide ou 0 = sans quantité ; kg et L en g et ml,
-  /// AD-6).
-  StoredQuantity? get value =>
-      controller.text == _originalText && unit == _initialUnit
-      ? storedQuantityOf(originalQuantity, originalUnit)
-      : quantityFromFieldText(controller.text, unit);
-
-  /// Change d'unité en gardant le nombre tapé, sans les décimales que
-  /// [next] n'admet pas.
-  void selectUnit(InputUnit next) {
-    unit = next;
-    final text = quantityTextForUnit(controller.text, next);
-    if (text != controller.text) {
-      controller.value = TextEditingValue(
-        text: text,
-        selection: TextSelection.collapsed(offset: text.length),
-      );
-    }
-  }
-
-  void dispose() {
-    controller.dispose();
-    focusNode.dispose();
-  }
+  /// Unité de saisie du Module quantité.
+  InputUnit get inputUnit => InputUnit.of(value?.unit ?? unit ?? Unit.piece);
 }
 
-/// Libellé d'unité lu du suffixe : pièce, g, kg, ml, L.
-String _unitLabel(InputUnit unit) => switch (unit) {
-  InputUnit.piece => StringsFr.puceUnitePiece,
-  InputUnit.g => StringsFr.puceUniteG,
-  InputUnit.kg => StringsFr.puceUniteKg,
-  InputUnit.ml => StringsFr.puceUniteMl,
-  InputUnit.l => StringsFr.puceUniteL,
-};
-
-/// Ligne d'ingrédient (DESIGN `ingredient-row`) : Picto, nom, Champ quantité
-/// dans l'unité de l'ingrédient et icône de retrait de 48 dp. Un tap sur
-/// l'unité du champ ouvre ou ferme le Choix d'unité sous la ligne.
-///
-/// Lue « Haricots rouges, 500 g » ; le champ, à part, « Quantité de Haricots
-/// rouges, 500 g » ; son unité « Unité, g » ; le retrait « Retirer Haricots
-/// rouges ». En grande police, le champ passe sous le nom.
+/// Ligne d'ingrédient de la V2 (README redesign 2b) : disque picto (tap :
+/// menu des rayons, 3d), nom, tag quantité (tap : Module quantité, 3c) ;
+/// filet bas. Glisser vers la gauche la retire ([onRemove]).
 class IngredientRow extends StatelessWidget {
   const IngredientRow({
     super.key,
     required this.ingredient,
-    required this.unitOpen,
-    required this.onUnitTap,
-    required this.onUnitSelected,
+    required this.onPictoTap,
+    required this.onQuantityTap,
     required this.onRemove,
   });
 
   final IngredientDraft ingredient;
-
-  /// Le Choix d'unité est ouvert sous la ligne.
-  final bool unitOpen;
-  final VoidCallback onUnitTap;
-  final ValueChanged<InputUnit> onUnitSelected;
+  final VoidCallback onPictoTap;
+  final VoidCallback onQuantityTap;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: ingredient.controller,
-      builder: (context, _, _) {
-        final value = ingredient.value;
-        return _build(context, formatQuantity(value?.quantity, value?.unit));
-      },
-    );
-  }
-
-  Widget _build(BuildContext context, String quantity) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final name = ingredient.name;
-    final large =
-        MediaQuery.textScalerOf(context).scale(1) > _inlineMaxTextScale;
+    final value = ingredient.value;
 
-    final head = Semantics(
-      container: true,
-      label: [name, if (quantity.isNotEmpty) quantity].join(', '),
-      excludeSemantics: true,
-      child: Row(
-        children: [
-          Picto(pictoKey: ingredient.pictoKey, rayon: ingredient.rayon),
-          const SizedBox(width: KadiSpacing.s3),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
-              child: Text(
-                name,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: scheme.onSurface,
-                ),
-              ),
+    return Dismissible(
+      key: ValueKey('dismiss-${ingredient.id}'),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => onRemove(),
+      background: Container(
+        color: scheme.error,
+        alignment: AlignmentDirectional.centerEnd,
+        padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.margin),
+        child: Icon(Icons.delete_outline, color: scheme.onError),
+      ),
+      child: Semantics(
+        customSemanticsActions: {
+          CustomSemanticsAction(label: StringsFr.retirerIngredient(name)):
+              onRemove,
+        },
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 54),
+          margin: const EdgeInsets.symmetric(horizontal: KadiSpacing.margin),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: scheme.surfaceContainerHigh),
             ),
           ),
-        ],
-      ),
-    );
-
-    final field = Semantics(
-      container: true,
-      label: StringsFr.quantiteDe(name, quantity),
-      child: QuantityField(
-        controller: ingredient.controller,
-        focusNode: ingredient.focusNode,
-        unit: ingredient.unit,
-        onUnitTap: onUnitTap,
-        unitSemanticsLabel: StringsFr.uniteDe(_unitLabel(ingredient.unit)),
-      ),
-    );
-
-    final remove = IconButton(
-      tooltip: StringsFr.retirerIngredient(name),
-      style: IconButton.styleFrom(
-        minimumSize: const Size.square(KadiSpacing.touchTarget),
-      ),
-      onPressed: onRemove,
-      icon: Icon(Icons.close, color: scheme.onSurfaceVariant),
-    );
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: KadiSpacing.rowMinHeight),
-      child: Padding(
-        padding: const EdgeInsetsDirectional.only(
-          start: KadiSpacing.margin,
-          end: KadiSpacing.s1,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (large) ...[
-              Row(
-                children: [
-                  Expanded(child: head),
-                  remove,
-                ],
-              ),
-              Padding(
-                padding: const EdgeInsetsDirectional.only(
-                  start: KadiSpacing.picto + KadiSpacing.s3,
-                  end: KadiSpacing.s3,
-                  bottom: KadiSpacing.s2,
-                ),
-                child: field,
-              ),
-            ] else
-              Row(
-                children: [
-                  Expanded(child: head),
-                  const SizedBox(width: KadiSpacing.s3),
-                  SizedBox(width: _fieldWidth, child: field),
-                  remove,
-                ],
-              ),
-            if (unitOpen)
-              Padding(
-                padding: const EdgeInsetsDirectional.only(
-                  start: KadiSpacing.picto + KadiSpacing.s3,
-                  end: KadiSpacing.s3,
-                  bottom: KadiSpacing.s2,
-                ),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: UnitChoice(
-                    selected: ingredient.unit,
-                    onSelected: onUnitSelected,
+          child: Row(
+            children: [
+              Semantics(
+                container: true,
+                button: true,
+                label: StringsFr.rayonDe(name, ingredient.rayon.spokenLabel),
+                excludeSemantics: true,
+                onTap: onPictoTap,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onPictoTap,
+                  child: SizedBox(
+                    width: KadiSpacing.touchTarget,
+                    height: KadiSpacing.touchTarget,
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: PictoDisc(
+                        pictoKey: ingredient.pictoKey,
+                        rayon: ingredient.rayon,
+                      ),
+                    ),
                   ),
                 ),
               ),
-          ],
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
+                  child: Text(
+                    name,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: KadiSpacing.s3),
+              QuantityTag(
+                name: name,
+                rayon: ingredient.rayon,
+                quantity: value?.quantity,
+                unit: value?.unit,
+                onTap: onQuantityTap,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-/// Ligne de résultat de la popup d'ajout d'ingrédient (DESIGN
-/// `search-result-row`, comme les Lignes de résultat du Panneau +) :
-/// Picto, nom, rayon et indicateur : signe + hors de la recette, coche à
-/// l'accent du rayon déjà ingrédient. Lue « Haricots rouges, Épicerie
-/// salée », avec « dans la recette » si elle y est.
+/// Ligne de résultat de l'ajout d'ingrédient (README redesign 3a) : disque
+/// picto, nom et rayon dessous, + à l'encre ; déjà dans la recette, ✓ à
+/// l'accent du rayon et « Déjà dans la recette », sans effet au tap.
 class IngredientResultRow extends StatelessWidget {
   const IngredientResultRow({
     super.key,
@@ -290,16 +192,7 @@ class IngredientResultRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final large =
-        MediaQuery.textScalerOf(context).scale(1) > _inlineMaxTextScale;
-    final meta = Text(
-      article.rayon.label,
-      maxLines: large ? null : 1,
-      overflow: large ? null : TextOverflow.ellipsis,
-      style: theme.textTheme.bodyMedium?.copyWith(
-        color: scheme.onSurfaceVariant,
-      ),
-    );
+    final accent = KadiColors.of(context).rayon(article.rayon).accent;
 
     return Semantics(
       container: true,
@@ -313,21 +206,19 @@ class IngredientResultRow extends StatelessWidget {
       excludeSemantics: true,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(KadiRadius.md),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: KadiSpacing.rowMinHeight,
-          ),
+          constraints: const BoxConstraints(minHeight: 54),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.margin),
+            padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.s3),
             child: Row(
               children: [
-                Picto(pictoKey: article.pictoKey, rayon: article.rayon),
-                const SizedBox(width: KadiSpacing.s4),
+                PictoDisc(pictoKey: article.pictoKey, rayon: article.rayon),
+                const SizedBox(width: KadiSpacing.s3),
                 Expanded(
-                  flex: 2,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      vertical: KadiSpacing.s2,
+                      vertical: KadiSpacing.s1,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,20 +226,29 @@ class IngredientResultRow extends StatelessWidget {
                         Text(
                           article.name,
                           style: theme.textTheme.bodyLarge?.copyWith(
+                            height: 20 / 16,
                             color: scheme.onSurface,
                           ),
                         ),
-                        if (large) meta,
+                        Text(
+                          inRecipe
+                              ? StringsFr.dejaDansLaRecette
+                              : article.rayon.label,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            height: 16 / 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                       ],
                     ),
                   ),
                 ),
-                if (!large) ...[
-                  const SizedBox(width: KadiSpacing.s3),
-                  Flexible(child: meta),
-                ],
                 const SizedBox(width: KadiSpacing.s3),
-                InListIndicator(rayon: article.rayon, inList: inRecipe),
+                Icon(
+                  inRecipe ? Icons.check : Icons.add,
+                  size: 22,
+                  color: inRecipe ? accent : scheme.onSurface,
+                ),
               ],
             ),
           ),
@@ -358,9 +258,9 @@ class IngredientResultRow extends StatelessWidget {
   }
 }
 
-/// Ligne « Créer « … » » sous les résultats de la popup d'ajout, quand aucun
-/// article ne porte exactement ce nom : signe + neutre, fait comme Entrée ;
-/// lue « Créer « Piment » ».
+/// Ligne « Ajouter « … » » sous les résultats, quand aucun article ne porte
+/// exactement ce nom : cercle pointillé avec +, puis « Nouvel ingrédient ·
+/// rayon modifiable ensuite ». Fait comme Entrée.
 class CreateArticleRow extends StatelessWidget {
   const CreateArticleRow({super.key, required this.name, required this.onTap});
 
@@ -372,7 +272,7 @@ class CreateArticleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final label = StringsFr.creerNom(name);
+    final label = StringsFr.ajouterNom(name);
 
     return Semantics(
       container: true,
@@ -382,27 +282,47 @@ class CreateArticleRow extends StatelessWidget {
       onTap: onTap,
       child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(KadiRadius.md),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            minHeight: KadiSpacing.rowMinHeight,
-          ),
+          constraints: const BoxConstraints(minHeight: 54),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: KadiSpacing.margin,
-              vertical: KadiSpacing.s2,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.s3),
             child: Row(
               children: [
-                SizedBox.square(
-                  dimension: KadiSpacing.picto,
-                  child: Icon(Icons.add, color: scheme.onSurfaceVariant),
+                DashedBorder(
+                  color: scheme.outline,
+                  circle: true,
+                  strokeWidth: 1,
+                  child: SizedBox.square(
+                    dimension: PictoDisc.large,
+                    child: Icon(Icons.add, size: 20, color: scheme.onSurface),
+                  ),
                 ),
-                const SizedBox(width: KadiSpacing.s4),
+                const SizedBox(width: KadiSpacing.s3),
                 Expanded(
-                  child: Text(
-                    label,
-                    style: theme.textTheme.bodyLarge?.copyWith(
-                      color: scheme.onSurface,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: KadiSpacing.s1,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            height: 20 / 16,
+                            fontWeight: FontWeight.w500,
+                            color: scheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          StringsFr.nouvelIngredientDetail,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            height: 16 / 12,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

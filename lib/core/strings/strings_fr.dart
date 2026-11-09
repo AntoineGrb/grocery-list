@@ -355,6 +355,7 @@ abstract final class StringsFr {
 
   // Fiche recette.
   static const ajouterUnLien = 'Ajouter un lien';
+  static String ingredientRetire(String name) => '$name retiré';
   static const ingredients = 'Ingrédients';
   static const ajouterUnIngredientEllipse = 'Ajouter un ingrédient…';
   static const adresseDuLien = 'Adresse du lien';

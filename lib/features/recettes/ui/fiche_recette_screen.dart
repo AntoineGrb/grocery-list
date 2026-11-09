@@ -4,22 +4,30 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:kadi/core/db/db_providers.dart';
+import 'package:kadi/core/pictos/picto.dart';
+import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/theme/kadi_theme.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/quantity_sheet.dart';
+import 'package:kadi/core/ui/rayon_menu.dart';
+import 'package:kadi/core/ui/recipe_monogram.dart';
 import 'package:kadi/core/undo/undo.dart';
-import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
+import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../data/recettes_repository.dart';
 import '../data/recipe_link.dart';
 import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
-import 'fiche_recette_photo.dart';
 import 'fiche_recette_rows.dart';
 import 'ingredient_sheet.dart';
+import 'recipe_photo_image.dart';
 
 /// Durée du défilement qui montre un ingrédient ajouté.
 const _revealDuration = Duration(milliseconds: 200);
@@ -128,8 +136,11 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   /// La recette à modifier n'existe plus.
   bool _missing = false;
 
-  /// Ingrédient dont le Choix d'unité est ouvert.
-  String? _unitOpenFor;
+  /// Menu des rayons de chaque ingrédient (3d), par id.
+  final _menus = <String, MenuController>{};
+
+  /// Le Module quantité est ouvert : un second tap est ignoré.
+  bool _quantityOpen = false;
 
   /// État du brouillon à l'ouverture : la fiche est modifiée quand le sien
   /// en diffère ([_signature]).
@@ -183,9 +194,6 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     _nameFocus.dispose();
     _linkController.dispose();
     _scroll.dispose();
-    for (final ingredient in _ingredients) {
-      ingredient.dispose();
-    }
     _closed = true;
     if (!_saving) unawaited(_cleanPhotos());
     super.dispose();
@@ -215,7 +223,11 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     _nameController.text,
     _linkController.text,
     _photo,
-    for (final ingredient in _ingredients) ...[ingredient.id, ingredient.value],
+    for (final ingredient in _ingredients) ...[
+      ingredient.id,
+      ingredient.value,
+      ingredient.rayon,
+    ],
   ];
 
   /// La fiche a changé depuis son ouverture, ou une photo est en cours de
@@ -239,16 +251,27 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   Future<void> _save() async {
     if (_saving || _deleting || !_canSave) return;
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() {
-      _saving = true;
-      _unitOpenFor = null;
-    });
+    setState(() => _saving = true);
     final messenger = ScaffoldMessenger.of(context);
     final draft = _snapshot();
+    final db = ref.read(databaseProvider);
+    final catalogue = ref.read(catalogueRepositoryProvider);
+    final rayons = {
+      for (final i in _ingredients)
+        if (i.rayon != i.originalRayon) i.articleId: i.rayon,
+    };
     var saved = false;
     try {
-      // Faux : la recette a été supprimée entre-temps.
-      saved = await _repository.saveDraft(draft);
+      // Le rayon changé par le picto (3d) va au catalogue, dans la même
+      // transaction que la recette. Recette supprimée entre-temps : rien
+      // n'est écrit.
+      saved = await db.transaction(() async {
+        for (final MapEntry(:key, :value) in rayons.entries) {
+          await catalogue.setRayon(key, value);
+        }
+        if (!await _repository.saveDraft(draft)) throw const _NotSaved();
+        return true;
+      });
     } catch (_) {}
     if (saved) _savedPhoto = draft.photo;
     if (_closed) {
@@ -384,7 +407,6 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     if (_sheetOpen || _saving) return;
     _sheetOpen = true;
     FocusManager.instance.primaryFocus?.unfocus();
-    setState(() => _unitOpenFor = null);
     await showIngredientSheet(
       context,
       inRecipe: (articleId) =>
@@ -411,10 +433,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   bool _addArticle(CatalogueArticle article) {
     if (_ingredients.any((i) => i.articleId == article.id)) return false;
     final ingredient = IngredientDraft.added(_repository.newId(), article);
-    setState(() {
-      _ingredients.add(ingredient);
-      _unitOpenFor = null;
-    });
+    setState(() => _ingredients.add(ingredient));
     // La popup change de hauteur dans la même frame et la publie après
     // elle : la ligne est montrée une frame plus tard, sous sa géométrie à
     // jour.
@@ -477,22 +496,158 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     return _addArticle(article) ? article : null;
   }
 
+  /// Glissé vers la gauche : l'ingrédient quitte le brouillon, avec un
+  /// snackbar Annuler qui le remet à sa place.
   void _remove(IngredientDraft ingredient) {
     if (_saving) return;
+    final index = _ingredients.indexOf(ingredient);
+    if (index < 0) return;
     setState(() {
-      _ingredients.remove(ingredient);
-      if (_unitOpenFor == ingredient.id) _unitOpenFor = null;
+      _ingredients.removeAt(index);
+      _menus.remove(ingredient.id);
     });
-    // Le champ quitte l'arbre à la frame suivante.
-    WidgetsBinding.instance.addPostFrameCallback((_) => ingredient.dispose());
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(StringsFr.ingredientRetire(ingredient.name)),
+          action: SnackBarAction(
+            label: StringsFr.annuler,
+            onPressed: () {
+              if (!mounted || _saving) return;
+              setState(
+                () => _ingredients.insert(
+                  math.min(index, _ingredients.length),
+                  ingredient,
+                ),
+              );
+            },
+          ),
+        ),
+      );
   }
 
-  void _selectUnit(IngredientDraft ingredient, InputUnit unit) {
+  /// Tag quantité (3c) : le Module quantité, puis la quantité du brouillon.
+  Future<void> _editQuantity(IngredientDraft ingredient) async {
+    if (_saving || _quantityOpen) return;
+    _quantityOpen = true;
+    FocusManager.instance.primaryFocus?.unfocus();
+    final QuantityEdit? edit;
+    try {
+      edit = await showQuantitySheet(
+        context,
+        title: ingredient.name,
+        leading: Picto(pictoKey: ingredient.pictoKey, rayon: ingredient.rayon),
+        quantity: ingredient.value?.quantity,
+        unit: ingredient.value?.unit,
+        initialUnit: ingredient.inputUnit,
+      );
+    } finally {
+      _quantityOpen = false;
+    }
+    if (edit == null || !mounted) return;
+    final value = edit.value;
+    setState(() => ingredient.value = value);
+  }
+
+  /// Disque picto (3d) : ouvre ou ferme le menu des rayons sous la ligne.
+  void _toggleRayonMenu(IngredientDraft ingredient) {
     if (_saving) return;
-    setState(() {
-      ingredient.selectUnit(unit);
-      _unitOpenFor = null;
-    });
+    final menu = _menus[ingredient.id];
+    if (menu == null) return;
+    menu.isOpen ? menu.close() : menu.open();
+  }
+
+  void _selectRayon(IngredientDraft ingredient, Rayon rayon) {
+    if (_saving) return;
+    setState(() => ingredient.rayon = rayon);
+  }
+
+  /// Pastille appareil photo du monogramme : Galerie, Appareil photo et,
+  /// avec une photo, « Retirer la photo ».
+  Future<void> _photoActions() async {
+    if (_saving || _picking) return;
+    final hasPhoto = _photo != null;
+    final choice = await showModalBottomSheet<Object>(
+      context: context,
+      useRootNavigator: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (context) {
+        final scheme = Theme.of(context).colorScheme;
+        Widget option(Object value, IconData icon, String label) => ListTile(
+          minTileHeight: KadiSpacing.rowMinHeight,
+          leading: Icon(icon, color: scheme.onSurfaceVariant),
+          title: Text(label),
+          onTap: () => Navigator.of(context).pop(value),
+        );
+        return Padding(
+          padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              option(
+                PhotoSource.galerie,
+                Icons.photo_library_outlined,
+                StringsFr.galerie,
+              ),
+              option(
+                PhotoSource.appareilPhoto,
+                Icons.photo_camera_outlined,
+                StringsFr.appareilPhoto,
+              ),
+              if (hasPhoto)
+                option(
+                  _RemovePhoto.value,
+                  Icons.delete_outline,
+                  StringsFr.retirerLaPhoto,
+                ),
+            ],
+          ),
+        );
+      },
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case final PhotoSource source:
+        await _pickPhoto(source);
+      case _RemovePhoto.value:
+        _removePhoto();
+    }
+  }
+
+  /// « Ajouter un lien » ou le domaine du lien : un petit dialogue d'adresse.
+  Future<void> _editLink() async {
+    if (_saving) return;
+    final controller = TextEditingController(text: _linkController.text);
+    final link = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(StringsFr.lien),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: TextInputType.url,
+          autocorrect: false,
+          enableSuggestions: false,
+          decoration: const InputDecoration(hintText: StringsFr.adresseDuLien),
+          onSubmitted: (value) => Navigator.of(context).pop(value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text(StringsFr.annuler),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(controller.text),
+            child: const Text(StringsFr.ok),
+          ),
+        ],
+      ),
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => controller.dispose());
+    if (link == null || !mounted) return;
+    setState(() => _linkController.text = link.trim());
   }
 
   @override
@@ -500,8 +655,8 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final media = MediaQuery.of(context);
-    // Sous la popup ouverte, la fiche garde de quoi faire défiler sa
-    // dernière ligne au-dessus d'elle ; le surplus reste caché.
+    // Sous la feuille d'ajout ouverte, la fiche garde de quoi faire défiler
+    // sa dernière ligne au-dessus d'elle.
     final sheetTop = _sheetTop;
     final covered = sheetTop == null
         ? 0.0
@@ -510,9 +665,218 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     final photosDir = photo == null
         ? null
         : ref.watch(photosDirectoryProvider).value;
-    final hasLink = _linkController.text.trim().isNotEmpty;
+    final route = ref.watch(settingsProvider).value?.routeOrder ?? Rayon.values;
+    final name = _nameController.text;
+    // Monogramme : rayon du premier ingrédient ; neutre sans nom.
+    final monogramRayon = cleanRecipeName(name).isEmpty || _ingredients.isEmpty
+        ? null
+        : _ingredients.first.rayon;
+    final linkUri = recipeLinkUri(_linkController.text);
+    final menuWidth = media.size.width - 12 - 48;
 
-    final nameStyle = theme.textTheme.titleLarge;
+    final monogram = RecipeMonogram(
+      name: name,
+      rayon: monogramRayon,
+      size: MonogramSize.large,
+      photo: photo == null || photosDir == null
+          ? null
+          : RecipePhotoImage(
+              file: RecipePhotos.fileIn(photosDir, photo),
+              height: MonogramSize.large.dimension,
+              fallback: RecipeMonogram(
+                name: name,
+                rayon: monogramRayon,
+                size: MonogramSize.large,
+              ),
+            ),
+      onPhotoTap: _photoActions,
+      photoSemanticLabel: photo == null
+          ? StringsFr.ajouterUnePhoto
+          : StringsFr.remplacerLaPhoto,
+    );
+
+    final linkStyle = theme.textTheme.bodyMedium?.copyWith(
+      fontSize: 13,
+      fontWeight: FontWeight.w500,
+      color: scheme.onSurfaceVariant,
+    );
+    final link = linkUri == null
+        ? TextButton.icon(
+            onPressed: _editLink,
+            icon: Icon(Icons.link, size: 16, color: scheme.onSurfaceVariant),
+            label: Text(StringsFr.ajouterUnLien, style: linkStyle),
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, KadiSpacing.touchTarget),
+              alignment: AlignmentDirectional.centerStart,
+            ),
+          )
+        : Row(
+            children: [
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: _editLink,
+                  icon: Icon(
+                    Icons.link,
+                    size: 16,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  label: Text(
+                    linkUri.host.isEmpty ? _linkController.text : linkUri.host,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: linkStyle,
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, KadiSpacing.touchTarget),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: StringsFr.ouvrirLeLien,
+                onPressed: _openLink,
+                icon: Icon(
+                  Icons.open_in_new,
+                  size: 18,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          );
+
+    final header = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        KadiSpacing.margin,
+        KadiSpacing.s1,
+        KadiSpacing.margin,
+        KadiSpacing.s1,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          monogram,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Semantics(
+                  label: StringsFr.nomDeLaRecette,
+                  child: TextField(
+                    controller: _nameController,
+                    focusNode: _nameFocus,
+                    autofocus: widget.recipeId == null,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    maxLines: null,
+                    style: KadiText.recipeName.copyWith(
+                      color: scheme.onSurface,
+                    ),
+                    // « Enregistrer » et le monogramme suivent le nom.
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      filled: false,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.only(top: 8),
+                      hint: ExcludeSemantics(
+                        child: Text(
+                          StringsFr.nomDeLaRecette,
+                          style: KadiText.recipeName.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                link,
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final section = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        KadiSpacing.margin,
+        26 - KadiSpacing.s2,
+        KadiSpacing.margin,
+        KadiSpacing.s1,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              StringsFr.ingredients,
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w500,
+                color: scheme.onSurface,
+              ),
+            ),
+          ),
+          Text(
+            '${_ingredients.length}',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              color: scheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final addField = Padding(
+      padding: const EdgeInsets.fromLTRB(
+        KadiSpacing.margin,
+        14,
+        KadiSpacing.margin,
+        0,
+      ),
+      child: Semantics(
+        container: true,
+        button: true,
+        label: StringsFr.ajouterUnIngredient,
+        excludeSemantics: true,
+        onTap: _openSheet,
+        child: Material(
+          color: scheme.surfaceContainer,
+          shape: const StadiumBorder(),
+          child: InkWell(
+            customBorder: const StadiumBorder(),
+            onTap: _openSheet,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: KadiSpacing.touchTarget,
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: KadiSpacing.margin,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.add, size: 22, color: scheme.onSurface),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        StringsFr.ajouterUnIngredientEllipse,
+                        style: theme.textTheme.bodyLarge?.copyWith(
+                          fontSize: 15,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
     final body = !_loaded || _missing
         ? const SizedBox.shrink()
         // Toutes les lignes sont bâties : la ligne ajoutée se mesure et se
@@ -524,167 +888,29 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    KadiSpacing.margin,
-                    KadiSpacing.s2,
-                    KadiSpacing.margin,
-                    KadiSpacing.s2,
-                  ),
-                  child: Semantics(
-                    label: StringsFr.nomDeLaRecette,
-                    child: TextField(
-                      controller: _nameController,
-                      focusNode: _nameFocus,
-                      autofocus: widget.recipeId == null,
-                      textCapitalization: TextCapitalization.sentences,
-                      textInputAction: TextInputAction.done,
-                      style: nameStyle?.copyWith(color: scheme.onSurface),
-                      // « Enregistrer » et l'aperçu de la photo suivent le
-                      // nom.
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        filled: false,
-                        contentPadding: EdgeInsets.zero,
-                        // Lu par le libellé du champ, une seule fois.
-                        hint: ExcludeSemantics(
-                          child: Text(
-                            StringsFr.nomDeLaRecette,
-                            style: nameStyle?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                header,
+                section,
                 for (final ingredient in _ingredients)
-                  IngredientRow(
+                  RayonMenuAnchor(
                     key: ingredient.rowKey,
-                    ingredient: ingredient,
-                    unitOpen: _unitOpenFor == ingredient.id,
-                    onUnitTap: () => setState(
-                      () => _unitOpenFor = _unitOpenFor == ingredient.id
-                          ? null
-                          : ingredient.id,
+                    controller: _menus.putIfAbsent(
+                      ingredient.id,
+                      MenuController.new,
                     ),
-                    onUnitSelected: (unit) => _selectUnit(ingredient, unit),
-                    onRemove: () => _remove(ingredient),
-                  ),
-                // « Ajouter un ingrédient » : icône + et texte `on-surface`,
-                // jamais d'argile ; l'icône s'aligne sur les Pictos.
-                Padding(
-                  padding: const EdgeInsetsDirectional.only(
-                    start: KadiSpacing.margin - KadiSpacing.s3,
-                    end: KadiSpacing.margin,
-                    top: KadiSpacing.s1,
-                  ),
-                  child: Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: TextButton.icon(
-                      onPressed: _openSheet,
-                      icon: const Icon(Icons.add),
-                      label: const Text(StringsFr.ajouterUnIngredient),
-                      style: TextButton.styleFrom(
-                        foregroundColor: scheme.onSurface,
-                        minimumSize: const Size(
-                          KadiSpacing.touchTarget,
-                          KadiSpacing.touchTarget,
-                        ),
-                      ),
+                    route: route,
+                    current: ingredient.rayon,
+                    onSelected: (rayon) => _selectRayon(ingredient, rayon),
+                    width: menuWidth,
+                    // Sous la ligne, à 12 dp de la gauche de l'écran.
+                    alignmentOffset: const Offset(12, 0),
+                    child: IngredientRow(
+                      ingredient: ingredient,
+                      onPictoTap: () => _toggleRayonMenu(ingredient),
+                      onQuantityTap: () => _editQuantity(ingredient),
+                      onRemove: () => _remove(ingredient),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    KadiSpacing.margin,
-                    KadiSpacing.s4,
-                    KadiSpacing.margin,
-                    KadiSpacing.s2,
-                  ),
-                  child: RecipePhotoZone(
-                    recipeName: cleanRecipeName(_nameController.text),
-                    hasPhoto: photo != null,
-                    file: photo == null || photosDir == null
-                        ? null
-                        : RecipePhotos.fileIn(photosDir, photo),
-                    onPick: _pickPhoto,
-                    onRemove: _removePhoto,
-                  ),
-                ),
-                // Champ « Lien » : facultatif, clavier URL ; l'icône
-                // d'ouverture n'est là que s'il n'est pas vide.
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: KadiSpacing.margin,
-                    vertical: KadiSpacing.s2,
-                  ),
-                  child: Semantics(
-                    label: StringsFr.lien,
-                    child: TextField(
-                      controller: _linkController,
-                      keyboardType: TextInputType.url,
-                      textInputAction: TextInputAction.done,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      onChanged: (_) => setState(() {}),
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: scheme.onSurface,
-                      ),
-                      decoration: InputDecoration(
-                        hint: ExcludeSemantics(
-                          child: Text(
-                            StringsFr.lien,
-                            style: theme.textTheme.bodyLarge?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                        prefixIcon: const Icon(Icons.link),
-                        constraints: const BoxConstraints(
-                          minHeight: KadiSpacing.touchTarget,
-                        ),
-                        suffixIcon: hasLink
-                            ? IconButton(
-                                tooltip: StringsFr.ouvrirLeLien,
-                                style: IconButton.styleFrom(
-                                  minimumSize: const Size.square(
-                                    KadiSpacing.touchTarget,
-                                  ),
-                                ),
-                                icon: const Icon(Icons.open_in_new),
-                                onPressed: _openLink,
-                              )
-                            : null,
-                      ),
-                    ),
-                  ),
-                ),
-                if (_saved)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      KadiSpacing.margin,
-                      KadiSpacing.s4,
-                      KadiSpacing.margin,
-                      0,
-                    ),
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextButton.icon(
-                        onPressed: _delete,
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text(StringsFr.supprimerLaRecette),
-                        style: TextButton.styleFrom(
-                          foregroundColor: scheme.error,
-                          minimumSize: const Size(
-                            KadiSpacing.touchTarget,
-                            KadiSpacing.touchTarget,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                addField,
               ],
             ),
           );
@@ -697,17 +923,28 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: Text(
-            widget.recipeId == null
-                ? StringsFr.nouvelleRecette
-                : StringsFr.recette,
-          ),
+          actions: [
+            if (_saved)
+              PopupMenuButton<_FicheAction>(
+                tooltip: StringsFr.plusDOptions,
+                padding: const EdgeInsets.all(KadiSpacing.s3),
+                icon: Icon(Icons.more_vert, color: scheme.onSurface),
+                onSelected: (_) => _delete(),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: _FicheAction.supprimer,
+                    child: Text(StringsFr.supprimerLaRecette),
+                  ),
+                ],
+              ),
+            const SizedBox(width: KadiSpacing.s2),
+          ],
         ),
         // Pendant l'écriture, la fiche est inerte au toucher ; les actions
         // TalkBack sont ignorées par leurs gestionnaires.
         body: AbsorbPointer(absorbing: _saving, child: body),
-        // « Enregistrer » (DESIGN `action-button`) : clavier ouvert, il
-        // reste visible juste au-dessus ; grisé sans nom ou sans ingrédient.
+        // « Enregistrer » : clavier ouvert, il reste visible juste au-dessus ;
+        // grisé sans nom ou sans ingrédient.
         bottomNavigationBar: !_loaded || _missing
             ? null
             : Padding(
@@ -720,7 +957,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                       KadiSpacing.margin,
                       KadiSpacing.s2,
                       KadiSpacing.margin,
-                      KadiSpacing.s2,
+                      KadiSpacing.margin,
                     ),
                     child: FilledButton(
                       onPressed: _canSave && !_saving ? _save : null,
@@ -732,4 +969,16 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
       ),
     );
   }
+}
+
+/// Actions du menu ⋮ de la Fiche recette.
+enum _FicheAction { supprimer }
+
+/// Choix « Retirer la photo » de la pastille appareil photo.
+enum _RemovePhoto { value }
+
+/// La recette a été supprimée pendant l'enregistrement : la transaction est
+/// annulée.
+class _NotSaved implements Exception {
+  const _NotSaved();
 }

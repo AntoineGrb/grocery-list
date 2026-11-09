@@ -225,6 +225,24 @@ class CatalogueRepository {
     );
   });
 
+  /// Rayon de [articleId] changé depuis la Fiche recette (V2, 3d) : son nom,
+  /// son unité et son picto ne changent pas. Vaut pour les ajouts suivants,
+  /// jamais pour les lignes déjà dans la liste (AD-15). Article absent ou
+  /// supprimé : rien. À appeler dans une transaction.
+  Future<void> setRayon(String articleId, Rayon rayon) async {
+    final row =
+        await (_db.select(_db.articles)
+              ..where((a) => a.id.equals(articleId) & a.deletedAt.isNull()))
+            .getSingleOrNull();
+    if (row == null) return;
+    await _update(
+      articleId,
+      name: row.name,
+      rayon: rayon,
+      unit: Unit.tryFromCode(row.unit),
+    );
+  }
+
   /// Voir [updateArticle], à appeler dans une transaction.
   Future<CatalogueArticle> _update(
     String articleId, {
