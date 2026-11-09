@@ -9,6 +9,7 @@ import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/ui/settings_action.dart';
+import 'package:kadi/core/ui/tab_app_bar.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
@@ -294,12 +295,9 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text(StringsFr.tabListe),
-            actions: const [
-              SettingsAction(),
-              SizedBox(width: KadiSpacing.s2),
-            ],
+          appBar: const TabAppBar(
+            title: StringsFr.tabListe,
+            actions: [SettingsAction()],
           ),
           body: switch ((groups, checked)) {
             (final groups?, final checked?)
@@ -316,11 +314,17 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  _Progress(
+                    checked: checked.length,
+                    total:
+                        checked.length +
+                        groups.fold(0, (n, g) => n + g.items.length),
+                  ),
                   for (final group in groups) ...[
                     // Sans groupement, une seule suite de lignes, sans
-                    // En-tête de rayon.
+                    // En-tête de rayon. Un rayon tout coché disparaît.
                     if (group.rayon case final rayon?)
-                      RayonHeader(rayon: rayon),
+                      RayonHeader(rayon: rayon, count: group.items.length),
                     for (final item in group.items)
                       _uncheckedRow(context, item),
                   ],
@@ -361,6 +365,72 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Progression des courses (V2 2e) : « X sur N dans le panier » et une
+/// barre de 6 dp à l'encre, animée en 300 ms (sans animation si elles sont
+/// coupées). Aucun libellé de recette.
+class _Progress extends StatelessWidget {
+  const _Progress({required this.checked, required this.total});
+
+  final int checked;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final ratio = total == 0 ? 0.0 : checked / total;
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 300);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        KadiSpacing.margin,
+        0,
+        KadiSpacing.margin,
+        6,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            StringsFr.dansLePanier(checked, total),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: KadiSpacing.s2),
+          ExcludeSemantics(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: SizedBox(
+                height: 6,
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: ratio),
+                  duration: duration,
+                  curve: Curves.easeOut,
+                  builder: (context, value, _) => Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      ColoredBox(color: scheme.surfaceContainerHigh),
+                      FractionallySizedBox(
+                        alignment: AlignmentDirectional.centerStart,
+                        widthFactor: value.clamp(0.0, 1.0),
+                        child: ColoredBox(color: scheme.onSurface),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

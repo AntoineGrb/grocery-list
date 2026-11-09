@@ -27,6 +27,7 @@ class ListeItem {
     required this.quantity,
     this.checked = false,
     this.articleUnit,
+    this.recipeNames = const [],
   });
 
   final String lineId;
@@ -44,6 +45,10 @@ class ListeItem {
 
   /// Ligne cochée (dans la Section Cochés).
   final bool checked;
+
+  /// Recettes d'origine de la ligne (contributions `week_selection`
+  /// actives), sans doublon : la ligne d'origine de la V2.
+  final List<String> recipeNames;
 }
 
 /// Propriétaire de `list_lines` et `list_contributions` (AD-2).
@@ -813,6 +818,15 @@ class ListeRepository {
     final a = _db.articles;
     final c = _db.listContributions;
     final quantity = c.quantity.sum();
+    // Noms des recettes d'origine, séparés par l'unité US (U+001F).
+    final recipes = const CustomExpression<String>(
+      '(SELECT group_concat(n, char(31)) FROM (SELECT DISTINCT r.name AS n '
+      'FROM list_contributions c2 '
+      'INNER JOIN week_selections s ON s.id = c2.week_selection_id '
+      'INNER JOIN recipes r ON r.id = s.recipe_id '
+      'WHERE c2.line_id = list_lines.id AND c2.deleted_at IS NULL '
+      "AND c2.source = 'week_selection' ORDER BY r.name))",
+    );
 
     var filter =
         l.deletedAt.isNull() &
@@ -825,7 +839,7 @@ class ListeRepository {
             leftOuterJoin(c, c.lineId.equalsExp(l.id) & c.deletedAt.isNull()),
           ])
           ..where(filter)
-          ..addColumns([quantity])
+          ..addColumns([quantity, recipes])
           ..groupBy([l.id])
           ..orderBy(
             checked
@@ -837,12 +851,22 @@ class ListeRepository {
       query: query,
       items: (rows) => [
         for (final row in rows)
-          _toItem(row.readTable(l), row.readTable(a), row.read(quantity)),
+          _toItem(
+            row.readTable(l),
+            row.readTable(a),
+            row.read(quantity),
+            row.read(recipes),
+          ),
       ],
     );
   }
 
-  static ListeItem _toItem(ListLine line, Article article, int? quantity) {
+  static ListeItem _toItem(
+    ListLine line,
+    Article article,
+    int? quantity,
+    String? recipes,
+  ) {
     final unit = Unit.tryFromCode(line.unit);
     return ListeItem(
       lineId: line.id,
@@ -853,6 +877,9 @@ class ListeRepository {
       quantity: unit == null ? null : quantity,
       checked: line.checkedAt != null,
       articleUnit: Unit.tryFromCode(article.unit),
+      recipeNames: recipes == null || recipes.isEmpty
+          ? const []
+          : recipes.split(String.fromCharCode(31)),
     );
   }
 }

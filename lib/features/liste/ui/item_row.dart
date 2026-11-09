@@ -130,6 +130,7 @@ class _ItemRowState extends ConsumerState<ItemRow> {
     final spoken = [
       item.name,
       if (quantity.isNotEmpty) quantity,
+      ...item.recipeNames,
       item.rayon.spokenLabel,
     ].join(', ');
 
@@ -157,9 +158,26 @@ class _ItemRowState extends ConsumerState<ItemRow> {
               // lignes garde de l'air, la case reste à 48 dp.
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
-                child: Text(
-                  item.name,
-                  style: textStyle(theme.textTheme.bodyLarge, scheme.onSurface),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.name,
+                      style: textStyle(
+                        theme.textTheme.bodyLarge,
+                        scheme.onSurface,
+                      ),
+                    ),
+                    // Recette(s) d'origine (V2 2e).
+                    if (item.recipeNames.isNotEmpty)
+                      Text(
+                        item.recipeNames.join(' · '),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          height: 16 / 12,
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

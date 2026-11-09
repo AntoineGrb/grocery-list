@@ -46,7 +46,13 @@ class _CheckedSectionState extends State<CheckedSection> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const SizedBox(height: KadiSpacing.s2),
-        Divider(height: 1, thickness: 1, color: scheme.outline),
+        Divider(
+          height: 1,
+          thickness: 1,
+          indent: KadiSpacing.margin,
+          endIndent: KadiSpacing.margin,
+          color: scheme.surfaceContainerHigh,
+        ),
         Semantics(
           button: true,
           label: StringsFr.cochesLu(count, expanded: _expanded),
@@ -72,8 +78,9 @@ class _CheckedSectionState extends State<CheckedSection> {
                     const SizedBox(width: KadiSpacing.s2),
                     Text(
                       StringsFr.cochesTitre(count),
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
                       ),
                     ),
                   ],
