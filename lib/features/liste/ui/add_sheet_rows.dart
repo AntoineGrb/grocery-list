@@ -5,6 +5,7 @@ import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/picto_disc.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:material_ui/material_ui.dart';
@@ -114,8 +115,9 @@ class FrequentsTitle extends StatelessWidget {
     return Padding(
       // Le texte du bouton s'aligne sur la fin des indicateurs des lignes.
       padding: const EdgeInsetsDirectional.only(
-        start: KadiSpacing.margin,
+        start: KadiSpacing.margin + KadiSpacing.s1,
         end: KadiSpacing.margin - KadiSpacing.s3,
+        top: KadiSpacing.s3,
       ),
       child: Row(
         children: [
@@ -137,7 +139,8 @@ class FrequentsTitle extends StatelessWidget {
                     child: Text(
                       StringsFr.ajoutsFrequents,
                       style: theme.textTheme.titleSmall?.copyWith(
-                        color: scheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                        color: scheme.onSurface,
                       ),
                     ),
                   ),
@@ -225,7 +228,7 @@ class _PanelRow extends StatelessWidget {
 
   Widget _lineTag(ListeItem line, ValueChanged<ListeItem> onQuantityTap) {
     final value = formatQuantity(line.quantity, line.unit);
-    return QuantityTag(
+    return PanelQuantityTag(
       value: value,
       emptyLabel: StringsFr.qte,
       semanticLabel: StringsFr.quantiteDe(article.name, value),
@@ -257,24 +260,37 @@ class _PanelRow extends StatelessWidget {
             child: Row(
               children: [
                 ExcludeSemantics(
-                  child: Picto(
+                  child: PictoDisc(
                     pictoKey: article.pictoKey,
                     rayon: article.rayon,
                   ),
                 ),
-                const SizedBox(width: KadiSpacing.s4),
+                const SizedBox(width: KadiSpacing.s3),
                 Expanded(
                   child: ExcludeSemantics(
                     child: Padding(
                       // Le tag fait 48 dp : la ligne garde sa hauteur.
                       padding: const EdgeInsets.symmetric(
-                        vertical: KadiSpacing.s2,
+                        vertical: KadiSpacing.s1,
                       ),
-                      child: Text(
-                        article.name,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: scheme.onSurface,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            article.name,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              height: 20 / 16,
+                              color: scheme.onSurface,
+                            ),
+                          ),
+                          Text(
+                            article.rayon.label,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              height: 16 / 12,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -371,4 +387,90 @@ class SearchResultRow extends StatelessWidget {
     line: line,
     onQuantityTap: onQuantityTap,
   );
+}
+
+/// Pastille de fréquent (V2 2g) : 36 dp, rayon plein ; picto à l'accent du
+/// rayon, nom, puis + ; dans la liste, fond encre, texte et picto `surface`
+/// et ✓. Un tap l'ajoute, ou la retire avec Annuler si elle y est.
+/// Annoncée « Lait », ou « Lait, dans la liste ».
+class FrequentChip extends StatelessWidget {
+  const FrequentChip({
+    super.key,
+    required this.article,
+    required this.inList,
+    required this.onTap,
+  });
+
+  final CatalogueArticle article;
+  final bool inList;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final foreground = inList ? scheme.surface : scheme.onSurface;
+    final accent = KadiColors.of(context).rayon(article.rayon).accent;
+    const shape = StadiumBorder();
+    return Semantics(
+      container: true,
+      button: true,
+      label: inList
+          ? '${article.name}, ${StringsFr.dansLaListe}'
+          : article.name,
+      onTap: onTap,
+      excludeSemantics: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        excludeFromSemantics: true,
+        onTap: onTap,
+        // Pastille de 36 dp dans une cible de 48.
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Material(
+            color: inList ? scheme.onSurface : scheme.surface,
+            shape: shape,
+            child: InkWell(
+              onTap: onTap,
+              excludeFromSemantics: true,
+              customBorder: shape,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 36),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        PictoResolver.iconFor(article.pictoKey, article.rayon),
+                        size: 18,
+                        color: inList ? scheme.surface : accent,
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          article.name,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: foreground,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        inList ? Icons.check : Icons.add,
+                        size: 16,
+                        color: foreground.withValues(alpha: 0.7),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

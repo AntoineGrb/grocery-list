@@ -5,12 +5,14 @@ import 'package:flutter/rendering.dart' show RenderProxyBox;
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/app/actions/ajout_panneau.dart';
+import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/quantity_sheet.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -24,7 +26,6 @@ import '../state/liste_panel.dart';
 import '../state/liste_providers.dart';
 import 'add_sheet_rows.dart';
 import 'quantity_input.dart';
-import 'quantity_popup.dart';
 import 'quantity_tag.dart';
 import 'rayon_tag.dart';
 
@@ -52,7 +53,7 @@ const _maxResultRows = 3;
 const _panelMaxShare = 2 / 3;
 
 /// Écart entre la carte du panneau et les bords de l'écran ou le clavier.
-const _panelInset = KadiSpacing.s2;
+const _panelInset = 0.0;
 
 /// Hauteur de la carte du Panneau + pour [rows] lignes de contenu sous les
 /// tags (titre compris), bornée aux deux tiers de la zone libre (écran −
@@ -179,8 +180,22 @@ class _AddSheetState extends ConsumerState<AddSheet> {
   /// Messager propre au panneau.
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
-  /// Une Popup quantité est ouverte : un second tag est ignoré.
+  /// Le Module quantité est ouvert : un second tag est ignoré.
   bool _quantityOpen = false;
+
+  /// ⚡ Fréquents (V2 2g) : le clavier se ferme et les fréquents s'affichent
+  /// en pastilles ; sinon, rien sous les tags sans saisie.
+  bool _frequentsOpen = false;
+
+  /// ⚡ Fréquents : bascule entre les fréquents et le clavier.
+  void _toggleFrequents() {
+    setState(() => _frequentsOpen = !_frequentsOpen);
+    if (_frequentsOpen) {
+      FocusManager.instance.primaryFocus?.unfocus();
+    } else {
+      _fieldFocus.requestFocus();
+    }
+  }
 
   /// Hauteur de la rangée des tags à la dernière mesure : une cible tactile
   /// avant la première, puis ce que la rangée occupe vraiment.
@@ -366,9 +381,10 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     final repository = ref.read(listeRepositoryProvider);
     final QuantityEdit? edit;
     try {
-      edit = await showQuantityPopup(
+      edit = await showQuantitySheet(
         context,
         title: line.name,
+        leading: Picto(pictoKey: '', rayon: line.rayon),
         quantity: line.quantity,
         unit: line.unit,
         initialUnit: initialInputUnit(line),
@@ -396,12 +412,17 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     _quantityOpen = true;
     final text = _controller.text.trim();
     final draft = _draftQuantity;
-    final unit = draft?.unit ?? _exactArticle(text)?.unit;
+    final exact = _exactArticle(text);
+    final unit = draft?.unit ?? exact?.unit;
     final QuantityEdit? edit;
     try {
-      edit = await showQuantityPopup(
+      edit = await showQuantitySheet(
         context,
         title: text.isEmpty ? StringsFr.quantite : text,
+        leading: Picto(
+          pictoKey: exact?.pictoKey ?? '',
+          rayon: _draftRayon ?? exact?.rayon ?? Rayon.divers,
+        ),
         quantity: draft?.quantity,
         unit: draft?.unit,
         initialUnit: unit == null ? InputUnit.piece : InputUnit.of(unit),
@@ -410,7 +431,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
       _quantityOpen = false;
     }
     if (!mounted) return;
-    _fieldFocus.requestFocus();
+    if (!_frequentsOpen) _fieldFocus.requestFocus();
     if (edit case final edit?) setState(() => _draftQuantity = edit.value);
   }
 
@@ -470,7 +491,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     // « Ajouter « … » » attend les résultats de cette saisie : jamais
     // proposé sur des résultats périmés.
     final showAddTyped = fresh != null && fresh.isEmpty;
-    final frequents = searching
+    final frequents = searching || !_frequentsOpen
         ? null
         : ref.watch(frequentsInRouteProvider).value;
     final route = ref.watch(settingsProvider).value?.routeOrder ?? Rayon.values;
@@ -482,14 +503,20 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     final keyboardOpen = media.viewInsets.bottom > 0;
     // La feuille retire les marges de son MediaQuery ; la vue les garde.
     final view = MediaQueryData.fromView(View.of(context));
+    // Au repos, rien sous les tags ; fréquents ouverts, le titre et environ
+    // deux pastilles par rangée.
     final double rows = searching
         ? math
               .min(results.length + (showAddTyped ? 1 : 0), _maxResultRows)
               .clamp(1, _maxResultRows)
               .toDouble()
-        : keyboardOpen
-        ? 1
-        : 1 + addPanelFrequentRows;
+        : _frequentsOpen
+        ? 1 +
+              math.min(
+                ((frequents?.length ?? 0) / 2).ceilToDouble(),
+                addPanelFrequentRows,
+              )
+        : 0;
     final height = addPanelHeight(
       media.copyWith(padding: EdgeInsets.only(top: view.padding.top)),
       rows: rows,
@@ -537,19 +564,26 @@ class _AddSheetState extends ConsumerState<AddSheet> {
         null => const SizedBox.shrink(),
         [] => const EmptyState(message: StringsFr.pasDeFrequents),
         _ => ListView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.only(bottom: KadiSpacing.s4),
           children: [
             const FrequentsTitle(),
-            for (final article in frequents)
-              FrequentRow(
-                key: ValueKey(article.id),
-                article: article,
-                inList: inList.contains(article.id),
-                line: lines[article.id],
-                onTap: () => _toggle(context, article),
-                onQuantityTap: _editQuantity,
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: KadiSpacing.margin,
               ),
+              child: Wrap(
+                spacing: KadiSpacing.s2,
+                children: [
+                  for (final article in frequents)
+                    FrequentChip(
+                      key: ValueKey(article.id),
+                      article: article,
+                      inList: inList.contains(article.id),
+                      onTap: () => _toggle(context, article),
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       };
@@ -566,11 +600,14 @@ class _AddSheetState extends ConsumerState<AddSheet> {
       child: SizedBox(
         height: height,
         child: Material(
-          // Sans ombre ni contour : le voile sur la Liste suffit à la détacher.
+          // Panneau en bas de l'écran (V2 2f) : rayon 28 en haut seulement.
           color: scheme.surfaceContainer,
           clipBehavior: Clip.antiAlias,
+          elevation: 4,
           shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(KadiRadius.xl)),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(KadiRadius.xl),
+            ),
           ),
           child: ScaffoldMessenger(
             key: _messengerKey,
@@ -588,36 +625,54 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                       ),
                       child: SizedBox(
                         height: KadiSpacing.addFieldHeight,
-                        child: TextField(
-                          controller: _controller,
-                          focusNode: _fieldFocus,
-                          autofocus: true,
-                          textInputAction: TextInputAction.done,
-                          // Majuscule en début de saisie, comme une liste.
-                          textCapitalization: TextCapitalization.sentences,
-                          textAlignVertical: TextAlignVertical.center,
-                          style: fieldStyle?.copyWith(color: scheme.onSurface),
-                          onChanged: (_) => setState(() {}),
-                          onSubmitted: (_) => _addTyped(),
-                          // Le clavier reste ouvert après Entrée.
-                          onEditingComplete: () {},
-                          decoration: InputDecoration(
-                            // Sans fond ni icône : le texte posé sur la carte.
-                            filled: false,
-                            contentPadding: EdgeInsets.zero,
-                            hintText: StringsFr.ajouterUnArticle,
-                            hintStyle: fieldStyle?.copyWith(
-                              color: scheme.onSurfaceVariant,
-                            ),
-                            suffixIcon: query.isEmpty
-                                ? null
-                                : IconButton(
-                                    tooltip: StringsFr.effacerLeTexte,
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () =>
-                                        setState(_controller.clear),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _controller,
+                                focusNode: _fieldFocus,
+                                autofocus: true,
+                                textInputAction: TextInputAction.done,
+                                // Majuscule en début de saisie, comme une liste.
+                                textCapitalization:
+                                    TextCapitalization.sentences,
+                                textAlignVertical: TextAlignVertical.center,
+                                style: fieldStyle?.copyWith(
+                                  color: scheme.onSurface,
+                                ),
+                                // Retaper dans le champ referme les fréquents.
+                                onTap: () {
+                                  if (_frequentsOpen) {
+                                    setState(() => _frequentsOpen = false);
+                                  }
+                                },
+                                onChanged: (_) => setState(() {}),
+                                onSubmitted: (_) => _addTyped(),
+                                // Le clavier reste ouvert après Entrée.
+                                onEditingComplete: () {},
+                                decoration: InputDecoration(
+                                  // Sans fond ni icône : le texte posé sur la carte.
+                                  filled: false,
+                                  contentPadding: EdgeInsets.zero,
+                                  hintText: StringsFr.ajouterUnArticle,
+                                  hintStyle: fieldStyle?.copyWith(
+                                    color: scheme.onSurfaceVariant,
                                   ),
-                          ),
+                                  suffixIcon: query.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          tooltip: StringsFr.effacerLeTexte,
+                                          icon: const Icon(Icons.close),
+                                          onPressed: () =>
+                                              setState(_controller.clear),
+                                        ),
+                                ),
+                              ),
+                            ),
+                            _SendButton(
+                              onPressed: searching ? _addTyped : null,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -641,7 +696,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                                 // En grande police, le Tag Rayon passe à la ligne.
                                 child: Wrap(
                                   children: [
-                                    QuantityTag(
+                                    PanelQuantityTag(
                                       value: quantityValue,
                                       emptyLabel: StringsFr.quantite,
                                       semanticLabel: StringsFr.quantiteTag(
@@ -659,14 +714,43 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                                       onSelected: (rayon) =>
                                           setState(() => _draftRayon = rayon),
                                     ),
+                                    AddTag(
+                                      color: _frequentsOpen
+                                          ? scheme.onSurface
+                                          : scheme.surfaceContainerHigh,
+                                      selected: _frequentsOpen,
+                                      semanticLabel: StringsFr.frequents,
+                                      onTap: _toggleFrequents,
+                                      padding: const EdgeInsetsDirectional.only(
+                                        start: 6,
+                                        end: 10,
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.bolt,
+                                            size: 18,
+                                            color: _frequentsOpen
+                                                ? scheme.surface
+                                                : scheme.onSurface,
+                                          ),
+                                          const SizedBox(width: 2),
+                                          Text(
+                                            StringsFr.frequents,
+                                            style: addTagTextStyle(
+                                              context,
+                                              _frequentsOpen
+                                                  ? scheme.surface
+                                                  : scheme.onSurface,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
-                            ),
-                            SubmitButton(
-                              icon: Icons.arrow_upward,
-                              tooltip: StringsFr.valider,
-                              onPressed: searching ? _addTyped : null,
                             ),
                           ],
                         ),
@@ -717,5 +801,40 @@ class _RenderHeightReporter extends RenderProxyBox {
     if (height == _reported) return;
     _reported = height;
     WidgetsBinding.instance.addPostFrameCallback((_) => onHeight(height));
+  }
+}
+
+/// Bouton d'envoi du Panneau + (V2 2f) : 40 × 40, rayon 12, flèche vers le
+/// haut ; grisé quand le champ est vide, argile quand il est rempli. Fait
+/// comme Entrée.
+class _SendButton extends StatelessWidget {
+  const _SendButton({required this.onPressed});
+
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final enabled = onPressed != null;
+    return IconButton(
+      tooltip: StringsFr.envoyer,
+      onPressed: onPressed,
+      style: IconButton.styleFrom(
+        fixedSize: const Size.square(40),
+        minimumSize: const Size.square(40),
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        disabledBackgroundColor: scheme.surfaceContainerHigh,
+        disabledForegroundColor: scheme.outline,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(KadiRadius.md)),
+        ),
+      ),
+      icon: Icon(
+        Icons.arrow_upward,
+        size: 24,
+        color: enabled ? scheme.onPrimary : scheme.outline,
+      ),
+    );
   }
 }
