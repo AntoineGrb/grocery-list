@@ -3,7 +3,7 @@ title: DESIGN — grocery-list
 name: grocery-list
 description: "Liste de courses du foyer, Android (Flutter, Material 3). Palette « Argile sur fusain » : interface neutre, couleur portée par les 13 rayons, argile réservée au FAB +, à l'onglet actif, aux boutons d'action et à l'action des snackbars."
 status: draft
-updated: 2026-11-05
+updated: 2026-11-09
 sources:
   - ../../forge-grocery-list/forge-grocery-list.md
   - ../../forge-grocery-list/.memlog.md
@@ -357,6 +357,67 @@ components:
     label: '{typography.label-large}'
     color: '{colors.on-surface}'
 ---
+
+## V2 visuelle (2026-11-09)
+
+La refonte issue de Claude Design (`redesign/README.md`, écrans 2a, 2b, 3a, 3c, 3d, 2d, 2e, 2f, 2g, 2h) **remplace les sections ci-dessous là où elles diffèrent**. La palette et les 13 couleurs de rayon ne changent pas. Règle C6 maintenue : toute sélection se fait à l'encre (`on-surface`), jamais à l'argile.
+
+### Typographie
+
+- Corps de texte en Roboto, comme avant.
+- **Bricolage Grotesque** (OFL, assets 600 et 700) pour les titres display seulement (`KadiText` dans `kadi_theme.dart`) :
+
+| Usage | Taille / interligne |
+|---|---|
+| Titres d'onglet | 26/32 |
+| « Qu'as-tu déjà ? » | 26/30 |
+| Nom de recette | 24/28 |
+| Monogrammes | 22 et 26, graisse 700 |
+| Grand nombre du Module quantité | 44 |
+
+### Formes
+
+| Rayon | Usage |
+|---|---|
+| 8 | Tag quantité |
+| 10 | Tags du Panneau +, valeurs rapides |
+| 12 | Bouton d'envoi |
+| 14 / 18 | Monogrammes 56 / 72 |
+| 18 | Cartes rayon de la Revue |
+| 20 | Menu des rayons |
+| 28 | Haut des feuilles |
+
+### Composants partagés (`lib/core/ui/`)
+
+- **`recipe-monogram`** : un carré à l'accent du rayon du premier ingrédient, avec les initiales sur la pastille de ce rayon (« Chili con carne » donne `Cc`, « Ratatouille » donne `Ra`).
+  - La photo le remplace quand il y en a une.
+  - Sans nom ou sans ingrédient, il est neutre.
+  - Sa variante de 72 dp porte une pastille appareil photo.
+- **`quantity-tag`** : la quantité sur la pastille du rayon. Sans quantité, un carré pointillé à l'accent avec une balance (Phosphor `scales`).
+- **`quantity-sheet`** (Module quantité), un seul module pour la Fiche, la Revue et le Panneau + :
+  - boutons − et + autour d'un grand nombre ;
+  - choix d'unité segmenté (pièce, g, kg, ml, L), où changer d'unité remet le nombre à 0 ;
+  - 4 valeurs rapides et un bouton OK. OK sur 0 efface la quantité, et le voile ferme sans rien écrire ;
+  - un tap sur le nombre ouvre la saisie au clavier.
+- **`rayon-menu`** : une carte `surface-container` au rayon 20 qui liste les rayons dans l'ordre du parcours, avec un point, le nom et ✓ sur le rayon courant.
+- **`picto-disc`** : un disque de 34 dp (28 dp en petit) sur la pastille du rayon, avec le picto à l'accent.
+
+### Écrans
+
+- **Recettes** :
+  - une ligne par recette : monogramme, nom, « N ingrédients », puis le bouton « + Ajouter » ou « ✓ Ajoutée » à l'encre ;
+  - une recherche et les filtres « Toutes · N » et « Cette semaine · n » ;
+  - le + de l'AppBar remplace le FAB, et le menu ⋮ regroupe Nouvelle liste et Paramètres.
+- **Fiche recette** :
+  - en-tête avec le monogramme 72, le nom en display et « Ajouter un lien » ;
+  - lignes de 54 dp : disque picto (qui ouvre le menu des rayons), nom, tag quantité ;
+  - on glisse une ligne vers la gauche pour la retirer ;
+  - le champ d'ajout est une pilule. L'ajout d'ingrédient se fait dans une feuille couvrant 88 % de l'écran.
+- **Revue** : le titre display « Qu'as-tu déjà ? », puis des cartes par rayon. Une ligne gardée montre un rond plein et le tag ; une ligne « J'ai ! » montre une maison et un nom barré.
+- **Liste** : une barre de progression à l'encre, le nombre d'articles restants par rayon, et sous l'article, sa recette d'origine.
+- **Panneau +** :
+  - collé en bas de l'écran, avec le bouton d'envoi ↑ sur la ligne du champ ;
+  - trois tags de 36 dp : Quantité, Rayon et ⚡ Fréquents. Les fréquents s'affichent en pastilles, seulement sur demande.
 
 ## Brand & Style
 

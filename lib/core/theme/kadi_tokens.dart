@@ -195,17 +195,6 @@ abstract final class KadiSpacing {
   static const panelHandleHeight = 20.0;
   static const panelHandleWidth = 32.0;
   static const panelHandleThickness = 4.0;
-  static const tagHeight = 32.0;
   static const tagMaxWidth = 144.0;
   static const addFieldHeight = 56.0;
-  static const addPopupMaxWidth = 340.0;
-
-  /// Carte recette (`recipe-card`) : hauteur du visuel, Picto de repli,
-  /// icône « modifier », disque qui garde la coche et l'icône lisibles sur
-  /// une photo, hauteur minimale du nom.
-  static const recipeVisualHeight = 118.0;
-  static const recipePicto = 44.0;
-  static const recipeEditIcon = 18.0;
-  static const recipeDisc = 32.0;
-  static const recipeCaptionMinHeight = 64.0;
 }

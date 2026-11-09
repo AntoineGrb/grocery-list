@@ -11,6 +11,51 @@ sources:
 
 # grocery-list — Experience Spine
 
+## V2 visuelle (2026-11-09) — comportements changés
+
+Ces points **remplacent** ceux des sections ci-dessous là où ils diffèrent. Voir `DESIGN.md` § V2 et `redesign/README.md`.
+
+### Recettes
+
+- Un tap sur la **ligne** ouvre la Fiche recette.
+- Le **bouton « Ajouter / Ajoutée »** sélectionne ou désélectionne la recette. Une recette validée passe par le snackbar Annuler, comme avant.
+- La recherche se fait par nom, sans tenir compte des accents. Le filtre « Cette semaine » ne montre que les recettes sélectionnées.
+
+### Fiche recette
+
+- Le disque picto ouvre le menu des rayons sous la ligne. Le rayon choisi s'écrit **au catalogue à l'enregistrement** : « Quitter sans enregistrer » l'annule, et les lignes déjà dans la Liste ne changent pas (AD-15).
+- Le tag quantité ouvre le Module quantité. Un ingrédient s'ajoute sans quantité.
+- On glisse une ligne vers la gauche pour la retirer, avec un snackbar Annuler. La croix a disparu.
+- La pastille appareil photo propose Galerie, Appareil photo et Retirer la photo.
+- Le lien s'édite dans un petit dialogue. Une fois rempli, son domaine s'affiche avec une icône pour l'ouvrir.
+- « Supprimer la recette » est dans le menu ⋮.
+
+### Ajout d'ingrédient
+
+- Sans saisie, la liste montre « TES INGRÉDIENTS » : les 5 premiers fréquents. Pendant la saisie, elle montre « SUGGESTIONS », au plus 6.
+- Un article déjà dans la recette porte ✓ et le tap ne fait rien.
+- « Ajouter « … » » crée l'article dans Divers.
+- Entrée prend le nom exact, sinon la première suggestion, sinon crée l'article. La feuille reste ouverte après un ajout.
+
+### Revue
+
+- Un tap sur la ligne bascule entre gardée et « J'ai ! ».
+- Le tag quantité, une cible à part, corrige la quantité à acheter. On peut y changer d'unité et donner une quantité à une ligne qui n'en avait pas.
+- Le bouton s'intitule « Ajouter N articles à la liste ».
+
+### Liste
+
+- La barre « X sur N dans le panier » suit les cases cochées.
+- Un rayon dont tous les articles sont cochés disparaît, comme avant.
+
+### Panneau +
+
+- Au repos, on ne voit que le champ et les tags, clavier ouvert.
+- ⚡ Fréquents ferme le clavier et montre les fréquents en pastilles. Un tap sur une pastille ajoute l'article ; sur une pastille ✓, il le retire avec Annuler.
+- Retaper dans le champ, ou toucher ⚡ de nouveau, rouvre le clavier.
+- Les résultats de recherche s'affichent toujours pendant la saisie.
+- Les quantités passent par le Module quantité.
+
 ## Foundation
 
 | Aspect | Décision |

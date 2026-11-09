@@ -317,42 +317,8 @@ class _PanelRow extends StatelessWidget {
   }
 }
 
-/// Ligne de fréquent : Picto, nom et indicateur d'état ; dans la liste, le
-/// tag quantité de [line]. Annoncée « Lait » hors liste, « Lait, dans la
-/// liste » dans la liste.
-class FrequentRow extends StatelessWidget {
-  const FrequentRow({
-    super.key,
-    required this.article,
-    required this.inList,
-    required this.onTap,
-    this.line,
-    this.onQuantityTap,
-  });
-
-  final CatalogueArticle article;
-  final bool inList;
-  final VoidCallback onTap;
-
-  /// Plus ancienne ligne non cochée de l'article.
-  final ListeItem? line;
-
-  /// Tag quantité, montré seulement dans la liste.
-  final ValueChanged<ListeItem>? onQuantityTap;
-
-  @override
-  Widget build(BuildContext context) => _PanelRow(
-    article: article,
-    label: inList ? '${article.name}, ${StringsFr.dansLaListe}' : article.name,
-    inList: inList,
-    onTap: onTap,
-    line: line,
-    onQuantityTap: onQuantityTap,
-  );
-}
-
-/// Ligne de résultat : comme la Ligne de fréquent, Picto, nom et indicateur
-/// d'état, sans le rayon écrit ; dans la liste, le tag quantité de [line].
+/// Ligne de résultat du Panneau + : disque picto, nom et rayon dessous,
+/// indicateur d'état ; dans la liste, le tag quantité de [line].
 /// Annoncée « Lait, Crèmerie », avec « dans la liste » s'il y est.
 class SearchResultRow extends StatelessWidget {
   const SearchResultRow({

@@ -23,10 +23,6 @@ abstract final class StringsFr {
   static String validerN(int n) =>
       n == 1 ? 'Valider 1 recette' : 'Valider $n recettes';
 
-  /// Carte recette lue par TalkBack : « Chili, sélectionnée ».
-  static String recetteSelectionnee(String name, {required bool selected}) =>
-      '$name, ${selected ? 'sélectionnée' : 'non sélectionnée'}';
-
   /// Snackbar Annuler de la désélection d'une recette validée :
   /// « Ingrédients de « Chili » retirés de la liste » (guillemets français,
   /// espaces insécables).
@@ -116,7 +112,6 @@ abstract final class StringsFr {
 
   // Revue.
   static const revue = 'Revue';
-  static const revueConsigne = 'Décoche ce que tu as déjà.';
   static const ajouterALaListe = 'Ajouter à la liste';
 
   /// Avis de la Liste à l'arrivée depuis la Revue.
