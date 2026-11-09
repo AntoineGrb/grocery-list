@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=block">
+<style>
+@font-face{font-family:PhosphorRegular;src:url("assets/fonts/Phosphor-Regular.ttf") format("truetype");font-display:block}
+body{margin:0;background:#f0eee9;font-family:Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#9C4A2A}a:hover{color:#3B1305}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+<section class="dv-turn" id="t0">
+<div class="dv-thd"><a class="dv-tid" href="#t0">0</a><span class="dv-tname">État actuel — recréé depuis le code (master)</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="0a" data-screen-label="Actuel · Recettes"><div class="dv-olabel"><a class="dv-oid" href="#0a">0a</a>Recettes — recettes_screen.dart · recipe_card.dart</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:400 22px/28px Roboto">Recettes</span>
+    <span style="font:500 14px/20px Roboto;padding:14px 12px">Nouvelle liste</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">settings</span>
+    <span style="width:8px"></span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:8px 16px 0;display:flex;flex-direction:column;gap:12px">
+    <div style="font:400 16px/24px Roboto;color:#5C4E46">Voici quelques recettes pour essayer. Supprime-les quand tu veux.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <sc-for list="{{ cards }}" as="c" hint-placeholder-count="4">
+        <div style="position:relative;background:#F3ECE6;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+          <div style="height:118px;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:44px/1 PhosphorRegular;color:{{ c.ac }}">{{ c.glyph }}</div>
+          <div style="min-height:64px;padding:8px 12px;display:flex;align-items:center;font:500 16px/24px Roboto">{{ c.name }}</div>
+          <div style="position:absolute;top:0;left:0;width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+            <sc-if value="{{ c.sel }}" hint-placeholder-val="{{ false }}"><span style="width:24px;height:24px;border-radius:50%;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 18px/1 'Material Symbols Outlined'">check</span></sc-if>
+            <sc-if value="{{ c.unsel }}" hint-placeholder-val="{{ true }}"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #2A211C"></span></sc-if>
+          </div>
+          <div style="position:absolute;top:0;right:0;width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:18px/1 'Material Symbols Outlined';color:#5C4E46">edit</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="position:absolute;right:16px;bottom:160px;width:56px;height:56px;border-radius:16px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined';box-shadow:0 3px 5px rgba(0,0,0,.2),0 6px 10px rgba(0,0,0,.14)">add</div>
+  <div style="flex:none;padding:8px 16px;background:#FBF6F2"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">Valider (2)</div></div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div></div>
+
+<div class="dv-opt" id="0b" data-screen-label="Actuel · Fiche recette"><div class="dv-olabel"><a class="dv-oid" href="#0b">0b</a>Fiche recette — fiche_recette_screen.dart · fiche_recette_rows.dart</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:4px;gap:12px">
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span>
+    <span style="font:400 22px/28px Roboto">Recette</span>
+  </div>
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column">
+    <div style="padding:8px 16px;font:400 22px/28px Roboto">Chili con carne</div>
+    <sc-for list="{{ ficheRows }}" as="i" hint-placeholder-count="5">
+      <div style="min-height:48px;display:flex;align-items:center;padding:0 4px 0 16px">
+        <span style="width:24px;font:24px/1 PhosphorRegular;color:{{ i.ac }}">{{ i.glyph }}</span>
+        <span style="flex:1;min-width:0;margin-left:12px;padding:8px 0;font:400 16px/24px Roboto">{{ i.name }}</span>
+        <span style="width:144px;height:48px;box-sizing:border-box;margin-left:12px;border:1px solid #8F7E74;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;font:400 16px/24px Roboto">{{ i.num }}<span style="color:#5C4E46;padding:0 12px 0 8px;display:flex;align-items:center">{{ i.unit }}<span style="font:16px/1 'Material Symbols Outlined'">arrow_drop_down</span></span></span>
+        <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;color:#5C4E46;font:24px/1 'Material Symbols Outlined'">close</span>
+      </div>
+    </sc-for>
+    <div style="padding:4px 16px 0 4px;display:flex"><span style="height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;font:500 14px/20px Roboto"><span style="font:20px/1 'Material Symbols Outlined'">add</span>Ajouter un ingrédient</span></div>
+    <div style="padding:16px 16px 8px;display:flex"><span style="height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;font:500 14px/20px Roboto"><span style="font:20px/1 'Material Symbols Outlined'">add_a_photo</span>Ajouter une photo</span></div>
+    <div style="padding:8px 16px"><div style="height:48px;border-radius:999px;background:#FBF6F2;display:flex;align-items:center;gap:12px;padding:0 12px;color:#5C4E46;font:400 16px/24px Roboto"><span style="font:24px/1 'Material Symbols Outlined'">link</span>Lien</div></div>
+    <div style="padding:16px 16px 0;display:flex"><span style="height:48px;display:flex;align-items:center;gap:8px;padding:0 12px;color:#B3261E;font:500 14px/20px Roboto"><span style="font:20px/1 'Material Symbols Outlined'">delete</span>Supprimer la recette</span></div>
+  </div>
+  <div style="flex:none;padding:8px 16px 16px"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">Enregistrer</div></div>
+</div></div>
+
+<div class="dv-opt" id="0c" data-screen-label="Actuel · Revue"><div class="dv-olabel"><a class="dv-oid" href="#0c">0c</a>Revue — revue_screen.dart · revue_row.dart</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:4px;gap:12px">
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span>
+    <span style="font:400 22px/28px Roboto">Revue</span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:8px 16px 0;font:400 16px/24px Roboto;color:#5C4E46">Décoche ce que tu as déjà.</div>
+    <sc-for list="{{ revue }}" as="g" hint-placeholder-count="3">
+      <div style="padding:16px 16px 4px;display:flex"><span style="background:{{ g.bg }};border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font:500 14px/20px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:{{ g.ac }}"></span>{{ g.label }}</span></div>
+      <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+        <div style="min-height:48px;display:flex;align-items:center;padding:0 16px 0 4px">
+          <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+            <sc-if value="{{ i.on }}" hint-placeholder-val="{{ true }}"><span style="width:24px;height:24px;border-radius:50%;background:{{ g.ac }};color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 18px/1 'Material Symbols Outlined'">check</span></sc-if>
+            <sc-if value="{{ i.off }}" hint-placeholder-val="{{ false }}"><span style="width:20px;height:20px;border-radius:50%;border:2px solid {{ g.ac }}"></span></sc-if>
+          </span>
+          <span style="flex:1;margin-left:4px;padding:8px 0;font:400 16px/24px Roboto;color:{{ i.color }}">{{ i.name }}</span>
+          <sc-if value="{{ i.hasQ }}" hint-placeholder-val="{{ true }}"><span style="width:96px;height:48px;margin-left:12px;border-radius:8px;background:#F3ECE6;display:flex;align-items:center;justify-content:flex-end;font:400 16px/24px Roboto">{{ i.num }}<span style="color:#5C4E46;padding:0 12px 0 8px">{{ i.unit }}</span></span></sc-if>
+        </div>
+      </sc-for>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:8px 16px 16px"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">Ajouter à la liste</div></div>
+</div></div>
+
+<div class="dv-opt" id="0d" data-screen-label="Actuel · Liste"><div class="dv-olabel"><a class="dv-oid" href="#0d">0d</a>Liste — liste_screen.dart · item_row.dart · checked_section.dart</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:400 22px/28px Roboto">Liste</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">settings</span>
+    <span style="width:8px"></span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <sc-for list="{{ liste }}" as="g" hint-placeholder-count="3">
+      <div style="padding:16px 16px 4px;display:flex"><span style="background:{{ g.bg }};border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font:500 14px/20px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:{{ g.ac }}"></span>{{ g.label }}</span></div>
+      <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+        <div style="min-height:48px;display:flex;align-items:center;padding:0 16px 0 4px">
+          <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;border-radius:50%;border:2px solid {{ g.ac }}"></span></span>
+          <span style="flex:1;margin-left:4px;padding:8px 0;font:400 16px/24px Roboto">{{ i.name }}</span>
+          <span style="margin-left:12px;font:400 14px/20px Roboto;color:#5C4E46">{{ i.q }}</span>
+        </div>
+      </sc-for>
+    </sc-for>
+    <div style="height:8px"></div>
+    <div style="height:1px;background:#8F7E74"></div>
+    <div style="height:48px;display:flex;align-items:center;gap:8px;padding:0 16px 0 12px;color:#5C4E46;font:500 14px/20px Roboto"><span style="font:24px/1 'Material Symbols Outlined'">chevron_right</span>Cochés (2)</div>
+  </div>
+  <div style="position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:16px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined';box-shadow:0 3px 5px rgba(0,0,0,.2),0 6px 10px rgba(0,0,0,.14)">add</div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div></div>
+
+</div>
+<p class="dv-next">Base de comparaison pour les propositions → <a href="Kadi - Propositions.dc.html">Kadi — Propositions</a></p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const R = {
+  fl: { label: 'Fruits & légumes', bg: '#DFE6D6', ac: '#4B9245' },
+  vp: { label: 'Viande/Poisson', bg: '#EADAD6', ac: '#924546' },
+  cr: { label: 'Crèmerie', bg: '#DEDDE4', ac: '#485A99' },
+  es: { label: 'Épicerie salée', bg: '#EADED6', ac: '#925F45' },
+  bo: { label: 'Boulangerie', bg: '#EAE1D6', ac: '#927245' },
+};
+const G = { bowl: '\ueaa4', burger: '\ue790', bread: '\ue81c', pepper: '\ue94a', leaf: '\ue2da', jar: '\ue7e0' };
+class Component extends DCLogic {
+  renderVals() {
+    const cards = [
+      { name: 'Pâtes carbonara', glyph: G.bowl, ac: R.es.ac, sel: false },
+      { name: 'Chili con carne', glyph: G.burger, ac: R.vp.ac, sel: true },
+      { name: 'Quiche lorraine', glyph: G.bread, ac: R.cr.ac, sel: false },
+      { name: 'Ratatouille', glyph: G.pepper, ac: R.fl.ac, sel: true },
+    ].map(c => ({ ...c, unsel: !c.sel }));
+    const ficheRows = [
+      { name: 'Viande hachée', glyph: G.burger, ac: R.vp.ac, num: '500', unit: 'g' },
+      { name: 'Oignons', glyph: G.leaf, ac: R.fl.ac, num: '2', unit: 'pièces' },
+      { name: 'Haricots rouges', glyph: G.jar, ac: R.es.ac, num: '400', unit: 'g' },
+      { name: 'Poivrons', glyph: G.pepper, ac: R.fl.ac, num: '1', unit: 'pièces' },
+      { name: 'Tomates concassées', glyph: G.jar, ac: R.es.ac, num: '300', unit: 'g' },
+    ];
+    const it = (name, num, unit, on = true) => ({ name, num, unit, on, off: !on, hasQ: !!num, color: on ? '#2A211C' : '#6F625A' });
+    const revue = [
+      { ...R.fl, items: [it('Oignons', '3', 'pièces'), it('Poivrons', '3', 'pièces'), it('Courgettes', '400', 'g'), it('Aubergines', '2', 'pièces'), it('Tomates', '500', 'g'), it('Ail', '', '', false)] },
+      { ...R.vp, items: [it('Viande hachée', '500', 'g')] },
+      { ...R.es, items: [it('Haricots rouges', '400', 'g'), it('Tomates concassées', '300', 'g'), it('Herbes de Provence', '', '', false)] },
+    ];
+    const liste = [
+      { ...R.fl, items: [{ name: 'Oignons', q: '3 pièces' }, { name: 'Poivrons', q: '3 pièces' }, { name: 'Courgettes', q: '400 g' }, { name: 'Aubergines', q: '2 pièces' }, { name: 'Tomates', q: '500 g' }] },
+      { ...R.bo, items: [{ name: 'Baguettes', q: '2 pièces' }] },
+      { ...R.vp, items: [{ name: 'Viande hachée', q: '500 g' }] },
+      { ...R.cr, items: [{ name: 'Lait', q: '' }, { name: 'Œufs', q: '6 pièces' }] },
+      { ...R.es, items: [{ name: 'Haricots rouges', q: '400 g' }, { name: 'Tomates concassées', q: '300 g' }] },
+    ];
+    return { cards, ficheRows, revue, liste };
+  }
+}
+</script>
+</body>
+</html>

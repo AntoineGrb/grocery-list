@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=block">
+<style>
+@font-face{font-family:PhosphorRegular;src:url("assets/fonts/Phosphor-Regular.ttf") format("truetype");font-display:block}
+body{margin:0;background:#f0eee9;font-family:Roboto,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#9C4A2A}a:hover{color:#3B1305}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08)}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;width:376px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:600 12px/1.3 system-ui,sans-serif;color:#1a1a1a}.dv-note{font:400 12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.6);margin:0;text-wrap:pretty}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}
+</style>
+</helmet>
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Fiche recette — les 3 interactions manquantes (base <a class="dv-oid" href="#2b">2b</a>, tag balance)</span></div>
+<p style="margin:-8px 0 24px;max-width:780px;font:13px/1.55 system-ui,sans-serif;color:rgba(0,0,0,.65);text-wrap:pretty">Champs de saisie réels dans <a class="dv-oid" href="#3a">3a</a> et <a class="dv-oid" href="#3b">3b</a> : tape « cumin », « riz », « hari »… Un tap sur une suggestion l'ajoute à la recette. Ajustements de la série 2 faits sur place : tag balance dans <a class="dv-oid" href="#2b">2b</a>, « J'ai ! » dans <a class="dv-oid" href="#2d">2d</a>, tags « Quantité » et « ⚡ Fréquents » dans <a class="dv-oid" href="#2f">2f</a>.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a" data-screen-label="3a Recherche module"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Ajout d'ingrédient — module plein écran</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding:0 4px;justify-content:space-between"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span></div>
+  <div style="flex:1;overflow:hidden;padding:4px 16px 0">
+    <div style="display:flex;gap:14px;align-items:center"><span style="width:72px;height:72px;flex:none;border-radius:18px;background:#924546;color:#EADAD6;display:flex;align-items:center;justify-content:center;font:700 26px/1 'Bricolage Grotesque'">Cc</span><span style="font:600 24px/28px 'Bricolage Grotesque'">Chili con carne</span></div>
+    <div style="margin-top:22px"></div>
+    <sc-for list="{{ rows3a }}" as="i" hint-placeholder-count="5">
+      <div style="height:54px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #E8DFD8"><span style="width:34px;height:34px;border-radius:50%;background:{{ i.bg }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:20px/1 PhosphorRegular">{{ i.glyph }}</span><span style="flex:1;font:400 16px Roboto">{{ i.name }}</span><sc-if value="{{ i.has }}" hint-placeholder-val="{{ true }}"><span style="height:30px;border-radius:8px;background:{{ i.bg }};display:flex;align-items:center;padding:0 10px;font:500 13px Roboto">{{ i.txt }}</span></sc-if></div>
+    </sc-for>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></div>
+  <div style="position:absolute;left:0;right:0;top:92px;bottom:0;background:#F3ECE6;border-radius:28px 28px 0 0;display:flex;flex-direction:column;box-shadow:0 -4px 16px rgba(0,0,0,.12)">
+    <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:10px auto 6px;opacity:.6;flex:none"></div>
+    <div style="flex:none;display:flex;align-items:center;padding:0 8px 0 20px;height:44px"><span style="flex:1;font:500 16px Roboto">Ajouter un ingrédient</span><span style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">close</span></div>
+    <div style="flex:none;margin:4px 16px 8px;height:50px;box-sizing:border-box;border-radius:999px;background:#FBF6F2;border:2px solid #2A211C;display:flex;align-items:center;gap:10px;padding:0 16px"><span style="font:22px/1 'Material Symbols Outlined';color:#5C4E46">search</span><input value="{{ s3a.query }}" onChange="{{ s3a.onInput }}" placeholder="Chercher ou créer…" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 17px Roboto;color:#2A211C"></div>
+    <div style="flex:1;overflow:auto;padding:0 8px">
+      <div style="font:500 12px Roboto;color:#5C4E46;letter-spacing:.4px;padding:8px 12px 4px">{{ s3a.title }}</div>
+      <sc-for list="{{ s3a.results }}" as="r" hint-placeholder-count="4">
+        <div onClick="{{ r.pick }}" style="cursor:pointer;height:54px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:12px" style-hover="background:#E8DFD8">
+          <span style="width:34px;height:34px;border-radius:50%;background:{{ r.bg }};color:{{ r.ac }};display:flex;align-items:center;justify-content:center;font:20px/1 PhosphorRegular">{{ r.glyph }}</span>
+          <span style="flex:1;min-width:0"><span style="display:block;font:400 16px/20px Roboto">{{ r.name }}</span><span style="display:block;font:400 12px/16px Roboto;color:#5C4E46">{{ r.rayon }}</span></span>
+          <span style="font:22px/1 'Material Symbols Outlined';color:{{ r.iconFg }}">{{ r.icon }}</span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ s3a.noResults }}" hint-placeholder-val="{{ false }}"><div style="padding:6px 12px 2px;font:400 13px Roboto;color:#5C4E46">Aucun ingrédient enregistré à ce nom.</div></sc-if>
+      <sc-if value="{{ s3a.create }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ s3a.doCreate }}" style="cursor:pointer;height:54px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:12px;margin-top:4px" style-hover="background:#E8DFD8">
+          <span style="width:34px;height:34px;box-sizing:border-box;border-radius:50%;border:1.5px dashed #8F7E74;display:flex;align-items:center;justify-content:center;font:20px/1 'Material Symbols Outlined'">add</span>
+          <span style="flex:1"><span style="display:block;font:500 16px/20px Roboto">{{ s3a.createLbl }}</span><span style="display:block;font:400 12px/16px Roboto;color:#5C4E46">Nouvel ingrédient · rayon modifiable ensuite</span></span>
+        </div>
+      </sc-if>
+    </div>
+    <div style="flex:none;height:230px;background:repeating-linear-gradient(135deg,#E3DCD5 0 6px,#E8E1DA 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5C4E46">clavier</div>
+  </div>
+</div>
+<p class="dv-note">La feuille monte presque en plein écran : champ en haut, suggestions au milieu (filtrées à chaque lettre, ✓ si déjà dans la recette), « Ajouter « … » » en dernier s'il n'y a pas de correspondance exacte. La feuille reste ouverte pour enchaîner les ajouts.</p></div>
+
+<div class="dv-opt" id="3b" data-screen-label="3b Recherche inline"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Ajout d'ingrédient — directement dans la fiche</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding:0 4px;gap:4px;border-bottom:1px solid #E8DFD8"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span><span style="flex:1;font:600 18px 'Bricolage Grotesque'">Chili con carne</span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span></div>
+  <div style="flex:1;overflow:hidden;padding:0 16px 10px;display:flex;flex-direction:column;justify-content:flex-end">
+    <sc-for list="{{ rows3b }}" as="i" hint-placeholder-count="5">
+      <div style="flex:none;height:54px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #E8DFD8"><span style="width:34px;height:34px;border-radius:50%;background:{{ i.bg }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:20px/1 PhosphorRegular">{{ i.glyph }}</span><span style="flex:1;font:400 16px Roboto">{{ i.name }}</span><sc-if value="{{ i.has }}" hint-placeholder-val="{{ true }}"><span style="height:30px;border-radius:8px;background:{{ i.bg }};display:flex;align-items:center;padding:0 10px;font:500 13px Roboto">{{ i.txt }}</span></sc-if><sc-if value="{{ i.empty }}" hint-placeholder-val="{{ false }}"><span style="width:30px;height:30px;box-sizing:border-box;border-radius:8px;border:1.5px dashed {{ i.ac }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:17px/1 'Material Symbols Outlined'">scale</span></sc-if></div>
+    </sc-for>
+    <div style="flex:none;margin-top:12px;height:50px;box-sizing:border-box;border-radius:999px;background:#FBF6F2;border:2px solid #2A211C;display:flex;align-items:center;gap:10px;padding:0 16px"><span style="font:22px/1 'Material Symbols Outlined'">add</span><input value="{{ s3b.query }}" onChange="{{ s3b.onInput }}" placeholder="Ajouter un ingrédient…" style="flex:1;min-width:0;border:0;outline:0;background:transparent;font:400 16px Roboto;color:#2A211C"></div>
+    <div style="flex:none;margin-top:6px;background:#F3ECE6;border-radius:18px;padding:4px;box-shadow:0 6px 18px rgba(42,33,28,.12)">
+      <sc-for list="{{ s3b.results }}" as="r" hint-placeholder-count="3">
+        <div onClick="{{ r.pick }}" style="cursor:pointer;height:46px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:12px" style-hover="background:#E8DFD8">
+          <span style="width:28px;height:28px;border-radius:50%;background:{{ r.bg }};color:{{ r.ac }};display:flex;align-items:center;justify-content:center;font:17px/1 PhosphorRegular">{{ r.glyph }}</span>
+          <span style="flex:1;font:400 15px Roboto">{{ r.name }}</span>
+          <span style="font:400 12px Roboto;color:#5C4E46">{{ r.rayon }}</span>
+          <span style="font:20px/1 'Material Symbols Outlined';color:{{ r.iconFg }}">{{ r.icon }}</span>
+        </div>
+      </sc-for>
+      <sc-if value="{{ s3b.create }}" hint-placeholder-val="{{ true }}">
+        <div onClick="{{ s3b.doCreate }}" style="cursor:pointer;height:46px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:12px;border-top:1px solid #E8DFD8" style-hover="background:#E8DFD8">
+          <span style="width:28px;height:28px;box-sizing:border-box;border-radius:50%;border:1.5px dashed #8F7E74;display:flex;align-items:center;justify-content:center;font:18px/1 'Material Symbols Outlined'">add</span>
+          <span style="flex:1;font:500 15px Roboto">{{ s3b.createLbl }}</span>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  <div style="flex:none;height:230px;background:repeating-linear-gradient(135deg,#E3DCD5 0 6px,#E8E1DA 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5C4E46">clavier</div>
+</div>
+<p class="dv-note">Au focus, la fiche défile : le nom passe dans la barre du haut, le champ se cale au-dessus du clavier et les suggestions s'ouvrent juste dessous, en carte. On garde les derniers ingrédients en vue. Faisable et lisible jusqu'à ~5 suggestions ; au-delà, <a class="dv-oid" href="#3a">3a</a> respire mieux.</p></div>
+
+<sc-for list="{{ fiches3 }}" as="f" hint-placeholder-count="2">
+<div class="dv-opt" id="{{ f.id }}" data-screen-label="Fiche interactions"><div class="dv-olabel"><a class="dv-oid" href="{{ f.href }}">{{ f.id }}</a>{{ f.label }}</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding:0 4px;justify-content:space-between"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span></div>
+  <div style="flex:1;overflow:hidden;padding:4px 16px 0">
+    <div style="display:flex;gap:14px;align-items:center">
+      <span style="width:72px;height:72px;flex:none;border-radius:18px;background:#924546;color:#EADAD6;position:relative;display:flex;align-items:center;justify-content:center;font:700 26px/1 'Bricolage Grotesque'">Cc<span style="position:absolute;right:-4px;bottom:-4px;width:26px;height:26px;border-radius:50%;background:#FBF6F2;color:#2A211C;display:flex;align-items:center;justify-content:center;font:16px/1 'Material Symbols Outlined';box-shadow:0 1px 3px rgba(0,0,0,.2)">photo_camera</span></span>
+      <span style="flex:1"><span style="display:block;font:600 24px/28px 'Bricolage Grotesque'">Chili con carne</span><span style="display:flex;align-items:center;gap:4px;margin-top:4px;font:500 13px Roboto;color:#5C4E46"><span style="font:16px/1 'Material Symbols Outlined'">link</span>Ajouter un lien</span></span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 4px"><span style="font:500 14px Roboto">Ingrédients</span><span style="font:400 13px Roboto;color:#5C4E46">5</span></div>
+    <sc-for list="{{ f.rows }}" as="i" hint-placeholder-count="5">
+      <div style="height:54px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #E8DFD8">
+        <span onClick="{{ i.openRay }}" style="cursor:pointer;width:34px;height:34px;border-radius:50%;background:{{ i.bg }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:20px/1 PhosphorRegular;transition:background .2s">{{ i.glyph }}</span>
+        <span style="flex:1;font:400 16px Roboto">{{ i.name }}</span>
+        <sc-if value="{{ i.has }}" hint-placeholder-val="{{ true }}"><span onClick="{{ i.open }}" style="cursor:pointer;height:30px;border-radius:8px;background:{{ i.bg }};display:flex;align-items:center;padding:0 10px;font:500 13px Roboto">{{ i.txt }}</span></sc-if>
+        <sc-if value="{{ i.empty }}" hint-placeholder-val="{{ false }}"><span onClick="{{ i.open }}" style="cursor:pointer;width:30px;height:30px;box-sizing:border-box;border-radius:8px;border:1.5px dashed {{ i.ac }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:17px/1 'Material Symbols Outlined'">scale</span></sc-if>
+      </div>
+    </sc-for>
+    <div style="margin-top:14px;height:48px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:10px;padding:0 16px;color:#5C4E46;font:400 15px Roboto"><span style="font:22px/1 'Material Symbols Outlined'">add</span>Ajouter un ingrédient…</div>
+  </div>
+  <div style="flex:none;padding:8px 16px 16px"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">Enregistrer</div></div>
+  <sc-if value="{{ f.rayOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ f.closeRay }}" style="position:absolute;inset:0"></div>
+    <div style="position:absolute;left:12px;right:48px;top:{{ f.rayTop }};max-height:300px;overflow:auto;background:#F3ECE6;border-radius:20px;padding:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.2)">
+      <sc-for list="{{ f.rayons }}" as="r" hint-placeholder-count="6">
+        <div onClick="{{ r.pick }}" style="cursor:pointer;height:44px;display:flex;align-items:center;gap:14px;padding:0 18px;font:400 16px Roboto" style-hover="background:#E8DFD8"><span style="width:10px;height:10px;border-radius:50%;background:{{ r.ac }}"></span><span style="flex:1">{{ r.label }}</span><sc-if value="{{ r.sel }}" hint-placeholder-val="{{ false }}"><span style="font:20px/1 'Material Symbols Outlined'">check</span></sc-if></div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{ f.sheetOn }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ f.sh.close }}" style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#F3ECE6;border-radius:28px 28px 0 0;padding:10px 20px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.12)">
+      <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:0 auto 14px;opacity:.6"></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:24px/1 PhosphorRegular;color:{{ f.sh.ac }}">{{ f.sh.glyph }}</span><span style="font:500 16px Roboto">{{ f.sh.name }}</span></div>
+      <div style="display:flex;align-items:center;gap:14px;margin:16px 0 14px">
+        <span onClick="{{ f.sh.dec }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">remove</span>
+        <span style="flex:1;display:flex;align-items:baseline;justify-content:center;gap:8px"><span style="font:600 44px/1 'Bricolage Grotesque'">{{ f.sh.numLabel }}</span><span style="font:500 16px Roboto;color:#5C4E46">{{ f.sh.unitLabel }}</span></span>
+        <span onClick="{{ f.sh.inc }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">add</span>
+      </div>
+      <div style="display:flex;border-radius:999px;background:#E8DFD8;padding:3px;gap:2px"><sc-for list="{{ f.sh.units }}" as="u" hint-placeholder-count="5"><span onClick="{{ u.pick }}" style="cursor:pointer;flex:1;height:30px;border-radius:999px;background:{{ u.bg }};color:{{ u.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ u.label }}</span></sc-for></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><sc-for list="{{ f.sh.picks }}" as="k" hint-placeholder-count="4"><span onClick="{{ k.pick }}" style="cursor:pointer;flex:1;height:36px;border-radius:10px;background:{{ k.bg }};color:{{ k.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ k.label }}</span></sc-for></div>
+      <div onClick="{{ f.sh.ok }}" style="cursor:pointer;margin-top:16px;height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto">OK</div>
+    </div>
+  </sc-if>
+</div>
+<p class="dv-note">{{ f.note }}</p></div>
+</sc-for>
+</div>
+<p class="dv-next">Pour itérer : « garde <a class="dv-oid" href="#3a">3a</a> » ou « garde <a class="dv-oid" href="#3b">3b</a> » · « dans <a class="dv-oid" href="#3d">3d</a>, ouvre le rayon en feuille du bas » · « passe tout en mode sombre »</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Itération sur tes retours — <a class="dv-oid" href="#1c">1c</a> · <a class="dv-oid" href="#1d">1d</a>+<a class="dv-oid" href="#1e">1e</a> · <a class="dv-oid" href="#1f">1f</a> · <a class="dv-oid" href="#1h">1h</a> + Panneau d'ajout</span></div>
+<p style="margin:-8px 0 24px;max-width:780px;font:13px/1.55 system-ui,sans-serif;color:rgba(0,0,0,.65);text-wrap:pretty">Un seul <b>module quantité</b> partout (fiche, revue, panneau +) : feuille du bas avec nombre ±, unités et valeurs rapides, sans « Sans quantité » — remettre à 0 puis OK efface. Touche n'importe quel tag de quantité pour l'essayer.</p>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Recettes &amp; Fiche recette</h3>
+<div class="dv-opts" style="margin-bottom:44px">
+
+<div class="dv-opt" id="2a" data-screen-label="2a Recettes"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Recettes — liste rapide</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Recettes</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">add</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span>
+  </div>
+  <div style="flex:none;padding:0 16px 8px;display:flex;flex-direction:column;gap:10px">
+    <div style="height:44px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:10px;padding:0 16px;color:#5C4E46;font:400 15px Roboto"><span style="font:22px/1 'Material Symbols Outlined'">search</span>Chercher une recette</div>
+    <div style="display:flex;gap:8px">
+      <span onClick="{{ showAll2a }}" style="cursor:pointer;height:32px;box-sizing:border-box;border-radius:8px;border:1px solid #2A211C;background:{{ fAllBg }};color:{{ fAllFg }};display:flex;align-items:center;padding:0 12px;font:500 13px Roboto">{{ lblAll2a }}</span>
+      <span onClick="{{ showWk2a }}" style="cursor:pointer;height:32px;box-sizing:border-box;border-radius:8px;border:1px solid #2A211C;background:{{ fWkBg }};color:{{ fWkFg }};display:flex;align-items:center;padding:0 12px;font:500 13px Roboto">{{ lblWk2a }}</span>
+    </div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <sc-for list="{{ r2a }}" as="r" hint-placeholder-count="6">
+      <div onClick="{{ r.open }}" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:14px;padding:8px 16px" style-hover="background:#F3ECE6">
+        <span style="width:56px;height:56px;flex:none;border-radius:14px;background:{{ r.ac }};color:{{ r.bg }};display:flex;align-items:center;justify-content:center;font:700 22px/1 'Bricolage Grotesque';letter-spacing:-.5px">{{ r.ini }}</span>
+        <span style="flex:1;min-width:0"><span style="display:block;font:500 16px/22px Roboto">{{ r.name }}</span><span style="display:block;font:400 13px/18px Roboto;color:#5C4E46">{{ r.n }} ingrédients</span></span>
+        <span onClick="{{ r.toggle }}" style="height:40px;border-radius:999px;box-sizing:border-box;border:1px solid {{ r.pillBd }};background:{{ r.pillBg }};color:{{ r.pillFg }};display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:500 13px Roboto;transition:background .2s"><span style="font:18px/1 'Material Symbols Outlined'">{{ r.pillIcon }}</span>{{ r.pillLabel }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:8px 16px;background:#FBF6F2"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">{{ cta2a }}</div></div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">Tap sur la ligne → fiche (renvoie vers <a class="dv-oid" href="#2b">2b</a>). Tap sur « Ajouter » → sélection en 1 clic. Monogramme à la couleur du rayon de l'ingrédient principal. Les filtres fonctionnent.</p></div>
+
+<sc-for list="{{ fiches }}" as="f" hint-placeholder-count="2">
+<div class="dv-opt" id="{{ f.id }}" data-screen-label="Fiche recette"><div class="dv-olabel"><a class="dv-oid" href="{{ f.href }}">{{ f.id }}</a>{{ f.label }}</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding:0 4px;justify-content:space-between">
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:4px 16px 0">
+    <div style="display:flex;gap:14px;align-items:center">
+      <span style="width:72px;height:72px;flex:none;border-radius:18px;background:#924546;color:#EADAD6;position:relative;display:flex;align-items:center;justify-content:center;font:700 26px/1 'Bricolage Grotesque'">Cc<span style="position:absolute;right:-4px;bottom:-4px;width:26px;height:26px;border-radius:50%;background:#FBF6F2;color:#2A211C;display:flex;align-items:center;justify-content:center;font:16px/1 'Material Symbols Outlined';box-shadow:0 1px 3px rgba(0,0,0,.2)">photo_camera</span></span>
+      <span style="flex:1"><span style="display:block;font:600 24px/28px 'Bricolage Grotesque'">Chili con carne</span><span style="display:flex;align-items:center;gap:4px;margin-top:4px;font:500 13px Roboto;color:#5C4E46"><span style="font:16px/1 'Material Symbols Outlined'">link</span>Ajouter un lien</span></span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:26px 0 4px"><span style="font:500 14px Roboto">Ingrédients</span><span style="font:400 13px Roboto;color:#5C4E46">5</span></div>
+    <sc-for list="{{ f.rows }}" as="i" hint-placeholder-count="5">
+      <div style="height:54px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #E8DFD8">
+        <span style="width:34px;height:34px;border-radius:50%;background:{{ i.bg }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:20px/1 PhosphorRegular">{{ i.glyph }}</span>
+        <span style="flex:1;font:400 16px Roboto">{{ i.name }}</span>
+        <sc-if value="{{ i.aHas }}" hint-placeholder-val="{{ false }}"><span onClick="{{ i.open }}" style="cursor:pointer;height:30px;border-radius:8px;background:{{ i.bg }};display:flex;align-items:center;padding:0 10px;font:500 13px Roboto">{{ i.txt }}</span></sc-if>
+        <sc-if value="{{ i.aEmpty }}" hint-placeholder-val="{{ false }}"><span onClick="{{ i.open }}" style="cursor:pointer;height:30px;box-sizing:border-box;border-radius:8px;border:1.5px dashed {{ i.ac }};color:{{ i.ac }};display:flex;align-items:center;gap:2px;padding:0 8px;font:500 13px Roboto"><span style="font:17px/1 'Material Symbols Outlined'">scale</span></span></sc-if>
+        <sc-if value="{{ i.bHas }}" hint-placeholder-val="{{ false }}"><span onClick="{{ i.open }}" style="cursor:pointer;height:28px;border-radius:999px;overflow:hidden;display:flex;font:500 13px/28px Roboto"><span style="background:#2A211C;color:#FBF6F2;padding:0 8px 0 11px">{{ i.num }}</span><span style="background:#E8DFD8;padding:0 11px 0 7px">{{ i.unit }}</span></span></sc-if>
+        <sc-if value="{{ i.bEmpty }}" hint-placeholder-val="{{ false }}"><span onClick="{{ i.open }}" style="cursor:pointer;width:30px;height:30px;box-sizing:border-box;border-radius:50%;border:1.5px dashed #8F7E74;color:#5C4E46;display:flex;align-items:center;justify-content:center;font:17px/1 'Material Symbols Outlined'">scale</span></sc-if>
+      </div>
+    </sc-for>
+    <div style="margin-top:14px;height:48px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:10px;padding:0 16px;color:#5C4E46;font:400 15px Roboto"><span style="font:22px/1 'Material Symbols Outlined'">add</span>Ajouter un ingrédient…</div>
+  </div>
+  <div style="flex:none;padding:8px 16px 16px"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">Enregistrer</div></div>
+  <sc-if value="{{ f.sheetOn }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ f.sh.close }}" style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#F3ECE6;border-radius:28px 28px 0 0;padding:10px 20px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.12)">
+      <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:0 auto 14px;opacity:.6"></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:24px/1 PhosphorRegular;color:{{ f.sh.ac }}">{{ f.sh.glyph }}</span><span style="font:500 16px Roboto">{{ f.sh.name }}</span></div>
+      <div style="display:flex;align-items:center;gap:14px;margin:16px 0 14px">
+        <span onClick="{{ f.sh.dec }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">remove</span>
+        <span style="flex:1;display:flex;align-items:baseline;justify-content:center;gap:8px"><span style="font:600 44px/1 'Bricolage Grotesque'">{{ f.sh.numLabel }}</span><span style="font:500 16px Roboto;color:#5C4E46">{{ f.sh.unitLabel }}</span></span>
+        <span onClick="{{ f.sh.inc }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">add</span>
+      </div>
+      <div style="display:flex;border-radius:999px;background:#E8DFD8;padding:3px;gap:2px"><sc-for list="{{ f.sh.units }}" as="u" hint-placeholder-count="5"><span onClick="{{ u.pick }}" style="cursor:pointer;flex:1;height:30px;border-radius:999px;background:{{ u.bg }};color:{{ u.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ u.label }}</span></sc-for></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><sc-for list="{{ f.sh.picks }}" as="k" hint-placeholder-count="4"><span onClick="{{ k.pick }}" style="cursor:pointer;flex:1;height:36px;border-radius:10px;background:{{ k.bg }};color:{{ k.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ k.label }}</span></sc-for></div>
+      <div onClick="{{ f.sh.ok }}" style="cursor:pointer;margin-top:16px;height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto">OK</div>
+    </div>
+  </sc-if>
+</div>
+<p class="dv-note">{{ f.note }}</p></div>
+</sc-for>
+</div>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Revue &amp; Liste</h3>
+<div class="dv-opts" style="margin-bottom:44px">
+
+<div class="dv-opt" id="2d" data-screen-label="2d Revue"><div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Revue — quantités modifiables</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:4px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span></div>
+  <div style="flex:none;padding:0 16px 12px">
+    <div style="font:600 26px/30px 'Bricolage Grotesque'">Qu'as-tu déjà ?</div>
+    <div style="font:400 14px/20px Roboto;color:#5C4E46;margin-top:4px;text-wrap:pretty">Touche un article si tu l'as déjà, ou sa quantité si tu en as une partie.</div>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:0 12px;display:flex;flex-direction:column;gap:10px">
+    <sc-for list="{{ rv2d }}" as="g" hint-placeholder-count="3">
+      <div style="background:#F3ECE6;border-radius:18px;padding:6px 0">
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 14px"><span style="width:10px;height:10px;border-radius:50%;background:{{ g.ac }}"></span><span style="flex:1;font:500 14px Roboto">{{ g.label }}</span><span style="font:400 12px Roboto;color:#5C4E46">{{ g.count }}</span></div>
+        <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+          <div onClick="{{ i.toggle }}" style="cursor:pointer;user-select:none;height:42px;display:flex;align-items:center;gap:10px;padding:0 10px 0 14px">
+            <sc-if value="{{ i.on }}" hint-placeholder-val="{{ true }}"><span style="width:22px;height:22px;border-radius:50%;background:{{ g.ac }};color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 16px/1 'Material Symbols Outlined'">check</span></sc-if>
+            <sc-if value="{{ i.off }}" hint-placeholder-val="{{ false }}"><span style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#8F7E74;font:20px/1 'Material Symbols Outlined'">home</span></sc-if>
+            <span style="flex:1;font:400 15px Roboto;color:{{ i.color }};text-decoration:{{ i.deco }}">{{ i.name }}</span>
+            <sc-if value="{{ i.off }}" hint-placeholder-val="{{ false }}"><span style="font:400 12px Roboto;color:#6F625A;padding-right:4px">J'ai !</span></sc-if>
+            <sc-if value="{{ i.tagHas }}" hint-placeholder-val="{{ true }}"><span onClick="{{ i.open }}" style="cursor:pointer;height:28px;border-radius:8px;background:{{ i.bg }};display:flex;align-items:center;padding:0 10px;font:500 13px Roboto">{{ i.txt }}</span></sc-if>
+            <sc-if value="{{ i.tagEmpty }}" hint-placeholder-val="{{ false }}"><span onClick="{{ i.open }}" style="cursor:pointer;height:28px;box-sizing:border-box;border-radius:8px;border:1.5px dashed {{ i.ac }};color:{{ i.ac }};display:flex;align-items:center;gap:2px;padding:0 8px;font:500 13px Roboto"><span style="font:17px/1 'Material Symbols Outlined'">scale</span></span></sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:10px 16px 16px"><div style="height:52px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 15px Roboto">{{ cta2d }}</div></div>
+  <sc-if value="{{ sheet2d }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ sh2d.close }}" style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#F3ECE6;border-radius:28px 28px 0 0;padding:10px 20px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.12)">
+      <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:0 auto 14px;opacity:.6"></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="width:10px;height:10px;border-radius:50%;background:{{ sh2d.ac }}"></span><span style="font:500 16px Roboto">{{ sh2d.name }}</span><span style="flex:1;text-align:right;font:400 12px Roboto;color:#5C4E46">quantité à acheter</span></div>
+      <div style="display:flex;align-items:center;gap:14px;margin:16px 0 14px">
+        <span onClick="{{ sh2d.dec }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">remove</span>
+        <span style="flex:1;display:flex;align-items:baseline;justify-content:center;gap:8px"><span style="font:600 44px/1 'Bricolage Grotesque'">{{ sh2d.numLabel }}</span><span style="font:500 16px Roboto;color:#5C4E46">{{ sh2d.unitLabel }}</span></span>
+        <span onClick="{{ sh2d.inc }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">add</span>
+      </div>
+      <div style="display:flex;border-radius:999px;background:#E8DFD8;padding:3px;gap:2px"><sc-for list="{{ sh2d.units }}" as="u" hint-placeholder-count="5"><span onClick="{{ u.pick }}" style="cursor:pointer;flex:1;height:30px;border-radius:999px;background:{{ u.bg }};color:{{ u.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ u.label }}</span></sc-for></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><sc-for list="{{ sh2d.picks }}" as="k" hint-placeholder-count="4"><span onClick="{{ k.pick }}" style="cursor:pointer;flex:1;height:36px;border-radius:10px;background:{{ k.bg }};color:{{ k.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ k.label }}</span></sc-for></div>
+      <div onClick="{{ sh2d.ok }}" style="cursor:pointer;margin-top:16px;height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto">OK</div>
+    </div>
+  </sc-if>
+</div>
+<p class="dv-note">Consigne enrichie. Tap sur la ligne = « J'ai ! » ; tap sur le tag = module quantité (j'en ai déjà une partie). Le tag est la pastille de <a class="dv-oid" href="#2b">2b</a>.</p></div>
+
+<div class="dv-opt" id="2e" data-screen-label="2e Liste"><div class="dv-olabel"><a class="dv-oid" href="#2e">2e</a>Liste — progression + section Cochés</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Liste</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">settings</span><span style="width:8px"></span>
+  </div>
+  <div style="flex:none;padding:0 16px 6px">
+    <div style="font:500 13px Roboto">{{ prog2e }}</div>
+    <div style="height:6px;border-radius:3px;background:#E8DFD8;margin-top:8px;overflow:hidden"><div style="height:100%;width:{{ pct2e }};background:#2A211C;border-radius:3px;transition:width .3s"></div></div>
+  </div>
+  <div style="flex:1;overflow:hidden;padding-bottom:88px">
+    <sc-for list="{{ l2e }}" as="g" hint-placeholder-count="4">
+      <div style="padding:14px 16px 2px;display:flex;align-items:center;justify-content:space-between"><span style="background:{{ g.bg }};border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font:500 14px/20px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:{{ g.ac }}"></span>{{ g.label }}</span><span style="font:400 12px Roboto;color:#5C4E46">{{ g.count }}</span></div>
+      <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+        <div onClick="{{ i.toggle }}" style="cursor:pointer;user-select:none;min-height:48px;display:flex;align-items:center;padding:0 16px 0 4px">
+          <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;border-radius:50%;border:2px solid {{ g.ac }}"></span></span>
+          <span style="flex:1;margin-left:4px;padding:6px 0"><span style="display:block;font:400 16px/22px Roboto">{{ i.name }}</span><sc-if value="{{ i.hasFrom }}" hint-placeholder-val="{{ false }}"><span style="display:block;font:400 12px/16px Roboto;color:#5C4E46">{{ i.from }}</span></sc-if></span>
+          <span style="margin-left:12px;font:400 14px Roboto;color:#5C4E46">{{ i.q }}</span>
+        </div>
+      </sc-for>
+    </sc-for>
+    <sc-if value="{{ hasChecked2e }}" hint-placeholder-val="{{ true }}">
+      <div style="margin:12px 16px 0;height:1px;background:#E8DFD8"></div>
+      <div onClick="{{ toggleCoch }}" style="cursor:pointer;height:48px;display:flex;align-items:center;gap:8px;padding:0 16px 0 12px;color:#5C4E46;font:500 14px Roboto"><span style="font:24px/1 'Material Symbols Outlined'">{{ cochIcon }}</span>{{ cochLbl }}</div>
+      <sc-if value="{{ cochOpen }}" hint-placeholder-val="{{ false }}">
+        <sc-for list="{{ checked2e }}" as="i" hint-placeholder-count="3">
+          <div onClick="{{ i.toggle }}" style="cursor:pointer;user-select:none;min-height:44px;display:flex;align-items:center;padding:0 16px 0 4px">
+            <span style="width:48px;height:44px;display:flex;align-items:center;justify-content:center"><span style="width:24px;height:24px;border-radius:50%;background:{{ i.ac }};color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 18px/1 'Material Symbols Outlined'">check</span></span>
+            <span style="flex:1;margin-left:4px;font:400 16px Roboto;color:#6F625A;text-decoration:line-through">{{ i.name }}</span>
+            <span style="font:400 14px Roboto;color:#6F625A;text-decoration:line-through">{{ i.q }}</span>
+          </div>
+        </sc-for>
+      </sc-if>
+    </sc-if>
+  </div>
+  <div style="position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:16px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined';box-shadow:0 3px 5px rgba(0,0,0,.2),0 6px 10px rgba(0,0,0,.14)">add</div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">Cocher envoie l'article dans « Cochés » (repliable, tap pour décocher). Un rayon vide disparaît (Boulangerie). Recette d'origine sous l'article quand il y en a une ; barre sans libellé de recettes.</p></div>
+</div>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Panneau + (ajout d'un article)</h3>
+<div class="dv-opts" style="margin-bottom:44px">
+<sc-for list="{{ panels }}" as="p" hint-placeholder-count="3">
+<div class="dv-opt" id="{{ p.id }}" data-screen-label="Panneau +"><div class="dv-olabel"><a class="dv-oid" href="{{ p.href }}">{{ p.id }}</a>{{ p.label }}</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Liste</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">settings</span><span style="width:8px"></span>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <div style="padding:14px 16px 2px;display:flex"><span style="background:#E5E0DC;border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font:500 14px/20px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:#706B66"></span>Divers</span></div>
+    <div style="min-height:48px;display:flex;align-items:center;padding:0 16px 0 4px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #706B66"></span></span><span style="margin-left:4px;font:400 16px Roboto">Piles</span></div>
+    <div style="padding:14px 16px 2px;display:flex"><span style="background:#DEE6DE;border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font:500 14px/20px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:#459272"></span>Hygiène</span></div>
+    <div style="min-height:48px;display:flex;align-items:center;padding:0 16px 0 4px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #459272"></span></span><span style="margin-left:4px;font:400 16px Roboto">Dentifrice</span></div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.2)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column">
+    <sc-if value="{{ p.rayonOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="margin:0 40px 8px 16px;max-height:300px;overflow:auto;background:#F3ECE6;border-radius:20px;padding:6px 0;box-shadow:0 8px 24px rgba(0,0,0,.18)">
+        <sc-for list="{{ p.rayons }}" as="r" hint-placeholder-count="6">
+          <div onClick="{{ r.pick }}" style="cursor:pointer;height:44px;display:flex;align-items:center;gap:14px;padding:0 18px;font:400 16px Roboto" style-hover="background:#E8DFD8"><span style="width:10px;height:10px;border-radius:50%;background:{{ r.ac }}"></span><span style="flex:1">{{ r.label }}</span><sc-if value="{{ r.sel }}" hint-placeholder-val="{{ false }}"><span style="font:20px/1 'Material Symbols Outlined'">check</span></sc-if></div>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="background:#F3ECE6;border-radius:28px 28px 0 0;padding:10px 16px 14px;box-shadow:0 -4px 16px rgba(0,0,0,.1)">
+      <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:0 auto 14px;opacity:.6"></div>
+      <div style="padding:0 0 0 8px;height:44px;display:flex;align-items:center;font:400 22px Roboto">
+        <sc-if value="{{ p.hasTyped }}" hint-placeholder-val="{{ false }}"><span>{{ p.typed }}</span><span style="width:2px;height:26px;background:#2A211C;margin-left:1px"></span></sc-if>
+        <sc-if value="{{ p.noTyped }}" hint-placeholder-val="{{ true }}"><span style="width:2px;height:26px;background:#2A211C;margin-right:1px"></span><span style="color:#5C4E46">Ajouter un article</span></sc-if>
+        <span style="flex:1"></span><span style="flex:none;width:40px;height:40px;border-radius:12px;background:{{ p.sendBg }};color:{{ p.sendFg }};display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_upward</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:12px">
+        <sc-if value="{{ p.qtyEmpty }}" hint-placeholder-val="{{ true }}"><span onClick="{{ p.openQty }}" style="cursor:pointer;height:36px;box-sizing:border-box;border-radius:10px;background:#E8DFD8;display:flex;align-items:center;padding:0 10px;font:500 14px Roboto;white-space:nowrap">Quantité</span></sc-if>
+        <sc-if value="{{ p.qtyHas }}" hint-placeholder-val="{{ false }}"><span onClick="{{ p.openQty }}" style="cursor:pointer;height:36px;border-radius:10px;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;padding:0 12px;font:500 14px Roboto">{{ p.qtyTxt }}</span></sc-if>
+        <span onClick="{{ p.toggleRayon }}" style="cursor:pointer;height:36px;border-radius:10px;background:{{ p.rayBg }};display:flex;align-items:center;gap:6px;padding:0 2px 0 10px;font:500 14px Roboto;white-space:nowrap"><span style="width:10px;height:10px;border-radius:50%;background:{{ p.rayAc }}"></span>{{ p.rayLabel }}<span style="font:20px/1 'Material Symbols Outlined'">arrow_drop_down</span></span>
+        <span onClick="{{ p.toggleFreq }}" style="cursor:pointer;height:36px;border-radius:10px;background:{{ p.freqBg }};color:{{ p.freqFg }};display:flex;align-items:center;gap:2px;padding:0 10px 0 6px;font:500 14px Roboto;white-space:nowrap"><span style="font:18px/1 'Material Symbols Outlined'">bolt</span>Fréquents</span>
+              </div>
+      <sc-if value="{{ p.freq }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 4px 10px"><span style="font:500 14px Roboto">Ajouts fréquents</span><span style="font:500 14px Roboto;color:#5C4E46">Gérer</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;padding-bottom:16px">
+          <sc-for list="{{ p.freqs }}" as="c" hint-placeholder-count="10">
+            <span onClick="{{ c.toggle }}" style="cursor:pointer;user-select:none;height:36px;border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};display:flex;align-items:center;gap:6px;padding:0 10px 0 10px;font:500 14px Roboto;transition:background .15s"><span style="font:18px/1 PhosphorRegular;color:{{ c.gc }}">{{ c.glyph }}</span>{{ c.name }}<span style="font:16px/1 'Material Symbols Outlined';opacity:.7">{{ c.icon }}</span></span>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{ p.kbd }}" hint-placeholder-val="{{ true }}">
+      <div style="height:250px;background:repeating-linear-gradient(135deg,#E3DCD5 0 6px,#E8E1DA 6px 12px);display:flex;align-items:center;justify-content:center;font:11px ui-monospace,Menlo,monospace;color:#5C4E46">clavier</div>
+    </sc-if>
+  </div>
+  <sc-if value="{{ p.sheetOn }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ p.sh.close }}" style="position:absolute;inset:0;background:rgba(0,0,0,.25)"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;background:#F3ECE6;border-radius:28px 28px 0 0;padding:10px 20px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.12)">
+      <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:0 auto 14px;opacity:.6"></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="font:24px/1 PhosphorRegular;color:{{ p.sh.ac }}">{{ p.sh.glyph }}</span><span style="font:500 16px Roboto">{{ p.sh.name }}</span></div>
+      <div style="display:flex;align-items:center;gap:14px;margin:16px 0 14px">
+        <span onClick="{{ p.sh.dec }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">remove</span>
+        <span style="flex:1;display:flex;align-items:baseline;justify-content:center;gap:8px"><span style="font:600 44px/1 'Bricolage Grotesque'">{{ p.sh.numLabel }}</span><span style="font:500 16px Roboto;color:#5C4E46">{{ p.sh.unitLabel }}</span></span>
+        <span onClick="{{ p.sh.inc }}" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">add</span>
+      </div>
+      <div style="display:flex;border-radius:999px;background:#E8DFD8;padding:3px;gap:2px"><sc-for list="{{ p.sh.units }}" as="u" hint-placeholder-count="5"><span onClick="{{ u.pick }}" style="cursor:pointer;flex:1;height:30px;border-radius:999px;background:{{ u.bg }};color:{{ u.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ u.label }}</span></sc-for></div>
+      <div style="display:flex;gap:8px;margin-top:10px"><sc-for list="{{ p.sh.picks }}" as="k" hint-placeholder-count="4"><span onClick="{{ k.pick }}" style="cursor:pointer;flex:1;height:36px;border-radius:10px;background:{{ k.bg }};color:{{ k.fg }};display:flex;align-items:center;justify-content:center;font:500 13px Roboto">{{ k.label }}</span></sc-for></div>
+      <div onClick="{{ p.sh.ok }}" style="cursor:pointer;margin-top:16px;height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto">OK</div>
+    </div>
+  </sc-if>
+</div>
+<p class="dv-note">{{ p.note }}</p></div>
+</sc-for>
+</div>
+<p class="dv-next">Pour itérer : « tag de <a class="dv-oid" href="#2c">2c</a> partout » · « fréquents de <a class="dv-oid" href="#2g">2g</a> en liste plutôt qu'en pastilles » · « passe tout en mode sombre »</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Propositions — un écran par ligne, du plus sage au plus audacieux. Tout est cliquable (cartes, articles, quantités).</span></div>
+<p style="margin:-8px 0 24px;max-width:780px;font:13px/1.55 system-ui,sans-serif;color:rgba(0,0,0,.65);text-wrap:pretty">Partis pris communs : palette « Argile sur fusain » et couleurs de rayon conservées. Le visuel par défaut d'une recette est <b>généré depuis le rayon de son ingrédient principal</b> (fond pastille + formes à l'accent) — plus de picto. La sélection n'utilise plus ni coche ni bordure : elle passe par un changement de matière (bandeau encré, bouton qui se remplit). Le « + Nouvelle recette » monte dans la barre du haut, « Nouvelle liste » passe dans le menu ⋮. Un titre display (Bricolage Grotesque) donne du caractère sans toucher au corps de texte Roboto.</p>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Recettes</h3>
+<div class="dv-opts" style="margin-bottom:44px">
+
+<div class="dv-opt" id="1a" data-screen-label="1a Recettes tuiles"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Tuiles graphiques, bandeau encré</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Recettes</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">add</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:8px 16px 0">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <sc-for list="{{ r1a }}" as="r" hint-placeholder-count="6">
+        <div onClick="{{ r.toggle }}" style="cursor:pointer;border-radius:16px;overflow:hidden;display:flex;flex-direction:column;background:#F3ECE6;user-select:none" style-active="transform:scale(.97)">
+          <div style="height:104px;background:{{ r.cover }};position:relative"><sc-if value="{{ r.photo }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:10px;bottom:8px;font:10px ui-monospace,Menlo,monospace;color:#5C4E46">photo recette</span></sc-if></div>
+          <div style="padding:10px 12px 12px;min-height:44px;background:{{ r.capBg }};color:{{ r.capFg }};transition:background .2s,color .2s">
+            <div style="font:500 15px/20px Roboto">{{ r.name }}</div>
+            <div style="font:500 12px/16px Roboto;margin-top:4px;color:{{ r.metaFg }}">{{ r.meta }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <sc-if value="{{ has1a }}" hint-placeholder-val="{{ true }}">
+    <div style="position:absolute;left:12px;right:12px;bottom:92px;height:56px;border-radius:999px;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;padding:0 6px 0 20px;box-shadow:0 8px 24px rgba(42,33,28,.28)">
+      <span style="flex:1;font:500 14px/20px Roboto">{{ sum1a }}</span>
+      <span style="height:44px;border-radius:999px;background:#9C4A2A;display:flex;align-items:center;gap:6px;padding:0 18px;font:500 14px Roboto">Revue<span style="font:20px/1 'Material Symbols Outlined'">arrow_forward</span></span>
+    </div>
+  </sc-if>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">Le plus proche de l'existant. Sélection = le bas de la carte passe à l'encre (« ✓ Cette semaine »). Modifier = appui long. Le bouton Valider devient une barre flottante qui résume la semaine.</p></div>
+
+<div class="dv-opt" id="1b" data-screen-label="1b Recettes couvertures"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Couvertures + panier de la semaine</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Recettes</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">add</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span>
+  </div>
+  <div style="flex:none;margin:0 16px 12px;padding:12px;border-radius:16px;background:#F3ECE6">
+    <div style="font:500 12px/16px Roboto;color:#5C4E46;letter-spacing:.4px">CETTE SEMAINE · {{ n1b }}</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-height:32px">
+      <sc-for list="{{ tray1b }}" as="t" hint-placeholder-count="2">
+        <span onClick="{{ t.toggle }}" style="cursor:pointer;height:32px;border-radius:999px;background:#FBF6F2;display:flex;align-items:center;gap:6px;padding:0 6px 0 10px;font:500 13px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:{{ t.ac }}"></span>{{ t.name }}<span style="font:16px/1 'Material Symbols Outlined';color:#5C4E46">close</span></span>
+      </sc-for>
+      <sc-if value="{{ empty1b }}" hint-placeholder-val="{{ false }}"><span style="font:400 13px/32px Roboto;color:#5C4E46">Touche + sur une recette pour l'ajouter.</span></sc-if>
+    </div>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:0 16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <sc-for list="{{ r1b }}" as="r" hint-placeholder-count="6">
+        <div onClick="{{ r.toggle }}" style="cursor:pointer;user-select:none;height:150px;border-radius:18px;background:{{ r.cover2 }};position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;padding:12px 52px 12px 12px;box-sizing:border-box">
+          <sc-if value="{{ r.photo }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;left:12px;top:10px;font:10px ui-monospace,Menlo,monospace;color:#5C4E46">photo recette</span></sc-if>
+          <div style="font:600 17px/20px 'Bricolage Grotesque';color:#2A211C;text-wrap:balance">{{ r.name }}</div>
+          <span style="position:absolute;right:10px;bottom:10px;width:36px;height:36px;border-radius:50%;background:{{ r.btnBg }};color:{{ r.btnFg }};display:flex;align-items:center;justify-content:center;font:20px/1 'Material Symbols Outlined';box-shadow:0 2px 6px rgba(42,33,28,.18);transition:background .2s">{{ r.btnIcon }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="flex:none;padding:8px 16px;background:#FBF6F2"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">{{ cta1b }}</div></div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">Le nom vit sur la couverture rayée. Un seul geste, le bouton rond (+ → ✓). En haut, le « panier » de la semaine rend la sélection lisible sans scroller et se vide d'un ×.</p></div>
+
+<div class="dv-opt" id="1c" data-screen-label="1c Recettes liste"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Liste rapide, monogrammes</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Recettes</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">add</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">more_vert</span>
+  </div>
+  <div style="flex:none;padding:0 16px 8px;display:flex;flex-direction:column;gap:10px">
+    <div style="height:44px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:10px;padding:0 16px;color:#5C4E46;font:400 15px Roboto"><span style="font:22px/1 'Material Symbols Outlined'">search</span>Chercher une recette</div>
+    <div style="display:flex;gap:8px">
+      <span style="height:32px;border-radius:8px;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;padding:0 12px;font:500 13px Roboto">Toutes · 6</span>
+      <span style="height:32px;border-radius:8px;border:1px solid #8F7E74;box-sizing:border-box;display:flex;align-items:center;padding:0 12px;font:500 13px Roboto;color:#5C4E46">{{ lbl1c }}</span>
+    </div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <sc-for list="{{ r1c }}" as="r" hint-placeholder-count="6">
+      <div onClick="{{ r.toggle }}" style="cursor:pointer;user-select:none;display:flex;align-items:center;gap:14px;padding:8px 16px">
+        <span style="width:56px;height:56px;flex:none;border-radius:14px;background:{{ r.mono }};color:{{ r.bg }};display:flex;align-items:center;justify-content:center;font:700 22px/1 'Bricolage Grotesque';letter-spacing:-.5px">{{ r.ini }}</span>
+        <span style="flex:1;min-width:0"><span style="display:block;font:500 16px/22px Roboto">{{ r.name }}</span><span style="display:block;font:400 13px/18px Roboto;color:#5C4E46">{{ r.n }} ingrédients</span></span>
+        <span style="height:36px;border-radius:999px;box-sizing:border-box;border:1px solid {{ r.pillBd }};background:{{ r.pillBg }};color:{{ r.pillFg }};display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:500 13px Roboto;transition:background .2s"><span style="font:18px/1 'Material Symbols Outlined'">{{ r.pillIcon }}</span>{{ r.pillLabel }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:8px 16px;background:#FBF6F2"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">{{ cta1c }}</div></div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">Pensée pour 20+ recettes : recherche, filtre « Cette semaine », lignes compactes. Le monogramme coloré remplace la photo absente ; bouton « Ajouter / Ajoutée » explicite.</p></div>
+</div>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Fiche recette (création / édition)</h3>
+<div class="dv-opts" style="margin-bottom:44px">
+
+<div class="dv-opt" id="1d" data-screen-label="1d Fiche éditoriale"><div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Fiche éditoriale, quantités en texte</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="flex:none;height:168px;background:{{ heroCover }};position:relative">
+    <div style="height:28px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 12px">
+      <span style="width:40px;height:40px;border-radius:50%;background:rgba(251,246,242,.92);display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">arrow_back</span>
+      <span style="width:40px;height:40px;border-radius:50%;background:rgba(251,246,242,.92);display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">more_vert</span>
+    </div>
+    <span style="position:absolute;right:12px;bottom:12px;height:36px;border-radius:999px;background:rgba(251,246,242,.92);display:flex;align-items:center;gap:6px;padding:0 14px 0 10px;font:500 13px Roboto"><span style="font:18px/1 'Material Symbols Outlined'">photo_camera</span>Ajouter une photo</span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:18px 16px 0">
+    <div style="font:600 28px/32px 'Bricolage Grotesque';letter-spacing:-.3px">Chili con carne</div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <span style="height:30px;border-radius:999px;border:1px solid #8F7E74;box-sizing:border-box;display:flex;align-items:center;gap:6px;padding:0 12px 0 8px;font:500 13px Roboto;color:#5C4E46"><span style="font:18px/1 'Material Symbols Outlined'">link</span>Ajouter un lien</span>
+    </div>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 4px"><span style="font:500 14px Roboto">Ingrédients</span><span style="font:400 13px Roboto;color:#5C4E46">Touche une quantité pour la changer</span></div>
+    <sc-for list="{{ f1d }}" as="i" hint-placeholder-count="5">
+      <div style="border-bottom:1px solid #E8DFD8">
+        <div onClick="{{ i.toggle }}" style="cursor:pointer;height:52px;display:flex;align-items:center;gap:12px">
+          <span style="width:34px;height:34px;border-radius:50%;background:{{ i.bg }};color:{{ i.ac }};display:flex;align-items:center;justify-content:center;font:20px/1 PhosphorRegular">{{ i.glyph }}</span>
+          <span style="flex:1;font:400 16px Roboto">{{ i.name }}</span>
+          <span style="font:500 14px Roboto;color:{{ i.qColor }}">{{ i.qLabel }}</span>
+        </div>
+        <sc-if value="{{ i.editing }}" hint-placeholder-val="{{ false }}">
+          <div style="margin:0 0 12px 46px;padding:10px;border-radius:14px;background:#F3ECE6;display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span onClick="{{ i.dec }}" style="cursor:pointer;width:36px;height:36px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:20px/1 'Material Symbols Outlined'">remove</span>
+              <span style="min-width:40px;text-align:center;font:600 20px 'Bricolage Grotesque'">{{ i.num }}</span>
+              <span onClick="{{ i.inc }}" style="cursor:pointer;width:36px;height:36px;border-radius:50%;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:20px/1 'Material Symbols Outlined'">add</span>
+              <span style="flex:1"></span>
+              <span onClick="{{ i.toggle }}" style="cursor:pointer;font:500 13px Roboto;color:#9C4A2A;padding:8px">OK</span>
+            </div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ i.units }}" as="u" hint-placeholder-count="5"><span style="height:28px;border-radius:999px;padding:0 10px;display:flex;align-items:center;font:500 12px Roboto;background:{{ u.bg }};color:{{ u.fg }}">{{ u.label }}</span></sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+    <div style="margin-top:12px;height:48px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:10px;padding:0 16px;color:#5C4E46;font:400 15px Roboto"><span style="font:22px/1 'Material Symbols Outlined'">add</span>Ajouter un ingrédient…</div>
+  </div>
+  <div style="flex:none;padding:8px 16px 16px"><div style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px/20px Roboto">Enregistrer</div></div>
+</div>
+<p class="dv-note">Couverture générée en tête (remplacée par la photo dès qu'il y en a une). Plus de champs : la quantité est un simple texte, « + qté » quand elle est vide ; un tap ouvre un petit éditeur pas-à-pas (essaie sur Oignons).</p></div>
+
+<div class="dv-opt" id="1e" data-screen-label="1e Fiche chips"><div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Ingrédients en pastilles + feuille quantité</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding:0 8px 0 4px;gap:4px">
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">close</span>
+    <span style="flex:1;font:400 20px Roboto">Nouvelle recette</span>
+    <span style="font:500 14px Roboto;color:#9C4A2A;padding:12px">Enregistrer</span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:8px 16px 0">
+    <div style="display:flex;gap:14px;align-items:center">
+      <span style="width:72px;height:72px;flex:none;border-radius:18px;background:#924546;color:#EADAD6;position:relative;display:flex;align-items:center;justify-content:center;font:700 26px/1 'Bricolage Grotesque'">Cc<span style="position:absolute;right:-4px;bottom:-4px;width:26px;height:26px;border-radius:50%;background:#FBF6F2;color:#2A211C;display:flex;align-items:center;justify-content:center;font:16px/1 'Material Symbols Outlined';box-shadow:0 1px 3px rgba(0,0,0,.2)">photo_camera</span></span>
+      <span style="flex:1"><span style="display:block;font:600 24px/28px 'Bricolage Grotesque'">Chili con carne</span><span style="display:flex;align-items:center;gap:4px;margin-top:4px;font:500 13px Roboto;color:#5C4E46"><span style="font:16px/1 'Material Symbols Outlined'">link</span>Ajouter un lien</span></span>
+    </div>
+    <div style="font:500 14px Roboto;margin:24px 0 10px">Ingrédients · 5</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <sc-for list="{{ f1e }}" as="i" hint-placeholder-count="5">
+        <span style="height:36px;box-sizing:border-box;border-radius:999px;background:{{ i.bg }};border:2px solid {{ i.bd }};display:flex;align-items:center;gap:6px;padding:0 12px 0 8px;font:500 14px Roboto"><span style="font:18px/1 PhosphorRegular;color:{{ i.ac }}">{{ i.glyph }}</span>{{ i.name }}<span style="font-weight:400;color:#5C4E46">{{ i.q }}</span></span>
+      </sc-for>
+      <span style="height:36px;box-sizing:border-box;border-radius:999px;border:1.5px dashed #8F7E74;display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:500 14px Roboto;color:#5C4E46"><span style="font:18px/1 'Material Symbols Outlined'">add</span>Ajouter</span>
+    </div>
+    <div style="font:500 12px Roboto;color:#5C4E46;margin:22px 0 8px;letter-spacing:.4px">SOUVENT AVEC</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span style="height:32px;border-radius:999px;border:1px solid #E8DFD8;display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:400 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Ail</span>
+      <span style="height:32px;border-radius:999px;border:1px solid #E8DFD8;display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:400 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Riz</span>
+      <span style="height:32px;border-radius:999px;border:1px solid #E8DFD8;display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:400 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Crème fraîche</span>
+      <span style="height:32px;border-radius:999px;border:1px solid #E8DFD8;display:flex;align-items:center;gap:4px;padding:0 12px 0 8px;font:400 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Cumin</span>
+    </div>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(0,0,0,.2)"></div>
+  <div style="position:absolute;left:0;right:0;bottom:0;background:#F3ECE6;border-radius:28px 28px 0 0;padding:10px 20px 20px;box-shadow:0 -4px 16px rgba(0,0,0,.12)">
+    <div style="width:32px;height:4px;border-radius:2px;background:#5C4E46;margin:0 auto 16px;opacity:.6"></div>
+    <div style="display:flex;align-items:center;gap:10px"><span style="font:24px/1 PhosphorRegular;color:#924546">&#xe790;</span><span style="font:500 16px Roboto;flex:1">Viande hachée</span><span style="font:500 13px Roboto;color:#5C4E46">Sans quantité</span></div>
+    <div style="display:flex;align-items:center;gap:12px;margin:18px 0 14px">
+      <span style="font:600 44px/1 'Bricolage Grotesque'">500</span>
+      <span style="display:flex;border-radius:999px;background:#E8DFD8;padding:3px">
+        <span style="height:30px;padding:0 14px;border-radius:999px;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;font:500 13px Roboto">g</span>
+        <span style="height:30px;padding:0 14px;display:flex;align-items:center;font:500 13px Roboto">kg</span>
+        <span style="height:30px;padding:0 14px;display:flex;align-items:center;font:500 13px Roboto">pièce</span>
+      </span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <span style="flex:1;height:36px;border-radius:10px;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:500 13px Roboto">250 g</span>
+      <span style="flex:1;height:36px;border-radius:10px;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:500 13px Roboto">500 g</span>
+      <span style="flex:1;height:36px;border-radius:10px;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:500 13px Roboto">750 g</span>
+      <span style="flex:1;height:36px;border-radius:10px;background:#FBF6F2;display:flex;align-items:center;justify-content:center;font:500 13px Roboto">1 kg</span>
+    </div>
+    <div style="margin-top:16px;height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 14px Roboto">OK</div>
+  </div>
+</div>
+<p class="dv-note">Les ingrédients deviennent des pastilles aux couleurs de leur rayon ; la quantité n'apparaît que si elle existe. Un tap ouvre une feuille avec des valeurs rapides — 2 taps au lieu de taper au clavier. « Souvent avec » suggère des ajouts.</p></div>
+</div>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Revue (ce que j'ai déjà)</h3>
+<div class="dv-opts" style="margin-bottom:44px">
+
+<div class="dv-opt" id="1f" data-screen-label="1f Revue cartes"><div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Cartes par rayon, tap = « chez moi »</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:4px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span></div>
+  <div style="flex:none;padding:0 16px 12px">
+    <div style="font:600 26px/30px 'Bricolage Grotesque'">Qu'as-tu déjà ?</div>
+    <div style="font:400 14px/20px Roboto;color:#5C4E46;margin-top:4px">Touche un article pour le laisser de côté.</div>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:0 12px;display:flex;flex-direction:column;gap:10px">
+    <sc-for list="{{ rv1f }}" as="g" hint-placeholder-count="3">
+      <div style="background:#F3ECE6;border-radius:18px;padding:6px 0">
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 14px"><span style="width:10px;height:10px;border-radius:50%;background:{{ g.ac }}"></span><span style="flex:1;font:500 14px Roboto">{{ g.label }}</span><span style="font:400 12px Roboto;color:#5C4E46">{{ g.count }}</span></div>
+        <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+          <div onClick="{{ i.toggle }}" style="cursor:pointer;user-select:none;height:40px;display:flex;align-items:center;gap:10px;padding:0 14px">
+            <sc-if value="{{ i.on }}" hint-placeholder-val="{{ true }}"><span style="width:22px;height:22px;border-radius:50%;background:{{ g.ac }};color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 16px/1 'Material Symbols Outlined'">check</span></sc-if>
+            <sc-if value="{{ i.off }}" hint-placeholder-val="{{ false }}"><span style="width:22px;height:22px;display:flex;align-items:center;justify-content:center;color:#8F7E74;font:20px/1 'Material Symbols Outlined'">home</span></sc-if>
+            <span style="flex:1;font:400 15px Roboto;color:{{ i.color }};text-decoration:{{ i.deco }}">{{ i.name }}</span>
+            <span style="font:400 13px Roboto;color:#5C4E46">{{ i.right }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:none;padding:10px 16px 16px"><div style="height:52px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:500 15px Roboto">{{ cta1f }}</div></div>
+</div>
+<p class="dv-note">Quantités en texte discret (modifiables par appui long). Ce qu'on a déjà passe en « chez moi » avec une petite maison — le geste dit ce qu'il fait. Le bouton compte ce qui partira dans la liste.</p></div>
+
+<div class="dv-opt" id="1g" data-screen-label="1g Revue pastilles"><div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>Pastilles express</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:4px;gap:4px"><span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">arrow_back</span><span style="font:400 20px Roboto">Revue</span></div>
+  <div style="flex:none;padding:0 16px 6px;display:flex;gap:6px;flex-wrap:wrap">
+    <span style="height:28px;border-radius:999px;background:#EADAD6;display:flex;align-items:center;padding:0 10px;font:500 12px Roboto">Chili con carne</span>
+    <span style="height:28px;border-radius:999px;background:#DFE6D6;display:flex;align-items:center;padding:0 10px;font:500 12px Roboto">Ratatouille</span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:8px 16px 0">
+    <sc-for list="{{ rv1g }}" as="g" hint-placeholder-count="3">
+      <div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font:500 13px Roboto;color:{{ g.ac }}"><span style="width:8px;height:8px;border-radius:50%;background:{{ g.ac }}"></span>{{ g.label }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="4">
+            <span onClick="{{ i.toggle }}" style="cursor:pointer;user-select:none;height:38px;box-sizing:border-box;border-radius:12px;background:{{ i.bg }};border:1.5px {{ i.bdStyle }} {{ i.bd }};display:flex;align-items:center;gap:6px;padding:0 12px;font:500 14px Roboto;color:{{ i.color }};transition:background .15s">
+              <sc-if value="{{ i.off }}" hint-placeholder-val="{{ false }}"><span style="font:16px/1 'Material Symbols Outlined'">home</span></sc-if>
+              <span style="text-decoration:{{ i.deco }}">{{ i.name }}</span><span style="font-weight:400;color:#5C4E46">{{ i.q }}</span>
+            </span>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+    <div style="display:flex;gap:16px;font:400 12px Roboto;color:#5C4E46;margin-top:4px">
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:14px;height:14px;border-radius:4px;background:#E8DFD8"></span>à acheter</span>
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:12px;height:12px;border-radius:4px;border:1.5px dashed #8F7E74"></span>déjà chez moi</span>
+    </div>
+  </div>
+  <div style="flex:none;background:#F3ECE6;padding:12px 16px 16px;display:flex;align-items:center;gap:12px;border-radius:24px 24px 0 0">
+    <span style="flex:1"><span style="display:block;font:600 18px 'Bricolage Grotesque'">{{ n1g }} articles</span><span style="display:block;font:400 12px Roboto;color:#5C4E46">{{ home1g }}</span></span>
+    <span style="height:48px;border-radius:999px;background:#9C4A2A;color:#fff;display:flex;align-items:center;gap:6px;padding:0 20px;font:500 14px Roboto">Ajouter à la liste</span>
+  </div>
+</div>
+<p class="dv-note">Le plus rapide à parcourir : tout tient sur un écran, on balaie et on tape. Les recettes concernées sont rappelées en haut.</p></div>
+</div>
+
+<h3 style="font:600 15px system-ui,sans-serif;margin:0 0 14px;color:#1a1a1a">Liste (ajouts sympas)</h3>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1h" data-screen-label="1h Liste progression"><div class="dv-olabel"><a class="dv-oid" href="#1h">1h</a>Progression, origine, rayons terminés repliés</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Liste</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">settings</span><span style="width:8px"></span>
+  </div>
+  <div style="flex:none;padding:0 16px 6px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;font:500 13px Roboto"><span>{{ prog1h }}</span><span style="font-weight:400;color:#5C4E46">Chili · Ratatouille</span></div>
+    <div style="height:6px;border-radius:3px;background:#E8DFD8;margin-top:8px;overflow:hidden"><div style="height:100%;width:{{ pct1h }};background:#2A211C;border-radius:3px;transition:width .3s"></div></div>
+  </div>
+  <div style="flex:1;overflow:hidden">
+    <sc-for list="{{ l1h }}" as="g" hint-placeholder-count="4">
+      <sc-if value="{{ g.done }}" hint-placeholder-val="{{ false }}">
+        <div style="margin:10px 16px 0;height:36px;border-radius:999px;background:{{ g.bg }};display:flex;align-items:center;gap:8px;padding:0 12px;opacity:.75;font:500 14px Roboto"><span style="font:18px/1 'Material Symbols Outlined';color:{{ g.ac }}">check_circle</span><span style="flex:1">{{ g.label }}</span><span style="font:400 12px Roboto;color:#5C4E46">terminé</span></div>
+      </sc-if>
+      <sc-if value="{{ g.open }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:14px 16px 2px;display:flex;align-items:center;justify-content:space-between"><span style="background:{{ g.bg }};border-radius:999px;padding:6px 12px;display:flex;align-items:center;gap:8px;font:500 14px/20px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:{{ g.ac }}"></span>{{ g.label }}</span><span style="font:400 12px Roboto;color:#5C4E46">{{ g.count }}</span></div>
+        <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+          <div onClick="{{ i.toggle }}" style="cursor:pointer;user-select:none;min-height:48px;display:flex;align-items:center;padding:0 16px 0 4px">
+            <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center">
+              <sc-if value="{{ i.on }}" hint-placeholder-val="{{ false }}"><span style="width:24px;height:24px;border-radius:50%;background:{{ g.ac }};color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 18px/1 'Material Symbols Outlined'">check</span></sc-if>
+              <sc-if value="{{ i.off }}" hint-placeholder-val="{{ true }}"><span style="width:20px;height:20px;border-radius:50%;border:2px solid {{ g.ac }}"></span></sc-if>
+            </span>
+            <span style="flex:1;margin-left:4px;padding:6px 0"><span style="display:block;font:400 16px/22px Roboto;color:{{ i.color }};text-decoration:{{ i.deco }}">{{ i.name }}</span><sc-if value="{{ i.hasFrom }}" hint-placeholder-val="{{ false }}"><span style="display:block;font:400 12px/16px Roboto;color:#5C4E46">{{ i.from }}</span></sc-if></span>
+            <span style="margin-left:12px;font:400 14px Roboto;color:#5C4E46">{{ i.q }}</span>
+          </div>
+        </sc-for>
+      </sc-if>
+    </sc-for>
+  </div>
+  <div style="position:absolute;right:16px;bottom:96px;width:56px;height:56px;border-radius:16px;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined';box-shadow:0 3px 5px rgba(0,0,0,.2),0 6px 10px rgba(0,0,0,.14)">add</div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">Barre de progression du magasin, compteur par rayon, et sous chaque article la recette d'où il vient. Un rayon fini se replie en une ligne (coche tout Fruits &amp; légumes pour voir).</p></div>
+
+<div class="dv-opt" id="1i" data-screen-label="1i Liste mode magasin"><div class="dv-olabel"><a class="dv-oid" href="#1i">1i</a>Mode magasin + ajout éclair</div>
+<div style="width:360px;height:760px;border-radius:32px;border:8px solid #1d1a18;overflow:hidden;background:#FBF6F2;position:relative;display:flex;flex-direction:column;color:#2A211C">
+  <div style="height:28px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 20px;font:500 13px Roboto"><span>9:41</span><span style="display:flex;gap:4px;font:16px/1 'Material Symbols Outlined'"><span>signal_cellular_alt</span><span>wifi</span><span>battery_full</span></span></div>
+  <div style="height:56px;flex:none;display:flex;align-items:center;padding-left:16px;gap:8px">
+    <span style="flex:1;font:600 26px/32px 'Bricolage Grotesque'">Liste</span>
+    <span style="height:32px;border-radius:999px;background:#2A211C;color:#FBF6F2;display:flex;align-items:center;gap:6px;padding:0 12px 0 10px;font:500 13px Roboto"><span style="font:18px/1 'Material Symbols Outlined'">storefront</span>En magasin</span>
+    <span style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">settings</span>
+  </div>
+  <div style="flex:none;display:flex;gap:4px;padding:2px 16px 10px">
+    <span style="flex:1;height:6px;border-radius:3px;background:#927245"></span>
+    <span style="flex:1;height:6px;border-radius:3px;background:linear-gradient(90deg,#4B9245 40%,#DFE6D6 40%)"></span>
+    <span style="flex:1;height:6px;border-radius:3px;background:#EADAD6"></span>
+    <span style="flex:1;height:6px;border-radius:3px;background:#DEDDE4"></span>
+    <span style="flex:1;height:6px;border-radius:3px;background:#EADED6"></span>
+  </div>
+  <div style="flex:1;overflow:hidden;padding:0 12px">
+    <div style="background:#DFE6D6;border-radius:22px;padding:14px 4px 6px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;padding:0 12px 6px"><span style="font:600 20px 'Bricolage Grotesque'">Fruits &amp; légumes</span><span style="font:500 13px Roboto;color:#4B9245">3 restants</span></div>
+      <sc-for list="{{ l1i }}" as="i" hint-placeholder-count="5">
+        <div style="min-height:52px;display:flex;align-items:center;gap:12px;padding:0 12px">
+          <sc-if value="{{ i.on }}" hint-placeholder-val="{{ false }}"><span style="width:28px;height:28px;border-radius:50%;background:#4B9245;color:#FBF6F2;display:flex;align-items:center;justify-content:center;font:700 20px/1 'Material Symbols Outlined'">check</span></sc-if>
+          <sc-if value="{{ i.off }}" hint-placeholder-val="{{ true }}"><span style="width:24px;height:24px;border-radius:50%;border:2px solid #4B9245"></span></sc-if>
+          <span style="flex:1;font:500 18px Roboto;color:{{ i.color }};text-decoration:{{ i.deco }}">{{ i.name }}</span>
+          <span style="font:400 15px Roboto;color:#5C4E46">{{ i.q }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font:500 12px Roboto;color:#5C4E46;letter-spacing:.4px;margin:16px 4px 6px">ENSUITE</div>
+    <div style="display:flex;flex-direction:column;gap:2px;padding:0 4px">
+      <div style="height:36px;display:flex;align-items:center;gap:10px;font:400 15px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:#924546"></span><span style="flex:1">Viande/Poisson</span><span style="color:#5C4E46;font-size:13px">1</span></div>
+      <div style="height:36px;display:flex;align-items:center;gap:10px;font:400 15px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:#485A99"></span><span style="flex:1">Crèmerie</span><span style="color:#5C4E46;font-size:13px">2</span></div>
+      <div style="height:36px;display:flex;align-items:center;gap:10px;font:400 15px Roboto"><span style="width:10px;height:10px;border-radius:50%;background:#925F45"></span><span style="flex:1">Épicerie salée</span><span style="color:#5C4E46;font-size:13px">2</span></div>
+    </div>
+  </div>
+  <div style="flex:none;padding:10px 12px 12px;background:#FBF6F2;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;gap:6px">
+      <span style="height:30px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:2px;padding:0 10px 0 6px;font:500 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Lait</span>
+      <span style="height:30px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:2px;padding:0 10px 0 6px;font:500 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Pain</span>
+      <span style="height:30px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:2px;padding:0 10px 0 6px;font:500 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Œufs</span>
+      <span style="height:30px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:2px;padding:0 10px 0 6px;font:500 13px Roboto"><span style="font:16px/1 'Material Symbols Outlined'">add</span>Café</span>
+    </div>
+    <div style="height:48px;border-radius:999px;background:#F3ECE6;display:flex;align-items:center;gap:10px;padding:0 6px 0 16px;color:#5C4E46;font:400 15px Roboto"><span style="flex:1">Ajouter un article…</span><span style="width:36px;height:36px;border-radius:50%;background:#9C4A2A;color:#fff;display:flex;align-items:center;justify-content:center;font:22px/1 'Material Symbols Outlined'">add</span></div>
+  </div>
+  <div style="height:80px;flex:none;background:#F3ECE6;display:grid;grid-template-columns:1fr 1fr;padding-top:12px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px;color:#5C4E46"><span style="width:64px;height:32px;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">menu_book</span><span style="font:500 12px/16px Roboto">Recettes</span></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:4px"><span style="width:64px;height:32px;border-radius:16px;background:#F2D6C8;color:#3B1305;display:flex;align-items:center;justify-content:center;font:24px/1 'Material Symbols Outlined'">checklist</span><span style="font:500 12px/16px Roboto">Liste</span></div>
+  </div>
+</div>
+<p class="dv-note">En magasin, on ne voit que le rayon en cours, en grand (cibles plus larges, une main). Le parcours est résumé par la barre segmentée. L'ajout éclair remplace le FAB : champ toujours visible + fréquents en un tap.</p></div>
+</div>
+
+<p class="dv-next">Pour itérer : « <a class="dv-oid" href="#1b">1b</a> mais en liste comme <a class="dv-oid" href="#1c">1c</a> » · « fiche <a class="dv-oid" href="#1d">1d</a> avec la feuille quantité de <a class="dv-oid" href="#1e">1e</a> » · « mode sombre de <a class="dv-oid" href="#1h">1h</a> » · comparer avec l'existant : <a href="Kadi - Actuel.dc.html">Kadi — Actuel</a></p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const RECIPES = [
+  { id: 'carbo', name: 'Pâtes carbonara', ini: 'Pc', n: 5, bg: '#EADED6', ac: '#925F45', p: [92, 108, 8, -6] },
+  { id: 'chili', name: 'Chili con carne', ini: 'Cc', n: 5, bg: '#EADAD6', ac: '#924546', p: [8, 112, 96, 4] },
+  { id: 'quiche', name: 'Quiche lorraine', ini: 'Ql', n: 5, bg: '#DEDDE4', ac: '#485A99', p: [104, 30, -4, 96] },
+  { id: 'rata', name: 'Ratatouille', ini: 'Ra', n: 7, bg: '#DFE6D6', ac: '#4B9245', p: [50, 124, 100, -14] },
+  { id: 'curry', name: 'Curry de lentilles', ini: 'Cl', n: 6, bg: '#E8E2D5', ac: '#84783E', p: [-6, 30, 84, 118] },
+  { id: 'saumon', name: 'Saumon au four', ini: 'Sf', n: 4, bg: '#DEE6E2', ac: '#45928E', photo: true, p: [70, 0, 10, 100] },
+];
+const PHOTO = 'repeating-linear-gradient(135deg,#E8DFD8 0 6px,#F3ECE6 6px 12px)';
+const blob = r => r.photo ? PHOTO : `radial-gradient(circle at ${r.p[0]}% ${r.p[1]}%, ${r.ac} 0 36%, transparent 36.5%), radial-gradient(circle at ${r.p[2]}% ${r.p[3]}%, ${r.ac}5c 0 30%, transparent 30.5%), ${r.bg}`;
+const stripe = r => r.photo ? PHOTO : `radial-gradient(circle at ${r.p[0]}% ${r.p[1] - 20}%, ${r.ac}d0 0 26%, transparent 26.5%), repeating-linear-gradient(-45deg, ${r.ac}30 0 6px, transparent 6px 15px), ${r.bg}`;
+const RY = {
+  fl: { label: 'Fruits & légumes', bg: '#DFE6D6', ac: '#4B9245' },
+  bo: { label: 'Boulangerie', bg: '#EAE1D6', ac: '#927245' },
+  vp: { label: 'Viande/Poisson', bg: '#EADAD6', ac: '#924546' },
+  cr: { label: 'Crèmerie', bg: '#DEDDE4', ac: '#485A99' },
+  es: { label: 'Épicerie salée', bg: '#EADED6', ac: '#925F45' },
+};
+const REVUE = [
+  { r: 'fl', items: [['oi', 'Oignons', '3 pièces'], ['po', 'Poivrons', '3 pièces'], ['co', 'Courgettes', '400 g'], ['au', 'Aubergines', '2 pièces'], ['to', 'Tomates', '500 g'], ['ai', 'Ail', '']] },
+  { r: 'vp', items: [['vh', 'Viande hachée', '500 g']] },
+  { r: 'es', items: [['hr', 'Haricots rouges', '400 g'], ['tc', 'Tomates concassées', '300 g'], ['hp', 'Herbes de Provence', '']] },
+];
+const LISTE = [
+  { r: 'fl', items: [['oi', 'Oignons', '3 pièces', 'Chili · Ratatouille'], ['po', 'Poivrons', '3 pièces', 'Chili · Ratatouille'], ['co', 'Courgettes', '400 g', 'Ratatouille'], ['au', 'Aubergines', '2 pièces', 'Ratatouille'], ['to', 'Tomates', '500 g', 'Ratatouille']] },
+  { r: 'bo', items: [['ba', 'Baguettes', '2 pièces', '']] },
+  { r: 'vp', items: [['vh', 'Viande hachée', '500 g', 'Chili']] },
+  { r: 'cr', items: [['la', 'Lait', '', ''], ['oe', 'Œufs', '6 pièces', '']] },
+  { r: 'es', items: [['hr', 'Haricots rouges', '400 g', 'Chili'], ['tc', 'Tomates concassées', '300 g', 'Chili']] },
+];
+const FICHE = [
+  { id: 'vh', name: 'Viande hachée', glyph: '\ue790', r: 'vp', num: 500, unit: 'g' },
+  { id: 'oi', name: 'Oignons', glyph: '\ue2da', r: 'fl', num: 2, unit: 'pièce' },
+  { id: 'hr', name: 'Haricots rouges', glyph: '\ue7e0', r: 'es', num: 400, unit: 'g' },
+  { id: 'po', name: 'Poivrons', glyph: '\ue94a', r: 'fl', num: 0, unit: 'pièce' },
+  { id: 'tc', name: 'Tomates concassées', glyph: '\ue7e0', r: 'es', num: 300, unit: 'g' },
+];
+const UNITS = ['pièce', 'g', 'kg', 'ml', 'L'];
+const fmt = (n, u) => !n ? '' : u === 'pièce' ? `${n} ${n > 1 ? 'pièces' : 'pièce'}` : `${n} ${u}`;
+const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+
+const ALL = { ...RY,
+  esu: { label: 'Épicerie sucrée', bg: '#EADADB', ac: '#924563' }, su: { label: 'Surgelés', bg: '#DEE6E2', ac: '#45928E' },
+  pp: { label: 'Plats préparés', bg: '#E8E2D5', ac: '#84783E' }, bs: { label: 'Boissons', bg: '#E8DAE4', ac: '#83499C' },
+  hy: { label: 'Hygiène', bg: '#DEE6DE', ac: '#459272' }, en: { label: 'Entretien', bg: '#E0DBE5', ac: '#544BA0' },
+  ba: { label: 'Bébé/Animaux', bg: '#EBDAE2', ac: '#99488F' }, di: { label: 'Divers', bg: '#E5E0DC', ac: '#706B66' } };
+const ORDER = ['fl', 'bo', 'vp', 'cr', 'es', 'esu', 'su', 'pp', 'bs', 'hy', 'en', 'ba', 'di'];
+const STEP = { g: 50, ml: 50, 'pièce': 1, kg: 0.5, L: 0.5 };
+const PICKS = { g: [100, 250, 500, 750], kg: [0.5, 1, 1.5, 2], 'pièce': [1, 2, 3, 6], ml: [100, 200, 250, 500], L: [0.5, 1, 1.5, 2] };
+const nfmt = n => String(n).replace('.', ',');
+const fq = q => !q || !q.num ? '' : q.unit === 'pièce' ? `${nfmt(q.num)} ${q.num > 1 ? 'pièces' : 'pièce'}` : `${nfmt(q.num)} ${q.unit}`;
+const REVUE2 = [
+  { r: 'fl', items: [['oi', 'Oignons', 3, 'pièce'], ['po', 'Poivrons', 3, 'pièce'], ['co', 'Courgettes', 400, 'g'], ['au', 'Aubergines', 2, 'pièce'], ['to', 'Tomates', 500, 'g'], ['ai', 'Ail', 0, 'pièce']] },
+  { r: 'vp', items: [['vh', 'Viande hachée', 500, 'g']] },
+  { r: 'es', items: [['hr', 'Haricots rouges', 400, 'g'], ['tc', 'Tomates concassées', 300, 'g'], ['hp', 'Herbes de Provence', 0, 'g']] },
+];
+const FREQ = [['pt', 'Papier toilette', '\ue79c', 'hy'], ['de', 'Dentifrice', '\ue9cc', 'hy'], ['so', 'Essuie-tout', '\ue79c', 'en'], ['lv', 'Liquide vaisselle', '\ue630', 'en'], ['sp', 'Sacs poubelle', '\ue4a6', 'en'], ['la', 'Lait', '\ue7e0', 'cr'], ['oe', 'Œufs', '\ue812', 'cr'], ['be', 'Beurre', '\ue9fe', 'cr'], ['bg', 'Baguette', '\ue81c', 'bo'], ['ca', 'Café', '\ue1c2', 'esu']];
+const CAT = [['ail', 'Ail', '\ue2da', 'fl'], ['aub', 'Aubergines', '\ue94a', 'fl'], ['bas', 'Basilic', '\ue2da', 'fl'], ['beu', 'Beurre', '\ue9fe', 'cr'], ['bou', 'Bouillon', '\ue8e4', 'es'], ['car', 'Carottes', '\ued38', 'fl'], ['chz', 'Chorizo', '\ue790', 'vp'], ['ctom', 'Concentré de tomate', '\ue7e0', 'es'], ['cou', 'Courgettes', '\ue94a', 'fl'], ['cre', 'Crème fraîche', '\ue7e0', 'cr'], ['hr', 'Haricots rouges', '\ue7e0', 'es'], ['hv', 'Haricots verts', '\ue2da', 'fl'], ['lar', 'Lardons', '\ue790', 'vp'], ['lco', 'Lait de coco', '\ue7e0', 'es'], ['oi', 'Oignons', '\ue2da', 'fl'], ['po', 'Poivrons', '\ue94a', 'fl'], ['riz', 'Riz', '\ueaa4', 'es'], ['tom', 'Tomates', '\ue2da', 'fl'], ['tc', 'Tomates concassées', '\ue7e0', 'es'], ['thon', 'Thon', '\ue728', 'es'], ['vh', 'Viande hachée', '\ue790', 'vp']];
+const initQ = () => {
+  const q = {};
+  ['2b', '2c', '3a', '3b', '3c', '3d'].forEach(p => FICHE.forEach(f => { if (f.num) q[`${p}:${f.id}`] = { num: f.num, unit: f.unit }; }));
+  REVUE2.forEach(g => g.items.forEach(([id, , n, u]) => { if (n) q[`2d:${id}`] = { num: n, unit: u }; }));
+  return q;
+};
+
+class Component extends DCLogic {
+  state = {
+    q: initQ(),
+    qs: { '2h': { key: '2h:new', name: 'Lessive', glyph: '\uede8', ac: '#544BA0', num: 2, unit: 'pièce' }, '3c': { key: '3c:oi', name: 'Oignons', glyph: '\ue2da', ac: '#4B9245', num: 2, unit: 'pièce' } },
+    query: { '3a': 'tom', '3b': 'ha' }, extra: {}, ray3: {}, rm: { '3d': 'oi' },
+    week2a: false, cochOpen: false,
+    mode: { '2f': 'kbd', '2g': 'freq', '2h': 'kbd' },
+    ray: { '2f': 'di', '2g': 'en', '2h': 'en' },
+    on: { '1a:chili': 1, '1a:rata': 1, '1b:chili': 1, '1b:rata': 1, '1c:chili': 1, '1c:rata': 1, '1f:ai': 1, '1f:hp': 1, '1g:ai': 1, '1g:hp': 1, '1h:ba': 1, '1h:oi': 1, '1h:po': 1, '1i:oi': 1, '1i:po': 1, '2a:chili': 1, '2a:rata': 1, '2d:ai': 1, '2d:hp': 1, '2e:ba': 1, '2e:oi': 1, '2e:po': 1, '2g:f:la': 1 },
+    edit: null,
+    nums: Object.fromEntries(FICHE.map(f => [f.id, f.num])),
+  };
+  t = k => e => { e && e.stopPropagation && e.stopPropagation(); this.setState(s => ({ on: { ...s.on, [k]: !s.on[k] } })); };
+  openSheet = (phone, key, name, glyph, ac, unit) => e => {
+    e && e.stopPropagation && e.stopPropagation();
+    const cur = this.state.q[key];
+    this.setState(s => ({ qs: { ...s.qs, [phone]: { key, name, glyph, ac, num: cur ? cur.num : 0, unit: cur ? cur.unit : unit } } }));
+  };
+  setMode = (p, m) => this.setState(s => ({ mode: { ...s.mode, [p]: m } }));
+  mk(p) {
+    const qs = this.state.qs[p];
+    if (!qs) return {};
+    const ink = sel => ({ bg: sel ? '#2A211C' : 'transparent', fg: sel ? '#FBF6F2' : '#2A211C' });
+    const up = f => this.setState(s => ({ qs: { ...s.qs, [p]: f(s.qs[p]) } }));
+    return {
+      name: qs.name, glyph: qs.glyph, ac: qs.ac, numLabel: nfmt(qs.num || 0), unitLabel: qs.unit === 'pièce' ? (qs.num > 1 ? 'pièces' : 'pièce') : qs.unit,
+      units: ['pièce', 'g', 'kg', 'ml', 'L'].map(u => ({ label: u, ...ink(u === qs.unit), pick: () => up(c => ({ ...c, unit: u, num: 0 })) })),
+      picks: PICKS[qs.unit].map(n => ({ label: fq({ num: n, unit: qs.unit }), bg: n === qs.num ? '#2A211C' : '#FBF6F2', fg: n === qs.num ? '#FBF6F2' : '#2A211C', pick: () => up(c => ({ ...c, num: n })) })),
+      dec: () => up(c => ({ ...c, num: Math.max(0, Math.round((c.num - STEP[c.unit]) * 10) / 10) })),
+      inc: () => up(c => ({ ...c, num: Math.round((c.num + STEP[c.unit]) * 10) / 10 })),
+      ok: () => this.setState(s => { const c = s.qs[p], nq = { ...s.q }; if (c.num > 0) nq[c.key] = { num: c.num, unit: c.unit }; else delete nq[c.key]; return { q: nq, qs: { ...s.qs, [p]: null } }; }),
+      close: () => this.setState(s => ({ qs: { ...s.qs, [p]: null } })),
+    };
+  }
+  turn3() {
+    const { q } = this.state;
+    const norm = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+    const ingOf = p => [...FICHE.map(f => ({ id: f.id, name: f.name, glyph: f.glyph, r: f.r, unit: f.unit })), ...(this.state.extra[p] || [])];
+    const search = p => {
+      const query = this.state.query[p] || '', nq = norm(query), ids = ingOf(p).map(i => i.id);
+      const hits = (nq ? CAT.filter(c => norm(c[1]).includes(nq)) : CAT).slice(0, nq ? 6 : 5);
+      const exact = CAT.some(c => norm(c[1]) === nq);
+      const results = hits.map(([id, name, glyph, rk]) => {
+        const inR = ids.includes(id), ry = ALL[rk];
+        return { name, glyph, bg: ry.bg, ac: ry.ac, rayon: inR ? 'Déjà dans la recette' : ry.label, icon: inR ? 'check' : 'add', iconFg: inR ? ry.ac : '#2A211C',
+          pick: () => { if (inR) return; this.setState(s => ({ extra: { ...s.extra, [p]: [...(s.extra[p] || []), { id, name, glyph, r: rk, unit: 'pièce' }] }, query: { ...s.query, [p]: '' } })); } };
+      });
+      return { query, results, hasResults: results.length > 0, noResults: !!nq && !results.length, create: !!nq && !exact, createLbl: `Ajouter « ${query.trim()} »`,
+        title: nq ? 'Suggestions' : 'Tes ingrédients',
+        doCreate: () => this.setState(s => ({ extra: { ...s.extra, [p]: [...(s.extra[p] || []), { id: 'n' + Date.now(), name: s.query[p].trim().replace(/^./, c => c.toUpperCase()), glyph: '\ue390', r: 'di', unit: 'pièce' }] }, query: { ...s.query, [p]: '' } })),
+        onInput: e => { const v = e.target.value; this.setState(s => ({ query: { ...s.query, [p]: v } })); } };
+    };
+    const rowsOf = p => ingOf(p).map(f => {
+      const rk = this.state.ray3[`${p}:${f.id}`] || f.r, ry = ALL[rk], key = `${p}:${f.id}`, txt = fq(q[key]);
+      return { name: f.name, glyph: f.glyph, bg: ry.bg, ac: ry.ac, has: !!txt, empty: !txt, txt, open: this.openSheet(p, key, f.name, f.glyph, ry.ac, f.unit),
+        openRay: e => { e.stopPropagation(); this.setState(s => ({ rm: { ...s.rm, [p]: s.rm[p] === f.id ? null : f.id } })); } };
+    });
+    const fiches3 = [['3c', 'Fiche — tap sur la quantité', 'Même module que le Panneau + : nombre ±, unités, valeurs rapides. Touche aussi les pictos et les autres quantités.'],
+      ['3d', 'Fiche — tap sur le picto', 'Le picto ouvre le choix du rayon (même menu que le Panneau +). Le rond et le picto prennent la couleur du nouveau rayon.']].map(([p, label, note]) => {
+      const ings = ingOf(p), rmId = this.state.rm[p], idx = ings.findIndex(i => i.id === rmId);
+      const curRk = idx >= 0 ? (this.state.ray3[`${p}:${rmId}`] || ings[idx].r) : null;
+      return { id: p, href: `#${p}`, label, note, rows: rowsOf(p), sh: this.mk(p), sheetOn: !!this.state.qs[p], rayOpen: idx >= 0, rayTop: `${226 + (idx + 1) * 54}px`,
+        closeRay: () => this.setState(s => ({ rm: { ...s.rm, [p]: null } })),
+        rayons: ORDER.map(k => ({ label: ALL[k].label, ac: ALL[k].ac, sel: k === curRk, pick: e => { e.stopPropagation(); this.setState(s => ({ ray3: { ...s.ray3, [`${p}:${rmId}`]: k }, rm: { ...s.rm, [p]: null } })); } })) };
+    });
+    return { s3a: search('3a'), s3b: search('3b'), rows3a: rowsOf('3a'), rows3b: rowsOf('3b'), fiches3 };
+  }
+  turn2() {
+    const { on, q, qs } = this.state;
+    const ink = sel => ({ bg: sel ? '#2A211C' : 'transparent', fg: sel ? '#FBF6F2' : '#2A211C' });
+    const mk = p => this.mk(p);
+    const sheetOn = p => !!qs[p];
+
+    const all2a = RECIPES.map(r => {
+      const sel = !!on[`2a:${r.id}`];
+      return { ...r, sel, toggle: this.t(`2a:${r.id}`), open: () => { location.hash = '#2b'; },
+        pillBg: sel ? '#2A211C' : 'transparent', pillFg: sel ? '#FBF6F2' : '#2A211C', pillBd: sel ? '#2A211C' : '#8F7E74', pillIcon: sel ? 'check' : 'add', pillLabel: sel ? 'Ajoutée' : 'Ajouter' };
+    });
+    const sel2a = all2a.filter(r => r.sel);
+    const wk = this.state.week2a;
+    const fAll = ink(!wk), fWk = ink(wk);
+
+    const fiches = [['2b', 'A', 'Fiche — tag « pastille de rayon »', 'Header de 1e (monogramme à la couleur de l\'ingrédient principal) + corps de 1d. Tag quantité : pastille à la couleur du rayon ; vide, contour pointillé « + qté ». Touche-le pour ouvrir le module quantité.'],
+      ['2c', 'B', 'Fiche — tag « capsule »', 'Même fiche, tag en capsule nombre | unité (encre + gris chaud) ; vide, petit cercle balance. Plus graphique, se lit comme une étiquette de prix.']].map(([p, v, label, note]) => ({
+      id: p, href: `#${p}`, label, note, sheetOn: sheetOn(p), sh: mk(p),
+      rows: FICHE.map(f => {
+        const key = `${p}:${f.id}`, cq = q[key], txt = fq(cq), ry = ALL[f.r];
+        return { ...f, bg: ry.bg, ac: ry.ac, has: !!txt, empty: !txt, txt, isA: v === 'A', isB: v === 'B',
+          aHas: v === 'A' && !!txt, aEmpty: v === 'A' && !txt, bHas: v === 'B' && !!txt, bEmpty: v === 'B' && !txt,
+          num: cq ? nfmt(cq.num) : '', unit: cq ? (cq.unit === 'pièce' ? (cq.num > 1 ? 'pièces' : 'pièce') : cq.unit) : '',
+          open: this.openSheet(p, key, f.name, f.glyph, ry.ac, f.unit) };
+      }),
+    }));
+
+    const rv2d = REVUE2.map(g => {
+      const ry = ALL[g.r];
+      const items = g.items.map(([id, name, , unit]) => {
+        const off = !!on[`2d:${id}`], txt = fq(q[`2d:${id}`]);
+        return { name, on: !off, off, toggle: this.t(`2d:${id}`), color: off ? '#6F625A' : '#2A211C', deco: off ? 'line-through' : 'none',
+          tagHas: !off && !!txt, tagEmpty: !off && !txt, txt, bg: ry.bg, ac: ry.ac, open: this.openSheet('2d', `2d:${id}`, name, '', ry.ac, unit) };
+      });
+      const kept = items.filter(i => i.on).length;
+      return { ...ry, items, kept, count: `${kept}/${items.length}` };
+    });
+    const kept2d = rv2d.reduce((a, g) => a + g.kept, 0);
+
+    let done = 0, all = 0;
+    const checked2e = [];
+    const l2e = LISTE.map(g => {
+      const ry = ALL[g.r];
+      const items = [];
+      g.items.forEach(([id, name, qq, from]) => {
+        all++;
+        const it = { name, q: qq, from, hasFrom: !!from, ac: ry.ac, toggle: this.t(`2e:${id}`) };
+        if (on[`2e:${id}`]) { done++; checked2e.push(it); } else items.push(it);
+      });
+      return { ...ry, items, count: `${items.length}` };
+    }).filter(g => g.items.length);
+
+    const panels = [['2f', 'Panneau + — au repos', 'Comme aujourd\'hui : champ, tags Quantité et Rayon, envoi. Nouveau tag « ⚡ Fréquents » à côté : un tap remplace le clavier par les fréquents. Rien d\'autre ne prend de place par défaut.', ''],
+      ['2g', 'Panneau + — fréquents ouverts', 'Les fréquents en pastilles colorées par rayon, ajout en un tap (✓ = déjà dans la liste). « Gérer » mène aux Paramètres › Fréquents. Retaper dans le champ rouvre le clavier.', ''],
+      ['2h', 'Panneau + — module quantité', 'Le même module que la fiche et la revue : nombre ± , unités, valeurs rapides, OK. Il remplace la popup avec champ texte actuelle.', 'Lessive']].map(([p, label, note, typed]) => {
+      const mode = this.state.mode[p], r = ALL[this.state.ray[p]], txt = fq(q[`${p}:new`]);
+      return { id: p, href: `#${p}`, label, note, typed, hasTyped: !!typed, noTyped: !typed,
+        kbd: mode === 'kbd' && !sheetOn(p), freq: mode === 'freq' && !sheetOn(p), rayonOpen: mode === 'rayon',
+        qtyHas: !!txt, qtyEmpty: !txt, qtyTxt: txt, rayLabel: r.label, rayBg: r.bg, rayAc: r.ac,
+        openQty: this.openSheet(p, `${p}:new`, typed || 'Article', '\uede8', r.ac, 'pièce'),
+        toggleRayon: () => this.setMode(p, mode === 'rayon' ? 'kbd' : 'rayon'),
+        toggleFreq: () => this.setMode(p, mode === 'freq' ? 'kbd' : 'freq'),
+        freqBg: mode === 'freq' ? '#2A211C' : '#E8DFD8', freqFg: mode === 'freq' ? '#FBF6F2' : '#2A211C',
+        sendBg: typed ? '#9C4A2A' : '#E8DFD8', sendFg: typed ? '#FFFFFF' : '#8F7E74',
+        rayons: ORDER.map(k => ({ label: ALL[k].label, ac: ALL[k].ac, sel: k === this.state.ray[p], pick: () => this.setState(s => ({ ray: { ...s.ray, [p]: k }, mode: { ...s.mode, [p]: 'kbd' } })) })),
+        freqs: FREQ.map(([id, name, glyph, rk]) => { const added = !!on[`${p}:f:${id}`]; return { name, glyph, toggle: this.t(`${p}:f:${id}`), bg: added ? '#2A211C' : '#FBF6F2', fg: added ? '#FBF6F2' : '#2A211C', gc: added ? '#FBF6F2' : ALL[rk].ac, icon: added ? 'check' : 'add' }; }),
+        sheetOn: sheetOn(p), sh: mk(p) };
+    });
+
+    return {
+      sh2d: mk('2d'), r2a: wk ? sel2a : all2a, lblAll2a: `Toutes · ${RECIPES.length}`, lblWk2a: `Cette semaine · ${sel2a.length}`,
+      fAllBg: fAll.bg, fAllFg: fAll.fg, fWkBg: fWk.bg, fWkFg: fWk.fg,
+      showAll2a: () => this.setState({ week2a: false }), showWk2a: () => this.setState({ week2a: true }),
+      cta2a: sel2a.length ? `Valider ${plural(sel2a.length, 'recette')}` : 'Choisis tes recettes',
+      fiches, rv2d, sheet2d: sheetOn('2d'), cta2d: `Ajouter ${plural(kept2d, 'article')} à la liste`,
+      l2e, checked2e, hasChecked2e: checked2e.length > 0, cochOpen: this.state.cochOpen && checked2e.length > 0,
+      cochIcon: this.state.cochOpen ? 'expand_more' : 'chevron_right', cochLbl: `Cochés (${checked2e.length})`,
+      toggleCoch: () => this.setState(s => ({ cochOpen: !s.cochOpen })),
+      prog2e: `${done} sur ${all} dans le panier`, pct2e: `${Math.round(done / all * 100)}%`,
+      panels,
+    };
+  }
+  renderVals() {
+    const on = this.state.on;
+    const recipes = opt => RECIPES.map(r => ({ ...r, sel: !!on[`${opt}:${r.id}`], toggle: this.t(`${opt}:${r.id}`) }));
+    const sumOf = list => { const s = list.filter(r => r.sel); return { n: s.length, ing: s.reduce((a, r) => a + r.n, 0), s }; };
+
+    const r1a = recipes('1a').map(r => ({ ...r, cover: blob(r), capBg: r.sel ? '#2A211C' : '#F3ECE6', capFg: r.sel ? '#FBF6F2' : '#2A211C', metaFg: r.sel ? '#F2D6C8' : '#5C4E46', meta: r.sel ? '✓ Cette semaine' : `${r.n} ingrédients` }));
+    const s1a = sumOf(r1a);
+    const r1b = recipes('1b').map(r => ({ ...r, cover2: stripe(r), btnBg: r.sel ? '#2A211C' : '#FBF6F2', btnFg: r.sel ? '#FBF6F2' : '#2A211C', btnIcon: r.sel ? 'check' : 'add' }));
+    const s1b = sumOf(r1b);
+    const r1c = recipes('1c').map(r => ({ ...r, mono: r.ac, pillBg: r.sel ? '#2A211C' : 'transparent', pillFg: r.sel ? '#FBF6F2' : '#2A211C', pillBd: r.sel ? '#2A211C' : '#8F7E74', pillIcon: r.sel ? 'check' : 'add', pillLabel: r.sel ? 'Ajoutée' : 'Ajouter' }));
+    const s1c = sumOf(r1c);
+
+    const f1d = FICHE.map(f => {
+      const ry = RY[f.r], num = this.state.nums[f.id], q = fmt(num, f.unit), editing = this.state.edit === f.id;
+      return {
+        ...f, bg: ry.bg, ac: ry.ac, num, editing,
+        qLabel: q || '+ qté', qColor: q ? '#5C4E46' : '#8F7E74',
+        toggle: () => this.setState(s => ({ edit: s.edit === f.id ? null : f.id })),
+        inc: () => this.setState(s => ({ nums: { ...s.nums, [f.id]: s.nums[f.id] + (f.unit === 'g' ? 50 : 1) } })),
+        dec: () => this.setState(s => ({ nums: { ...s.nums, [f.id]: Math.max(0, s.nums[f.id] - (f.unit === 'g' ? 50 : 1)) } })),
+        units: UNITS.map(u => ({ label: u, bg: u === f.unit ? '#2A211C' : '#FBF6F2', fg: u === f.unit ? '#FBF6F2' : '#2A211C' })),
+      };
+    });
+    const f1e = FICHE.map((f, i) => ({ ...f, bg: RY[f.r].bg, ac: RY[f.r].ac, q: fmt(f.num, f.unit), bd: i === 0 ? '#2A211C' : 'transparent' }));
+
+    const revue = opt => REVUE.map(g => {
+      const items = g.items.map(([id, name, q]) => {
+        const off = !!on[`${opt}:${id}`];
+        return { name, q, on: !off, off, toggle: this.t(`${opt}:${id}`), color: off ? '#6F625A' : '#2A211C', deco: off ? 'line-through' : 'none', right: off ? 'chez moi' : q,
+          bg: off ? 'transparent' : RY[g.r].bg, bd: off ? '#8F7E74' : 'transparent', bdStyle: off ? 'dashed' : 'solid' };
+      });
+      return { ...RY[g.r], items, kept: items.filter(i => i.on).length, count: `${items.filter(i => i.on).length}/${items.length}` };
+    });
+    const rv1f = revue('1f'), rv1g = revue('1g');
+    const kept = l => l.reduce((a, g) => a + g.kept, 0);
+    const total = REVUE.reduce((a, g) => a + g.items.length, 0);
+
+    let done = 0, all = 0;
+    const l1h = LISTE.map(g => {
+      const items = g.items.map(([id, name, q, from]) => {
+        const c = !!on[`1h:${id}`]; if (c) done++; all++;
+        return { name, q, from, hasFrom: !!from, on: c, off: !c, toggle: this.t(`1h:${id}`), color: c ? '#6F625A' : '#2A211C', deco: c ? 'line-through' : 'none' };
+      });
+      const n = items.filter(i => i.on).length, isDone = n === items.length;
+      return { ...RY[g.r], items, done: isDone, open: !isDone, count: `${n}/${items.length}` };
+    });
+    const l1i = LISTE[0].items.map(([id, name, q]) => { const c = !!on[`1i:${id}`]; return { name, q, on: c, off: !c, color: c ? '#6F625A' : '#2A211C', deco: c ? 'line-through' : 'none' }; });
+
+    return {
+      r1a, has1a: s1a.n > 0, sum1a: `${plural(s1a.n, 'recette')} · ${s1a.ing} ingrédients`,
+      r1b, tray1b: s1b.s, n1b: s1b.n, empty1b: s1b.n === 0, cta1b: s1b.n ? `Passer en revue · ${s1b.ing} ingrédients` : 'Choisis tes recettes',
+      r1c, lbl1c: `Cette semaine · ${s1c.n}`, cta1c: s1c.n ? `Valider ${plural(s1c.n, 'recette')}` : 'Choisis tes recettes',
+      heroCover: blob(RECIPES[1]), f1d, f1e,
+      rv1f, cta1f: `Ajouter ${plural(kept(rv1f), 'article')} à la liste`,
+      rv1g, n1g: kept(rv1g), home1g: `${total - kept(rv1g)} déjà chez toi`,
+      l1h, prog1h: `${done} sur ${all} dans le panier`, pct1h: `${Math.round(done / all * 100)}%`,
+      l1i,
+      ...this.turn2(),
+      ...this.turn3(),
+    };
+  }
+}
+</script>
+</body>
+</html>
