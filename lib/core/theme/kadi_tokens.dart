@@ -52,7 +52,7 @@ class KadiPalette {
     surface: Color(0xFFFBF6F2),
     surfaceContainer: Color(0xFFF3ECE6),
     surfaceContainerHigh: Color(0xFFE8DFD8),
-    scrim: Color(0x33000000),
+    scrim: Color(0x40000000),
     onSurface: Color(0xFF2A211C),
     onSurfaceVariant: Color(0xFF5C4E46),
     outline: Color(0xFF8F7E74),
@@ -141,10 +141,40 @@ class KadiPalette {
 abstract final class KadiRadius {
   static const xs = 4.0;
   static const sm = 8.0;
+
+  /// Tags du Panneau +, valeurs rapides du Module quantité.
+  static const tag = 10.0;
   static const md = 12.0;
+
+  /// Monogramme de 56 dp.
+  static const monogramSmall = 14.0;
   static const lg = 16.0;
+
+  /// Monogramme de 72 dp, cartes rayon de la Revue.
+  static const card = 18.0;
+
+  /// Menu des rayons.
+  static const menu = 20.0;
   static const xl = 28.0;
   static const full = 9999.0;
+}
+
+/// Ombres de la V2 (README redesign §3.4).
+abstract final class KadiShadows {
+  /// Feuille du bas : 0 -4 16, noir à 12 %.
+  static const sheet = [
+    BoxShadow(color: Color(0x1F000000), offset: Offset(0, -4), blurRadius: 16),
+  ];
+
+  /// Menu des rayons : 0 8 24, noir à 20 %.
+  static const menu = [
+    BoxShadow(color: Color(0x33000000), offset: Offset(0, 8), blurRadius: 24),
+  ];
+
+  /// Pastille appareil photo du monogramme : 0 1 3, noir à 20 %.
+  static const badge = [
+    BoxShadow(color: Color(0x33000000), offset: Offset(0, 1), blurRadius: 3),
+  ];
 }
 
 /// Grille de 4 dp (DESIGN.md, `spacing`).

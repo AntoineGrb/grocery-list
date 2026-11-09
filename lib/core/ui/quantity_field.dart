@@ -57,8 +57,8 @@ String _suffix(InputUnit unit) => switch (unit) {
 
 /// Virgule décimale : le point devient une virgule ; une saisie hors de
 /// « 6 chiffres, puis au plus [decimals] décimales » est refusée.
-class _DecimalFormatter extends TextInputFormatter {
-  _DecimalFormatter(int decimals)
+class DecimalQuantityFormatter extends TextInputFormatter {
+  DecimalQuantityFormatter(int decimals)
     : _pattern = RegExp('^[0-9]{0,$_maxDigits}(,[0-9]{0,$decimals})?\$');
 
   final RegExp _pattern;
@@ -207,7 +207,7 @@ class QuantityField extends StatelessWidget {
         inputFormatters: decimal
             ? [
                 FilteringTextInputFormatter.allow(RegExp('[0-9.,]')),
-                _DecimalFormatter(unit.decimals),
+                DecimalQuantityFormatter(unit.decimals),
               ]
             : [
                 FilteringTextInputFormatter.digitsOnly,

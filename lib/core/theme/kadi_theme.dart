@@ -3,6 +3,62 @@ import 'package:material_ui/material_ui.dart';
 import 'kadi_colors.dart';
 import 'kadi_tokens.dart';
 
+/// Styles display de la V2 en Bricolage Grotesque (README redesign §3.2).
+/// Sans couleur : le texte prend celle de son contexte (`on-surface`).
+abstract final class KadiText {
+  static const displayFamily = 'BricolageGrotesque';
+
+  /// Titre d'onglet : « Recettes », « Liste ».
+  static const screenTitle = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 26,
+    height: 32 / 26,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Titre de la Revue : « Qu'as-tu déjà ? ».
+  static const revueTitle = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 26,
+    height: 30 / 26,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Nom de recette dans la Fiche recette.
+  static const recipeName = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 24,
+    height: 28 / 24,
+    fontWeight: FontWeight.w600,
+  );
+
+  /// Initiales du monogramme de 56 dp.
+  static const monogramSmall = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 22,
+    height: 26 / 22,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.5,
+  );
+
+  /// Initiales du monogramme de 72 dp.
+  static const monogramLarge = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 26,
+    height: 30 / 26,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.5,
+  );
+
+  /// Grand nombre du Module quantité.
+  static const bigNumber = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 44,
+    height: 1,
+    fontWeight: FontWeight.w600,
+  );
+}
+
 /// Construit seul les thèmes clair et sombre depuis les tokens (AD-12).
 ///
 /// L'argile (`primary`) ne colore que le FAB +, le Bouton d'action et, par

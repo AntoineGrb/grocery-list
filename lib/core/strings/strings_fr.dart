@@ -333,6 +333,73 @@ abstract final class StringsFr {
   static const rayonBebeAnimaux = 'Bébé/Animaux';
   static const rayonDivers = 'Divers';
 
+  // V2 visuelle (README redesign §7).
+  // Recettes.
+  static const chercherUneRecette = 'Chercher une recette';
+  static String toutesN(int n) => 'Toutes · $n';
+  static String cetteSemaineN(int n) => 'Cette semaine · $n';
+  static const ajouter = 'Ajouter';
+  static const ajoutee = 'Ajoutée';
+  static String nIngredients(int n) =>
+      n == 1 ? '1 ingrédient' : '$n ingrédients';
+  static const plusDOptions = 'Plus d’options';
+  static const aucuneRecetteTrouvee = 'Aucune recette à ce nom.';
+  static const pasDeRecetteCetteSemaine =
+      'Aucune recette choisie cette semaine.';
+
+  /// Bouton de sélection lu par TalkBack.
+  static String ajouterALaSemaine(String name) => 'Ajouter $name à la semaine';
+  static String retirerDeLaSemaine(String name) =>
+      'Retirer $name de la semaine';
+
+  // Fiche recette.
+  static const ajouterUnLien = 'Ajouter un lien';
+  static const ingredients = 'Ingrédients';
+  static const ajouterUnIngredientEllipse = 'Ajouter un ingrédient…';
+  static const adresseDuLien = 'Adresse du lien';
+  static const ok = 'OK';
+
+  /// Disque picto lu par TalkBack : « Rayon de Tomates, Fruits et légumes.
+  /// Modifier ».
+  static String rayonDe(String name, String spokenRayon) =>
+      'Rayon de $name, $spokenRayon. $modifier';
+
+  // Ajout d'ingrédient.
+  static const chercherOuCreer = 'Chercher ou créer…';
+  static const tesIngredients = 'TES INGRÉDIENTS';
+  static const suggestions = 'SUGGESTIONS';
+  static const dejaDansLaRecette = 'Déjà dans la recette';
+  static const aucunIngredient = 'Aucun ingrédient enregistré à ce nom.';
+  static const nouvelIngredientDetail =
+      'Nouvel ingrédient · rayon modifiable ensuite';
+  static const fermer = 'Fermer';
+
+  // Module quantité.
+  static const quantiteAAcheter = 'quantité à acheter';
+  static const moins = 'Moins';
+  static const plus = 'Plus';
+
+  /// Tag balance lu par TalkBack.
+  static String ajouterUneQuantiteA(String name) =>
+      'Ajouter une quantité à $name';
+
+  // Revue.
+  static const quAsTuDeja = 'Qu’as-tu déjà ?';
+  static const revueConsigneV2 =
+      'Touche un article si tu l’as déjà, ou sa quantité si tu en as une partie.';
+  static const jAi = 'J’ai !';
+  static String ajouterNArticles(int n) => n == 1
+      ? 'Ajouter 1 article à la liste'
+      : 'Ajouter $n articles à la liste';
+  static String gardesSur(int kept, int total) => '$kept/$total';
+
+  // Liste.
+  static String dansLePanier(int x, int n) => '$x sur $n dans le panier';
+
+  // Panneau +.
+  static const frequents = 'Fréquents';
+  static const envoyer = 'Ajouter à la liste';
+
   // Noms lus par TalkBack, quand le nom affiché porte un symbole.
   static const rayonFruitsLegumesLu = 'Fruits et légumes';
   static const rayonViandePoissonLu = 'Viande et poisson';

@@ -35,6 +35,12 @@ abstract final class PictoResolver {
       phosphorIcons[iconNameFor(pictoKey, rayon)]!;
 }
 
+/// Glyphes Phosphor de l'interface, hors pictos d'article.
+abstract final class KadiGlyphs {
+  /// Balance (`scales`, U+E750) du tag sans quantité.
+  static const scales = IconData(0xe750, fontFamily: phosphorFontFamily);
+}
+
 /// Picto d'un article, 24 dp par défaut, teinté de l'accent de son rayon.
 /// Non interactif, exclu de la sémantique.
 class Picto extends StatelessWidget {

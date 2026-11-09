@@ -44,3 +44,11 @@ flutter:
     - family: PhosphorRegular
       fonts:
         - asset: assets/fonts/Phosphor-Regular.ttf
+    # Bricolage Grotesque (OFL 1.1, voir assets/fonts/OFL-BricolageGrotesque.txt) :
+    # instances statiques 600 et 700 (opsz 24), sous-ensemble latin.
+    - family: BricolageGrotesque
+      fonts:
+        - asset: assets/fonts/BricolageGrotesque-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/BricolageGrotesque-Bold.ttf
+          weight: 700
