@@ -138,6 +138,7 @@ class RecipeMonogram extends StatelessWidget {
               button: true,
               label: photoSemanticLabel ?? StringsFr.ajouterUnePhoto,
               excludeSemantics: true,
+              onTap: onPhotoTap,
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: onPhotoTap,

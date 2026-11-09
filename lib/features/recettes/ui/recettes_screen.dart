@@ -11,29 +11,49 @@ import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+import 'package:kadi/core/ui/tab_app_bar.dart';
+import 'package:kadi/features/catalogue/data/normalize_name.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../data/recettes_models.dart';
 import '../data/recettes_repository.dart';
 import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
 import 'fiche_recette_screen.dart';
-import 'recipe_card.dart';
+import 'recipe_row.dart';
 
-/// Recettes : cartes sur 2 colonnes (R2) ; un tap sélectionne ou
-/// désélectionne une recette pour la semaine (R3) ; Bouton d'action
+/// Recettes (README redesign 2a) : recherche, filtres « Toutes » et « Cette
+/// semaine », une ligne par recette avec son monogramme. Le bouton de la
+/// ligne sélectionne ou désélectionne la recette pour la semaine (R3) ; un
+/// tap sur la ligne ouvre sa Fiche recette (R1). Bouton d'action
 /// « Valider (n) » tant que n recettes sélectionnées ne sont pas validées,
-/// qui ouvre la Revue ; Action Nouvelle liste dans la Barre d'application
-/// (R8). Sans recette, son message d'état vide. FAB + : nouvelle recette ;
-/// icône « modifier » d'une carte : sa Fiche recette (R1) ; une fiche fermée
-/// par « Supprimer la recette » donne ici le snackbar Annuler.
+/// qui ouvre la Revue. + de la Barre d'application : nouvelle recette ; menu
+/// ⋮ : Nouvelle liste (R8) et Paramètres. Une fiche fermée par « Supprimer
+/// la recette » donne ici le snackbar Annuler.
 ///
-/// Au premier lancement, la ligne d'accueil au-dessus des cartes (R11), le
+/// Au premier lancement, la ligne d'accueil au-dessus des recettes (R22), le
 /// temps de la session et tant qu'il y a des recettes.
-class RecettesScreen extends ConsumerWidget {
+class RecettesScreen extends ConsumerStatefulWidget {
   const RecettesScreen({super.key});
+
+  @override
+  ConsumerState<RecettesScreen> createState() => _RecettesScreenState();
+}
+
+class _RecettesScreenState extends ConsumerState<RecettesScreen> {
+  /// Recherche par nom, casse et accents ignorés (état d'écran).
+  final _search = TextEditingController();
+
+  /// Filtre « Cette semaine » : recettes sélectionnées ou validées.
+  bool _thisWeek = false;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   /// Ouvre la Fiche recette [location] ; fermée par « Supprimer la recette »,
   /// montre « Recette supprimée : … » · « Annuler » (AD-10).
@@ -113,7 +133,7 @@ class RecettesScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final cards = ref.watch(recipeCardsProvider).value;
     final toValidate = ref.watch(toValidateCountProvider);
     // Plus aucune recette : la ligne d'accueil ne revient pas de la session.
@@ -123,10 +143,11 @@ class RecettesScreen extends ConsumerWidget {
       }
     });
     final welcome = ref.watch(welcomeProvider);
-    // Le dossier des photos n'est lu que si une carte en a une.
+    // Le dossier des photos n'est lu que si une recette en a une.
     final photosDir = (cards ?? const []).any((c) => c.photo != null)
         ? ref.watch(photosDirectoryProvider).value
         : null;
+    final onSurface = Theme.of(context).colorScheme.onSurface;
 
     // Messager propre à Recettes : ses snackbars s'affichent dans son
     // Scaffold, au-dessus du Bouton d'action, pas dans la coque. Le Builder
@@ -135,78 +156,41 @@ class RecettesScreen extends ConsumerWidget {
     return ScaffoldMessenger(
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: AppBar(
-            title: const Text(StringsFr.tabRecettes),
+          appBar: TabAppBar(
+            title: StringsFr.tabRecettes,
             actions: [
-              // Action Nouvelle liste : texte `on-surface`, jamais d'argile.
-              // Police système agrandie : au plus la moitié de la largeur,
-              // entière sur une ligne, réduite seulement si elle n'y tient
-              // pas (le titre de l'AppBar plafonne déjà sa police).
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: MediaQuery.sizeOf(context).width / 2,
-                ),
-                child: TextButton(
-                  onPressed: () => _nouvelleListe(context, ref),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.onSurface,
-                    textStyle: Theme.of(context).textTheme.labelLarge,
-                    minimumSize: const Size(
-                      KadiSpacing.touchTarget,
-                      KadiSpacing.touchTarget,
-                    ),
-                  ),
-                  child: const FittedBox(
-                    fit: BoxFit.scaleDown,
+              IconButton(
+                onPressed: () => _openFiche(context, AppRoutes.nouvelleRecette),
+                tooltip: StringsFr.nouvelleRecette,
+                color: onSurface,
+                icon: const Icon(Icons.add),
+              ),
+              PopupMenuButton<_MenuAction>(
+                tooltip: StringsFr.plusDOptions,
+                // Cible de 48 dp, comme le + voisin.
+                padding: const EdgeInsets.all(KadiSpacing.s3),
+                icon: Icon(Icons.more_vert, color: onSurface),
+                onSelected: (action) => switch (action) {
+                  _MenuAction.nouvelleListe => _nouvelleListe(context, ref),
+                  _MenuAction.parametres => context.push(AppRoutes.parametres),
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: _MenuAction.nouvelleListe,
                     child: Text(StringsFr.nouvelleListe),
                   ),
-                ),
+                  PopupMenuItem(
+                    value: _MenuAction.parametres,
+                    child: Text(StringsFr.parametres),
+                  ),
+                ],
               ),
-              const SettingsAction(),
-              const SizedBox(width: KadiSpacing.s2),
             ],
           ),
           body: switch (cards) {
             null => const SizedBox.shrink(),
             [] => const EmptyState(message: StringsFr.recettesVide),
-            final cards => ListView.separated(
-              padding: const EdgeInsets.fromLTRB(
-                KadiSpacing.margin,
-                KadiSpacing.s2,
-                KadiSpacing.margin,
-                // La dernière rangée défile au-dessus du FAB +.
-                KadiSpacing.listBottomInset,
-              ),
-              itemCount: (cards.length + 1) ~/ 2 + (welcome ? 1 : 0),
-              separatorBuilder: (_, _) =>
-                  const SizedBox(height: KadiSpacing.gutter),
-              // Rangées de deux cartes à hauteur égale : la plus haute
-              // (police système) donne la hauteur de la rangée.
-              // Le contexte du Builder, pas celui de la rangée : il reste
-              // monté quand la carte disparaît (suppression).
-              itemBuilder: (_, index) {
-                if (welcome && index == 0) return const _WelcomeLine();
-                final row = welcome ? index - 1 : index;
-                final left = cards[row * 2];
-                final right = row * 2 + 1 < cards.length
-                    ? cards[row * 2 + 1]
-                    : null;
-                return IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _card(context, ref, left, photosDir)),
-                      const SizedBox(width: KadiSpacing.gutter),
-                      Expanded(
-                        child: right == null
-                            ? const SizedBox.shrink()
-                            : _card(context, ref, right, photosDir),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            ),
+            final cards => _list(context, cards, welcome, photosDir),
           },
           bottomNavigationBar: toValidate > 0
               ? Padding(
@@ -222,36 +206,197 @@ class RecettesScreen extends ConsumerWidget {
                   ),
                 )
               : null,
-          // FAB + (DESIGN `fab`, argile) : ouvre une Fiche recette vide ;
-          // empilé au-dessus du Bouton d'action quand il est là. Sans Hero :
-          // le FAB de la Liste vit dans la même coque.
-          floatingActionButton: FloatingActionButton(
-            heroTag: null,
-            onPressed: () => _openFiche(context, AppRoutes.nouvelleRecette),
-            child: const Icon(
-              Icons.add,
-              semanticLabel: StringsFr.nouvelleRecette,
+        ),
+      ),
+    );
+  }
+
+  /// Recherche, filtres et lignes de [cards] (README redesign 2a).
+  ///
+  /// [context] est celui du `Builder` de Recettes, sous son messager : il
+  /// reste monté quand une ligne disparaît (suppression, filtre).
+  Widget _list(
+    BuildContext context,
+    List<RecipeCardItem> cards,
+    bool welcome,
+    Directory? photosDir,
+  ) {
+    final query = normalizeName(_search.text);
+    final thisWeek = cards.where((c) => c.selected).toList();
+    final shown = [
+      for (final card in _thisWeek ? thisWeek : cards)
+        if (query.isEmpty || normalizeName(card.name).contains(query)) card,
+    ];
+    final empty = shown.isNotEmpty
+        ? null
+        : query.isNotEmpty
+        ? StringsFr.aucuneRecetteTrouvee
+        : StringsFr.pasDeRecetteCetteSemaine;
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: KadiSpacing.margin),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SearchField(
+                  controller: _search,
+                  onChanged: () => setState(() {}),
+                ),
+                const SizedBox(height: KadiSpacing.s1),
+                Wrap(
+                  spacing: KadiSpacing.s2,
+                  children: [
+                    _FilterChip(
+                      label: StringsFr.toutesN(cards.length),
+                      selected: !_thisWeek,
+                      onTap: () => setState(() => _thisWeek = false),
+                    ),
+                    _FilterChip(
+                      label: StringsFr.cetteSemaineN(thisWeek.length),
+                      selected: _thisWeek,
+                      onTap: () => setState(() => _thisWeek = true),
+                    ),
+                  ],
+                ),
+                if (welcome) ...[
+                  const SizedBox(height: KadiSpacing.s2),
+                  const _WelcomeLine(),
+                  const SizedBox(height: KadiSpacing.s2),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (empty != null)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(message: empty),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.only(bottom: KadiSpacing.s2),
+            sliver: SliverList.builder(
+              itemCount: shown.length,
+              itemBuilder: (_, index) {
+                final card = shown[index];
+                return RecipeRow(
+                  key: ValueKey(card.recipeId),
+                  card: card,
+                  photo: card.photo == null || photosDir == null
+                      ? null
+                      : RecipePhotos.fileIn(photosDir, card.photo!),
+                  onOpen: () =>
+                      _openFiche(context, AppRoutes.recette(card.recipeId)),
+                  onToggle: () => _toggle(context, ref, card),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Actions du menu ⋮ de Recettes.
+enum _MenuAction { nouvelleListe, parametres }
+
+/// Champ « Chercher une recette » : pilule de 44 dp `surface-container`.
+/// Filtre par nom, casse et accents ignorés.
+class _SearchField extends StatelessWidget {
+  const _SearchField({required this.controller, required this.onChanged});
+
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final textStyle = theme.textTheme.bodyLarge?.copyWith(fontSize: 15);
+    return TextField(
+      controller: controller,
+      onChanged: (_) => onChanged(),
+      textInputAction: TextInputAction.search,
+      style: textStyle?.copyWith(color: scheme.onSurface),
+      decoration: InputDecoration(
+        hintText: StringsFr.chercherUneRecette,
+        hintStyle: textStyle?.copyWith(color: scheme.onSurfaceVariant),
+        fillColor: scheme.surfaceContainer,
+        isDense: true,
+        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        prefixIcon: Icon(
+          Icons.search,
+          size: 22,
+          color: scheme.onSurfaceVariant,
+        ),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: StringsFr.effacerLeTexte,
+                icon: const Icon(Icons.close),
+                onPressed: () {
+                  controller.clear();
+                  onChanged();
+                },
+              ),
+      ),
+    );
+  }
+}
+
+/// Puce de filtre de Recettes : 32 dp, rayon 8, contour encre ; choisie à
+/// l'encre, texte `surface` (C6). Cible de 48 dp.
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: selected ? scheme.onSurface : Colors.transparent,
+              border: Border.all(color: scheme.onSurface),
+              borderRadius: BorderRadius.circular(KadiRadius.sm),
+            ),
+            child: Text(
+              label,
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: selected ? scheme.surface : scheme.onSurface,
+              ),
             ),
           ),
         ),
       ),
     );
   }
-
-  Widget _card(
-    BuildContext context,
-    WidgetRef ref,
-    RecipeCardItem card,
-    Directory? photosDir,
-  ) => RecipeCard(
-    key: ValueKey(card.recipeId),
-    card: card,
-    photo: card.photo == null || photosDir == null
-        ? null
-        : RecipePhotos.fileIn(photosDir, card.photo!),
-    onTap: () => _toggle(context, ref, card),
-    onEdit: () => _openFiche(context, AppRoutes.recette(card.recipeId)),
-  );
 }
 
 /// Ligne d'accueil du premier lancement : une phrase, non interactive, lue

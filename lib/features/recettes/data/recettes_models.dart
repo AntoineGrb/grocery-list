@@ -13,11 +13,15 @@ class RecipeCardItem {
     required this.rayon,
     required this.selected,
     required this.validated,
+    this.ingredientCount = 0,
     this.photo,
   });
 
   final String recipeId;
   final String name;
+
+  /// Ingrédients actifs dont l'article est actif : « 5 ingrédients ».
+  final int ingredientCount;
 
   /// Nom du fichier de la photo dans `photos/` (AD-18), nul sans photo : la
   /// carte montre alors le visuel de repli.

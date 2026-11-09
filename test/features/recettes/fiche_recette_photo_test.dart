@@ -6,9 +6,9 @@ import 'package:drift/drift.dart' hide isNull, isNotNull;
 
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kadi/core/ui/recipe_monogram.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
-import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/recettes/data/recettes_repository.dart';
@@ -192,8 +192,11 @@ Image? _cardImage(WidgetTester tester, String name) {
   return images.evaluate().isEmpty ? null : tester.widget<Image>(images);
 }
 
-Finder _cardPicto(String name) =>
-    find.descendant(of: recipeCard(name), matching: find.byType(Picto));
+/// Le monogramme de repli de la ligne de [name] (sans photo).
+Finder _cardPicto(String name) => find.descendant(
+  of: recipeCard(name),
+  matching: find.text(recipeInitials(name)),
+);
 
 /// Laisse les E/S réelles de lecture d'image finir, puis reconstruit.
 Future<void> _loadImages(WidgetTester tester) async {
@@ -236,67 +239,22 @@ void main() {
       RecipePhotos.fileIn(env.photos.dir, 'photo-1.jpg').path,
     );
     expect(image.fit, BoxFit.cover);
-    // Décodée à la taille d'affichage, pas aux 1600 px stockés : la
-    // largeur couvre la carte, et la hauteur pour une photo jusqu'à 2:1.
+    // La photo remplace le monogramme, recadrée sur ses 56 dp, décodée à
+    // la taille d'affichage et non aux 1600 px stockés.
     final shown = tester.getSize(
       find.descendant(
         of: recipeCard('Chili con carne'),
         matching: find.byType(Image),
       ),
     );
-    expect(
-      resized.width,
-      (shown.width > KadiSpacing.recipeVisualHeight * 2
-              ? shown.width
-              : KadiSpacing.recipeVisualHeight * 2)
-          .ceil(),
-    );
+    expect(shown, const Size.square(56));
     expect(resized.width, lessThan(1600));
     expect(
-      tester
-          .getSize(
-            find.descendant(
-              of: recipeCard('Chili con carne'),
-              matching: find.byType(Image),
-            ),
-          )
-          .height,
-      KadiSpacing.recipeVisualHeight,
-    );
-    // Le visuel de repli n'est pas montré sous une photo.
-    expect(_cardPicto('Chili con carne'), findsNothing);
-    // Sur la photo, un disque `surface` translucide derrière la coche et
-    // derrière l'icône « modifier », qui garde sa cible de 48 dp.
-    expect(recipeCardDiscs('Chili con carne'), findsNWidgets(2));
-    expect(recipeCardDiscs('Ratatouille'), findsNothing);
-    final scheme = Theme.of(tester.element(recipeCard('Chili con carne')))
-        .colorScheme;
-    for (final disc in tester.widgetList<DecoratedBox>(
-      recipeCardDiscs('Chili con carne'),
-    )) {
-      expect(
-        (disc.decoration as BoxDecoration).color,
-        scheme.surface.withValues(alpha: 0.8),
-      );
-    }
-    final checkTarget = find
-        .ancestor(
-          of: find.descendant(
-            of: recipeCard('Chili con carne'),
-            matching: find.byType(Checkbox),
-          ),
-          matching: find.byType(SizedBox),
-        )
-        .first;
-    expect([
-      for (final e in recipeCardDiscs('Chili con carne').evaluate())
-        tester.getCenter(find.byWidget(e.widget)),
-    ], contains(tester.getCenter(checkTarget)));
-    expect(
-      tester.getSize(
-        find.byTooltip(StringsFr.modifierRecette('Chili con carne')),
+      find.descendant(
+        of: recipeCard('Chili con carne'),
+        matching: find.text('Cc'),
       ),
-      const Size.square(KadiSpacing.touchTarget),
+      findsNothing,
     );
     // Le fichier reste après la fermeture : la base le porte.
     expect(env.photos.files, {'photo-1.jpg'});
@@ -395,7 +353,7 @@ void main() {
     final count = (await env.db.select(env.db.recipes).get()).length;
 
     // Nouvelle fiche : A puis B, quittée : pas de recette, aucun fichier.
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byTooltip(StringsFr.nouvelleRecette));
     await tester.pumpAndSettle();
     await tester.enterText(ficheNameField, 'Soupe');
     await tester.pumpAndSettle();
@@ -410,7 +368,7 @@ void main() {
 
     // Photo d'abord, puis nom et ingrédient, « Enregistrer » : créée avec
     // sa photo.
-    await tester.tap(find.byType(FloatingActionButton));
+    await tester.tap(find.byTooltip(StringsFr.nouvelleRecette));
     await tester.pumpAndSettle();
     env.picker.results.add(env.source.path);
     await _pick(tester);

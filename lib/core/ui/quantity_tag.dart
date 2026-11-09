@@ -76,6 +76,7 @@ class QuantityTag extends StatelessWidget {
           ? StringsFr.ajouterUneQuantiteA(name)
           : StringsFr.quantiteDe(name, value),
       excludeSemantics: true,
+      onTap: onTap,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onTap,

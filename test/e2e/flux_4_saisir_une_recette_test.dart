@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
-import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/units/unit.dart';
@@ -9,7 +8,7 @@ import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/ingredient_sheet.dart';
-import 'package:kadi/features/recettes/ui/recipe_card.dart';
+import 'package:kadi/features/recettes/ui/recipe_row.dart';
 import 'package:material_ui/material_ui.dart';
 
 import 'e2e_harness.dart';
@@ -42,7 +41,7 @@ Future<AppDatabase> _pumpRecettes(WidgetTester tester) async {
 
 /// Ouvre une fiche vide par le FAB + de Recettes.
 Future<void> _nouvelleFiche(WidgetTester tester) async {
-  await tapAndSettle(tester, find.byType(FloatingActionButton));
+  await tapAndSettle(tester, find.byTooltip(StringsFr.nouvelleRecette));
   expect(find.byType(FicheRecetteScreen), findsOneWidget);
   expect(find.text(StringsFr.nouvelleRecette), findsOneWidget);
 }
@@ -105,16 +104,17 @@ void flux4SaisirUneRecette() {
       expect(await recipeNamed(db, 'Chili'), isNull);
       await saveFiche(tester);
 
-      // 6. ★ La Carte recette « Chili » apparaît avec le Picto des haricots
-      // rouges en repli.
+      // 6. ★ La ligne « Chili » apparaît, monogramme « Ch » à la couleur
+      // du rayon des haricots rouges.
       expect(recipeCard('Chili'), findsOneWidget, reason: '★');
-      final card = tester.widget<RecipeCard>(recipeCard('Chili'));
+      final card = tester.widget<RecipeRow>(recipeCard('Chili'));
       final haricots = await (db.select(
         db.articles,
       )..where((a) => a.name.equals('Haricots rouges'))).getSingle();
       expect(card.card.pictoKey, haricots.pictoKey, reason: '★');
+      expect(card.card.rayon, Rayon.epicerieSalee, reason: '★');
       expect(
-        find.descendant(of: recipeCard('Chili'), matching: find.byType(Picto)),
+        find.descendant(of: recipeCard('Chili'), matching: find.text('Ch')),
         findsOneWidget,
         reason: '★',
       );

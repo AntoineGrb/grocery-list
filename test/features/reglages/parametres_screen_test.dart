@@ -10,6 +10,7 @@ import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
+import '../../helpers/recettes.dart';
 
 /// Réglages dont toute écriture des Paramètres échoue.
 class _FailingSettings extends SettingsRepository {
@@ -59,19 +60,14 @@ void main() {
     expect(find.text(StringsFr.tabListe), findsWidgets);
   });
 
-  testWidgets('⚙ de Recettes, à droite de Nouvelle liste, ouvre Paramètres', (
+  testWidgets('menu ⋮ de Recettes : « Paramètres » ouvre Paramètres', (
     tester,
   ) async {
     await pumpKadi(tester);
     await _tap(tester, find.text(StringsFr.tabRecettes));
 
-    final gear = find.byType(SettingsAction);
-    expect(gear, findsOneWidget);
-    expect(
-      tester.getCenter(gear).dx,
-      greaterThan(tester.getCenter(find.text(StringsFr.nouvelleListe)).dx),
-    );
-    await _openParametres(tester);
+    expect(find.byType(SettingsAction), findsNothing);
+    await recettesMenu(tester, StringsFr.parametres);
     expect(find.byType(ParametresScreen), findsOneWidget);
   });
 

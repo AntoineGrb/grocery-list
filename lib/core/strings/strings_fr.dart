@@ -19,8 +19,9 @@ abstract final class StringsFr {
       'Voici quelques recettes pour essayer. Supprime-les quand tu veux.';
 
   // Recettes : sélection et Bouton d'action.
-  /// Bouton d'action de Recettes : « Valider (2) ».
-  static String validerN(int n) => 'Valider ($n)';
+  /// Bouton d'action de Recettes : « Valider 2 recettes ».
+  static String validerN(int n) =>
+      n == 1 ? 'Valider 1 recette' : 'Valider $n recettes';
 
   /// Carte recette lue par TalkBack : « Chili, sélectionnée ».
   static String recetteSelectionnee(String name, {required bool selected}) =>

@@ -4,8 +4,7 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
-import 'package:kadi/features/recettes/ui/recipe_card.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:kadi/features/recettes/ui/recipe_row.dart';
 
 import 'e2e_harness.dart';
 
@@ -18,8 +17,6 @@ const _exemples = [
 
 /// Supprime [name] par sa fiche (« Supprimer la recette »).
 Future<void> _supprimer(WidgetTester tester, String name) async {
-  await tester.ensureVisible(find.byTooltip(StringsFr.modifierRecette(name)));
-  await tester.pumpAndSettle();
   await editRecipe(tester, name);
   await tapAndSettle(tester, find.text(StringsFr.supprimerLaRecette));
   expect(find.byType(RecettesScreen), findsOneWidget);
@@ -36,7 +33,7 @@ void flux6PremierLancement() {
       // 1. L'app s'ouvre sur Recettes : 4 recettes exemples, ligne d'accueil.
       expect(find.byType(RecettesScreen), findsOneWidget);
       expect(find.text(StringsFr.recettesAccueil), findsOneWidget);
-      expect(find.byType(RecipeCard), findsNWidgets(4));
+      expect(find.byType(RecipeRow), findsNWidgets(4));
       for (final name in _exemples) {
         expect(recipeCard(name), findsOneWidget, reason: name);
       }
@@ -83,10 +80,13 @@ void flux6PremierLancement() {
       for (final name in _exemples) {
         await _supprimer(tester, name);
       }
-      expect(find.byType(RecipeCard), findsNothing);
+      expect(find.byType(RecipeRow), findsNothing);
       expect(find.text(StringsFr.recettesVide), findsOneWidget);
-      expect(find.byType(FloatingActionButton).hitTestable(), findsOneWidget);
-      expect(find.bySemanticsLabel(StringsFr.nouvelleRecette), findsOneWidget);
+      expect(
+        find.byTooltip(StringsFr.nouvelleRecette).hitTestable(),
+        findsOneWidget,
+      );
+      expect(find.byTooltip(StringsFr.nouvelleRecette), findsOneWidget);
     });
   });
 }

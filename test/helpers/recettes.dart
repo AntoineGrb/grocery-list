@@ -5,7 +5,7 @@ import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/ingredient_sheet.dart';
-import 'package:kadi/features/recettes/ui/recipe_card.dart';
+import 'package:kadi/features/recettes/ui/recipe_row.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Téléphone haut ([size]) : toute la fiche et toutes les cartes sont
@@ -24,32 +24,60 @@ Future<void> openTab(WidgetTester tester, String tab) async {
   await tester.pumpAndSettle();
 }
 
-/// La carte de la recette [name].
+/// La ligne de la recette [name] (Recettes).
 Finder recipeCard(String name) =>
-    find.ancestor(of: find.text(name), matching: find.byType(RecipeCard));
+    find.ancestor(of: find.text(name), matching: find.byType(RecipeRow));
 
-/// Disques `surface` translucides de la carte de [name], qui gardent la
-/// coche et l'icône « modifier » lisibles sur une photo.
-Finder recipeCardDiscs(String name) => find.descendant(
-  of: recipeCard(name),
-  matching: find.byWidgetPredicate(
-    (w) =>
-        w is DecoratedBox &&
-        w.decoration is BoxDecoration &&
-        (w.decoration as BoxDecoration).shape == BoxShape.circle,
-  ),
-);
+/// Le bouton de sélection « Ajouter » / « Ajoutée » de la ligne de [name].
+Finder recipeSelectButton(String name) =>
+    find.descendant(of: recipeCard(name), matching: find.byType(SelectButton));
 
-/// Touche la carte de [name] (sélection ou désélection).
-Future<void> tapRecipeCard(WidgetTester tester, String name) async {
+/// La recette [name] est sélectionnée (« Ajoutée »).
+bool recipeSelected(WidgetTester tester, String name) =>
+    tester.widget<SelectButton>(recipeSelectButton(name)).selected;
+
+/// Amène la ligne de [name] à l'écran : la liste de Recettes est
+/// paresseuse, une ligne loin de l'écran n'est pas bâtie.
+Future<void> showRecipe(WidgetTester tester, String name) async {
+  if (recipeCard(name).evaluate().isEmpty) {
+    final list = find.descendant(
+      of: find.byType(CustomScrollView),
+      matching: find.byType(Scrollable),
+    );
+    // Vers le haut d'abord (Recettes est triée par nom), puis vers le bas.
+    for (final delta in [-200.0, 200.0]) {
+      if (recipeCard(name).evaluate().isNotEmpty) break;
+      try {
+        await tester.scrollUntilVisible(
+          recipeCard(name),
+          delta,
+          scrollable: list.first,
+          maxScrolls: 20,
+        );
+      } on StateError {
+        // Pas dans ce sens.
+      }
+    }
+  }
   await tester.ensureVisible(recipeCard(name));
-  await tester.tap(recipeCard(name));
   await tester.pumpAndSettle();
 }
 
-/// Ouvre la fiche de [name] par l'icône « modifier » de sa carte.
+/// Touche le bouton de sélection de [name] (sélection ou désélection).
+Future<void> tapRecipeCard(WidgetTester tester, String name) async {
+  await showRecipe(tester, name);
+  await tester.ensureVisible(recipeSelectButton(name));
+  await tester.pumpAndSettle();
+  await tester.tap(recipeSelectButton(name));
+  await tester.pumpAndSettle();
+}
+
+/// Ouvre la fiche de [name] par un tap sur sa ligne.
 Future<void> editRecipe(WidgetTester tester, String name) async {
-  await tester.tap(find.byTooltip(StringsFr.modifierRecette(name)));
+  await showRecipe(tester, name);
+  await tester.tap(
+    find.descendant(of: recipeCard(name), matching: find.text(name)),
+  );
   await tester.pumpAndSettle();
   expect(find.byType(FicheRecetteScreen), findsOneWidget);
 }
@@ -152,12 +180,21 @@ Future<Recipe?> recipeNamed(AppDatabase db, String name) => (db.select(
   db.recipes,
 )..where((r) => r.name.equals(name))).getSingleOrNull();
 
-/// Le bouton « Valider (n) » de Recettes.
+/// Le bouton « Valider n recettes » de Recettes.
 Finder validerButton(int n) =>
     find.widgetWithText(FilledButton, StringsFr.validerN(n));
 
-/// Ouvre la Revue par « Valider (n) ».
+/// Ouvre la Revue par « Valider n recettes ».
 Future<void> openRevue(WidgetTester tester, int n) async {
   await tester.tap(validerButton(n));
+  await tester.pumpAndSettle();
+}
+
+/// Ouvre le menu ⋮ de Recettes et touche son action [label] (« Nouvelle
+/// liste », « Paramètres »).
+Future<void> recettesMenu(WidgetTester tester, String label) async {
+  await tester.tap(find.byTooltip(StringsFr.plusDOptions));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(label));
   await tester.pumpAndSettle();
 }

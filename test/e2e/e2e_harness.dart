@@ -18,6 +18,7 @@ import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../helpers/pump_app.dart';
+import '../helpers/recettes.dart';
 
 export '../helpers/pump_app.dart';
 export '../helpers/recettes.dart';
@@ -286,8 +287,14 @@ Finder get parametresScrollable => find
 
 /// Ouvre les Paramètres par ⚙.
 Future<void> openParametres(WidgetTester tester) async {
-  await tester.tap(find.byType(SettingsAction));
-  await tester.pumpAndSettle();
+  // ⚙ de la Liste, ou « Paramètres » du menu ⋮ de Recettes.
+  final gear = find.byType(SettingsAction);
+  if (gear.evaluate().isNotEmpty) {
+    await tester.tap(gear);
+    await tester.pumpAndSettle();
+  } else {
+    await recettesMenu(tester, StringsFr.parametres);
+  }
   expect(find.byType(ParametresScreen), findsOneWidget);
 }
 

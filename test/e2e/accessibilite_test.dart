@@ -75,10 +75,6 @@ Future<void> _visitSurfaces(WidgetTester tester, SurfaceCheck check) async {
 
   // Fiche recette et popup d'ajout d'ingrédient.
   await openTab(tester, StringsFr.tabRecettes);
-  await tester.ensureVisible(
-    find.byTooltip(StringsFr.modifierRecette('Chili con carne')),
-  );
-  await tester.pumpAndSettle();
   await editRecipe(tester, 'Chili con carne');
   await check('Fiche recette');
   await openIngredientSheet(tester);

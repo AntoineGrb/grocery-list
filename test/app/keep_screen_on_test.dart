@@ -39,7 +39,25 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// Passe l'app à [state] par les étapes intermédiaires d'Android (paused →
+/// hidden → inactive → resumed, et l'inverse) : un AppLifecycleListener
+/// (champ de recherche de Recettes) refuse les sauts.
 Future<void> _lifecycle(WidgetTester tester, AppLifecycleState state) async {
+  const order = [
+    AppLifecycleState.resumed,
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ];
+  final current = tester.binding.lifecycleState;
+  final from = current == null ? -1 : order.indexOf(current);
+  final to = order.indexOf(state);
+  if (from >= 0 && to >= 0 && (to - from).abs() > 1) {
+    final step = to > from ? 1 : -1;
+    for (var i = from + step; i != to; i += step) {
+      tester.binding.handleAppLifecycleStateChanged(order[i]);
+    }
+  }
   tester.binding.handleAppLifecycleStateChanged(state);
   await tester.pump();
 }

@@ -90,7 +90,7 @@ void flux2AuMagasin() {
       expect(undoAction, findsOneWidget);
       await openTab(tester, StringsFr.tabRecettes);
       expect(
-        find.bySemanticsLabel('Chili con carne, non sélectionnée'),
+        find.bySemanticsLabel(StringsFr.ajouterALaSemaine('Chili con carne')),
         findsOneWidget,
       );
       // Hors de la Liste, l'écran peut de nouveau se mettre en veille.
@@ -132,10 +132,10 @@ void flux2AuMagasin() {
       await checkItem(tester, 'Oignons');
 
       await openTab(tester, StringsFr.tabRecettes);
-      await tapAndSettle(tester, find.text(StringsFr.nouvelleListe));
+      await recettesMenu(tester, StringsFr.nouvelleListe);
       await tapAndSettle(tester, find.text(StringsFr.effacerEtRecommencer));
       expect(
-        find.bySemanticsLabel('Chili con carne, non sélectionnée'),
+        find.bySemanticsLabel(StringsFr.ajouterALaSemaine('Chili con carne')),
         findsOneWidget,
       );
       await openTab(tester, StringsFr.tabListe);

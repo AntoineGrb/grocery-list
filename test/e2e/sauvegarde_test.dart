@@ -106,7 +106,7 @@ void sauvegarde() {
 
       // Une recette avec photo.
       await openTab(tester, StringsFr.tabRecettes);
-      await tapAndSettle(tester, find.byType(FloatingActionButton));
+      await tapAndSettle(tester, find.byTooltip(StringsFr.nouvelleRecette));
       await tester.enterText(ficheNameField, 'Gratin');
       await tester.pumpAndSettle();
       await addIngredientBySheet(tester, 'courg', 'Courgettes');

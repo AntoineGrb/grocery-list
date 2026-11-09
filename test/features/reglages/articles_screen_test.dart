@@ -212,7 +212,7 @@ Future<void> _closePanel(WidgetTester tester) async {
 /// Ouvre une Fiche recette vide depuis Recettes.
 Future<void> _newRecipe(WidgetTester tester) async {
   await openTab(tester, StringsFr.tabRecettes);
-  await _tap(tester, find.byType(FloatingActionButton));
+  await _tap(tester, find.byTooltip(StringsFr.nouvelleRecette));
   expect(find.byType(FicheRecetteScreen), findsOneWidget);
 }
 

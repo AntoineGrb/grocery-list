@@ -18,7 +18,7 @@ import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_rows.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/ingredient_sheet.dart';
-import 'package:kadi/features/recettes/ui/recipe_card.dart';
+import 'package:kadi/features/recettes/ui/recipe_row.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -47,7 +47,7 @@ Future<AppDatabase> _openRecettes(
   return db;
 }
 
-Finder get _fab => find.byType(FloatingActionButton);
+Finder get _fab => find.byTooltip(StringsFr.nouvelleRecette);
 
 /// Champ « Ajouter un ingrédient » de la popup.
 Finder get _sheetField => ingredientSheetField;
@@ -358,7 +358,7 @@ void main() {
 
     // ★ La carte « Chili » avec le picto des haricots rouges.
     expect(recipeCard('Chili'), findsOneWidget);
-    final card = tester.widget<RecipeCard>(recipeCard('Chili'));
+    final card = tester.widget<RecipeRow>(recipeCard('Chili'));
     expect(card.card.pictoKey, haricots.pictoKey);
     expect(card.card.rayon, Rayon.epicerieSalee);
     expect(card.card.selected, isFalse);
@@ -397,7 +397,7 @@ void main() {
     await quitFiche(tester);
 
     expect(await db.select(db.recipes).get(), before);
-    expect(find.byType(RecipeCard), findsNWidgets(4));
+    expect(find.byType(RecipeRow), findsNWidgets(4));
   });
 
   testWidgets('recette existante : nom effacé, ou tous ses ingrédients '
@@ -407,7 +407,7 @@ void main() {
     final recipes = await db.select(db.recipes).get();
     final ingredients = await db.select(db.recipeIngredients).get();
     final picto = tester
-        .widget<RecipeCard>(recipeCard('Pâtes carbonara'))
+        .widget<RecipeRow>(recipeCard('Pâtes carbonara'))
         .card
         .pictoKey;
 
@@ -439,7 +439,7 @@ void main() {
     await quitFiche(tester);
     expect(await db.select(db.recipeIngredients).get(), ingredients);
     expect(
-      tester.widget<RecipeCard>(recipeCard('Pâtes carbonara')).card.pictoKey,
+      tester.widget<RecipeRow>(recipeCard('Pâtes carbonara')).card.pictoKey,
       picto,
     );
   });
@@ -593,7 +593,7 @@ void main() {
     final pates = rows.singleWhere((i) => i.articleId == SeedIds.pates);
     expect(pates.deletedAt, isNotNull);
     expect(
-      tester.widget<RecipeCard>(recipeCard('Pâtes carbonara')).card.pictoKey,
+      tester.widget<RecipeRow>(recipeCard('Pâtes carbonara')).card.pictoKey,
       'lardons',
     );
   });
@@ -695,8 +695,7 @@ void main() {
     tester,
   ) async {
     final db = await _openRecettes(tester);
-    await tester.tap(recipeCard('Chili con carne'));
-    await tester.pumpAndSettle();
+    await tapRecipeCard(tester, 'Chili con carne');
     await openRevue(tester, 1);
     await tester.tap(
       find.widgetWithText(FilledButton, StringsFr.ajouterALaListe),
@@ -723,49 +722,10 @@ void main() {
     expect(await db.select(db.listContributions).get(), contributions);
     expect(await db.select(db.weekSelections).get(), selections);
     expect(
-      tester.widget<RecipeCard>(recipeCard('Chili con carne')).card.selected,
+      tester.widget<RecipeRow>(recipeCard('Chili con carne')).card.selected,
       isTrue,
     );
     expect(find.byType(FilledButton), findsNothing);
-  });
-
-  testWidgets('icône « modifier » : 48 dp, ouvre la fiche sans changer la '
-      'sélection ; FAB empilé au-dessus de « Valider »', (tester) async {
-    final db = await _openRecettes(tester);
-    final edit = find.byTooltip(StringsFr.modifierRecette('Ratatouille'));
-    expect(tester.getSize(edit), const Size.square(KadiSpacing.touchTarget));
-    await editRecipe(tester, 'Ratatouille');
-    await backFromFiche(tester);
-    expect(await db.select(db.weekSelections).get(), isEmpty);
-    expect(
-      tester.widget<RecipeCard>(recipeCard('Ratatouille')).card.selected,
-      isFalse,
-    );
-
-    // Sélectionnée : l'icône ne désélectionne pas non plus.
-    await tester.tap(recipeCard('Ratatouille'));
-    await tester.pumpAndSettle();
-    await editRecipe(tester, 'Ratatouille');
-    await backFromFiche(tester);
-    expect(
-      tester.widget<RecipeCard>(recipeCard('Ratatouille')).card.selected,
-      isTrue,
-    );
-
-    final valider = find.widgetWithText(FilledButton, StringsFr.validerN(1));
-    expect(
-      tester.getRect(_fab).bottom,
-      lessThanOrEqualTo(tester.getRect(valider).top),
-    );
-    final scheme = Theme.of(tester.element(_fab)).colorScheme;
-    expect(
-      tester
-          .widget<Material>(
-            find.descendant(of: _fab, matching: find.byType(Material)).first,
-          )
-          .color,
-      scheme.primary,
-    );
   });
 
   testWidgets('nom porté par un article hors catalogue : le même article '
@@ -981,9 +941,10 @@ void main() {
     const height = 700.0;
     const keyboard = 400.0;
     await _openRecettes(tester, size: const Size(400, height));
+    await editRecipe(tester, 'Ratatouille');
     tester.view.viewInsets = const FakeViewPadding(bottom: keyboard);
     addTearDown(tester.view.resetViewInsets);
-    await editRecipe(tester, 'Ratatouille');
+    await tester.pumpAndSettle();
     await openIngredientSheet(tester);
     // La popup tient au-dessus du clavier.
     expect(
@@ -1035,20 +996,26 @@ void main() {
     final announcements = _recordAnnouncements(tester);
     await _openRecettes(tester);
 
-    expect(find.bySemanticsLabel(StringsFr.nouvelleRecette), findsOneWidget);
+    expect(find.byTooltip(StringsFr.nouvelleRecette), findsOneWidget);
     expect(
       tester.getSemantics(
-        find.byTooltip(StringsFr.modifierRecette('Chili con carne')),
+        find.bySemanticsLabel(
+          RegExp(
+            '^${RegExp.escape(StringsFr.modifierRecette('Chili con carne'))}, ',
+          ),
+        ),
       ),
       isSemantics(
-        tooltip: StringsFr.modifierRecette('Chili con carne'),
+        label:
+            '${StringsFr.modifierRecette('Chili con carne')}, '
+            '${StringsFr.nIngredients(5)}',
         isButton: true,
         hasTapAction: true,
       ),
     );
     // La carte garde sa lecture et son tap.
     expect(
-      find.bySemanticsLabel('Chili con carne, non sélectionnée'),
+      find.bySemanticsLabel(StringsFr.ajouterALaSemaine('Chili con carne')),
       findsOneWidget,
     );
 

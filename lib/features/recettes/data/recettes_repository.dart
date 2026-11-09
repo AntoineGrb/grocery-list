@@ -41,7 +41,10 @@ class RecettesRepository {
       '(SELECT a.rayon $mainIngredient) AS rayon, '
       'EXISTS (SELECT 1 $activeSelection) AS selected, '
       'EXISTS (SELECT 1 $activeSelection AND s.validated_at IS NOT NULL) '
-      'AS validated '
+      'AS validated, '
+      '(SELECT COUNT(*) FROM recipe_ingredients i '
+      'INNER JOIN articles a ON a.id = i.article_id AND a.deleted_at IS NULL '
+      'WHERE i.recipe_id = r.id AND i.deleted_at IS NULL) AS ingredient_count '
       'FROM recipes r WHERE r.deleted_at IS NULL',
       readsFrom: {
         _db.recipes,
@@ -63,6 +66,7 @@ class RecettesRepository {
                 Rayon.divers,
             selected: row.read<bool>('selected'),
             validated: row.read<bool>('validated'),
+            ingredientCount: row.read<int>('ingredient_count'),
           ),
       ];
       return _sortedByName(cards, (c) => c.name, (c) => c.recipeId);

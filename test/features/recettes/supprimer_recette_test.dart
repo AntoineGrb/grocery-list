@@ -5,18 +5,16 @@ import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
-import 'package:kadi/features/recettes/ui/recipe_card.dart';
+import 'package:kadi/features/recettes/ui/recipe_row.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
 import '../../helpers/recettes.dart';
 import '../../helpers/test_db.dart';
 
-/// Fait défiler jusqu'à l'icône « modifier » de [name], puis ouvre sa fiche.
-Future<void> _edit(WidgetTester tester, String name) async {
-  await tester.ensureVisible(find.byTooltip(StringsFr.modifierRecette(name)));
-  await editRecipe(tester, name);
-}
+/// Ouvre la fiche de [name] par sa ligne.
+Future<void> _edit(WidgetTester tester, String name) =>
+    editRecipe(tester, name);
 
 Finder get _deleteButton =>
     find.widgetWithText(TextButton, StringsFr.supprimerLaRecette);
@@ -57,7 +55,7 @@ void main() {
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
         0,
       );
-      expect(find.byType(RecipeCard), findsNWidgets(4));
+      expect(find.byType(RecipeRow), findsNWidgets(4));
       expect(_welcome, findsOneWidget);
       expect(
         tester.getBottomLeft(_welcome).dy,
@@ -88,7 +86,7 @@ void main() {
         1,
       );
       await openTab(tester, StringsFr.tabRecettes);
-      expect(find.byType(RecipeCard), findsNWidgets(4));
+      expect(find.byType(RecipeRow), findsNWidgets(4));
       expect(_welcome, findsNothing);
       handle.dispose();
     });
@@ -98,7 +96,7 @@ void main() {
       await pumpKadi(tester);
       expect(find.byType(ListeScreen), findsOneWidget);
       await openTab(tester, StringsFr.tabRecettes);
-      expect(find.byType(RecipeCard), findsNWidgets(4));
+      expect(find.byType(RecipeRow), findsNWidgets(4));
       expect(_welcome, findsNothing);
     });
 
@@ -119,9 +117,9 @@ void main() {
         expect(find.text(StringsFr.recetteSupprimee(name)), findsOneWidget);
       }
 
-      expect(find.byType(RecipeCard), findsNothing);
+      expect(find.byType(RecipeRow), findsNothing);
       expect(find.text(StringsFr.recettesVide), findsOneWidget);
-      expect(find.byType(FloatingActionButton), findsOneWidget);
+      expect(find.byTooltip(StringsFr.nouvelleRecette), findsOneWidget);
       expect(_welcome, findsNothing);
 
       // Annuler rend la dernière : la ligne d'accueil ne revient pas.
@@ -158,7 +156,7 @@ void main() {
 
       expect(find.byType(FicheRecetteScreen), findsNothing);
       expect(recipeCard('Chili con carne'), findsNothing);
-      expect(find.byType(RecipeCard), findsNWidgets(3));
+      expect(find.byType(RecipeRow), findsNWidgets(3));
       const message = 'Recette supprimée : Chili con carne';
       expect(StringsFr.recetteSupprimee('Chili con carne'), message);
       expect(find.text(message), findsOneWidget);
@@ -178,7 +176,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(recipeCard('Chili con carne'), findsOneWidget);
       expect(
-        find.bySemanticsLabel('Chili con carne, sélectionnée'),
+        find.bySemanticsLabel(StringsFr.retirerDeLaSemaine('Chili con carne')),
         findsOneWidget,
       );
       // Validée : pas de « Valider ».
@@ -253,7 +251,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Fiche neuve : pas de bouton tant qu'elle n'est pas enregistrée.
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byTooltip(StringsFr.nouvelleRecette));
       await tester.pumpAndSettle();
       expect(_deleteButton, findsNothing);
       await tester.enterText(
@@ -275,7 +273,7 @@ void main() {
       tallPhone(tester);
       final db = await pumpKadi(tester);
       await openTab(tester, StringsFr.tabRecettes);
-      await tester.tap(find.byType(FloatingActionButton));
+      await tester.tap(find.byTooltip(StringsFr.nouvelleRecette));
       await tester.pumpAndSettle();
       await tester.enterText(ficheNameField, 'Omelette');
       await tester.pumpAndSettle();

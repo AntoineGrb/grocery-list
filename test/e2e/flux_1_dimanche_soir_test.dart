@@ -94,7 +94,7 @@ void flux1DimancheSoir() {
 
       // 1. Recettes, Action Nouvelle liste, confirmée.
       await openTab(tester, StringsFr.tabRecettes);
-      await tapAndSettle(tester, find.text(StringsFr.nouvelleListe));
+      await recettesMenu(tester, StringsFr.nouvelleListe);
       expect(find.text(StringsFr.nouvelleListeTitre), findsOneWidget);
       await tapAndSettle(tester, find.text(StringsFr.effacerEtRecommencer));
       await openTab(tester, StringsFr.tabListe);
@@ -158,7 +158,7 @@ void flux1DimancheSoir() {
       );
       expect(undoAction, findsOneWidget);
       expect(
-        find.bySemanticsLabel('Ratatouille, non sélectionnée'),
+        find.bySemanticsLabel(StringsFr.ajouterALaSemaine('Ratatouille')),
         findsOneWidget,
       );
 

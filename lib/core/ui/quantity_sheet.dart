@@ -221,6 +221,7 @@ class _QuantitySheetState extends State<QuantitySheet> {
           button: true,
           label: label,
           excludeSemantics: true,
+          onTap: onTap,
           // Rond de 40 dp dans une cible de 48.
           child: Padding(
             padding: const EdgeInsets.all(KadiSpacing.s1),
@@ -245,6 +246,7 @@ class _QuantitySheetState extends State<QuantitySheet> {
             liveRegion: true,
             label: '${_q.numberLabel} ${_q.unitLabel}',
             excludeSemantics: true,
+            onTap: _startTyping,
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: _startTyping,
@@ -448,6 +450,7 @@ class _Choice extends StatelessWidget {
       selected: selected,
       label: semanticLabel ?? label,
       excludeSemantics: true,
+      onTap: onTap,
       child: Material(
         color: selected ? scheme.onSurface : idle,
         shape: shape,
