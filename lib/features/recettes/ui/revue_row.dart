@@ -3,22 +3,14 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/quantity_field.dart';
-import 'package:kadi/core/ui/round_check.dart';
+import 'package:kadi/core/ui/quantity_tag.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../state/revue.dart';
 
-/// Largeur du Champ quantité à droite de la ligne à ×1 : « 500 g » et
-/// « 6 pièces » y tiennent entiers ; elle suit la police jusqu'à
-/// [_inlineFieldMaxTextScale].
-const _fieldWidth = 96.0;
-
-/// Facteur de police au-delà duquel le Champ quantité passe sous le nom.
-const _inlineFieldMaxTextScale = 1.3;
-
 /// Espace insécable entre le nombre et son unité.
-const _nbsp = ' ';
+const _nbsp = ' ';
 
 /// Quantité exacte d'une Ligne de Revue, dans l'unité de la ligne (sans
 /// l'arrondi de lecture de la Liste) : « 400 g », « 200 ml », « 6 pièces » ;
@@ -35,33 +27,37 @@ String revueQuantityText(int? quantity, Unit? unit) {
   return '$text$_nbsp$suffix';
 }
 
-/// Ligne de Revue (DESIGN `review-row`) : coche ronde à l'accent du rayon,
-/// nom, et à droite, pour une ligne chiffrée seulement, le Champ quantité
-/// discret (rempli, sans bordure) dans l'unité de la ligne
-/// ([RevueLine.fieldUnit]), sans Choix d'unité. Pas de Picto (C7). Une
-/// ligne sans quantité n'a ni champ ni texte de quantité.
+/// Ligne de Revue de la V2 (README redesign 2d), dans la carte de son rayon.
 ///
-/// Un tap sur la coche décoche ou recoche ([onToggle]) ; décochée, le nom
-/// passe en couleur `checked`, sans barré, et la ligne reste en place. La
-/// ligne est lue « Pâtes, 500 g, Épicerie salée » avec son état coché ; le
-/// champ, à part, « Quantité de Pâtes, 500 g ». Le changement est annoncé
-/// « Pâtes, non coché » / « Pâtes, coché ».
+/// - Gardée (par défaut) : rond plein à l'accent avec ✓, nom, tag quantité
+///   de 28 dp à droite (tap : Module quantité, [onQuantityTap]) ;
+/// - « J'ai ! » : maison, nom barré en couleur `checked`, « J'ai ! » à
+///   droite, sans tag.
+///
+/// Un tap sur la ligne bascule ([onToggle]) ; le tag est une cible à part.
+/// Lue « Pâtes, 500 g, Épicerie salée » avec son état coché ; le changement
+/// est annoncé.
 class RevueRow extends StatelessWidget {
   const RevueRow({
     super.key,
     required this.line,
     required this.checked,
-    required this.controller,
+    required this.quantity,
+    required this.unit,
     required this.onToggle,
+    required this.onQuantityTap,
   });
 
   final RevueLine line;
+
+  /// Gardée : l'article ira dans la liste.
   final bool checked;
 
-  /// Texte saisi du Champ quantité, gardé par l'écran (brouillon) ; nul pour
-  /// une ligne sans quantité, qui n'a pas de champ.
-  final TextEditingController? controller;
+  /// Quantité montrée (corrigée ou d'origine), nulle avec [unit].
+  final int? quantity;
+  final Unit? unit;
   final VoidCallback onToggle;
+  final VoidCallback onQuantityTap;
 
   void _toggle(BuildContext context) {
     final view = View.of(context);
@@ -74,108 +70,100 @@ class RevueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = this.controller;
-    if (controller == null) return _build(context, '', null);
-    final inputUnit = InputUnit.of(line.fieldUnit);
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: controller,
-      builder: (context, value, _) {
-        final stored = quantityFromFieldText(value.text, inputUnit);
-        final quantity = revueQuantityText(stored?.quantity, stored?.unit);
-        return _build(
-          context,
-          quantity,
-          Semantics(
-            label: StringsFr.quantiteDe(line.name, quantity),
-            child: QuantityField(
-              controller: controller,
-              unit: inputUnit,
-              filled: true,
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// La ligne, avec [field] à droite (sous le nom en grande police) ou sans
-  /// champ s'il est nul.
-  Widget _build(BuildContext context, String quantity, Widget? field) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final kadiColors = KadiColors.of(context);
     final accent = kadiColors.rayon(line.rayon).accent;
+    final text = revueQuantityText(quantity, unit);
     final spoken = [
       line.name,
-      if (quantity.isNotEmpty) quantity,
+      if (checked && text.isNotEmpty) text,
+      if (!checked) StringsFr.jAi,
       line.rayon.spokenLabel,
     ].join(', ');
-    final textScale = MediaQuery.textScalerOf(context).scale(1);
-    final large = textScale > _inlineFieldMaxTextScale;
-    final fieldWidth =
-        _fieldWidth * textScale.clamp(1.0, _inlineFieldMaxTextScale);
 
-    final head = Semantics(
-      label: spoken,
-      checked: checked,
-      onTap: () => _toggle(context),
-      excludeSemantics: true,
-      child: Row(
-        children: [
-          RoundCheck(
-            value: checked,
-            onChanged: () => _toggle(context),
-            accent: accent,
-          ),
-          const SizedBox(width: KadiSpacing.s1),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: KadiSpacing.s2),
-              // Décochée : couleur cochée sans barré, l'article reste là.
-              child: Text(
-                line.name,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: checked ? scheme.onSurface : kadiColors.checked,
+    final mark = checked
+        ? Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
+            child: Icon(Icons.check, size: 16, color: scheme.surface),
+          )
+        : SizedBox.square(
+            dimension: 22,
+            child: Icon(Icons.home_outlined, size: 20, color: scheme.outline),
+          );
+
+    return Row(
+      children: [
+        Expanded(
+          child: Semantics(
+            container: true,
+            label: spoken,
+            checked: checked,
+            onTap: () => _toggle(context),
+            excludeSemantics: true,
+            child: InkWell(
+              onTap: () => _toggle(context),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 42),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: Row(
+                    children: [
+                      mark,
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: KadiSpacing.s1,
+                          ),
+                          child: Text(
+                            line.name,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontSize: 15,
+                              color: checked
+                                  ? scheme.onSurface
+                                  : kadiColors.checked,
+                              decoration: checked
+                                  ? null
+                                  : TextDecoration.lineThrough,
+                              decorationColor: kadiColors.checked,
+                            ),
+                          ),
+                        ),
+                      ),
+                      if (!checked) ...[
+                        const SizedBox(width: 10),
+                        Text(
+                          StringsFr.jAi,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: kadiColors.checked,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ],
-      ),
-    );
-
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minHeight: KadiSpacing.rowMinHeight),
-      child: Padding(
-        padding: const EdgeInsets.only(
-          left: KadiSpacing.s1,
-          right: KadiSpacing.margin,
         ),
-        // En grande police, le champ passe sous le nom : rien ne déborde.
-        child: field == null
-            ? head
-            : large
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  head,
-                  Padding(
-                    padding: const EdgeInsets.only(
-                      left: KadiSpacing.touchTarget + KadiSpacing.s1,
-                      bottom: KadiSpacing.s2,
-                    ),
-                    child: field,
-                  ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(child: head),
-                  const SizedBox(width: KadiSpacing.s3),
-                  SizedBox(width: fieldWidth, child: field),
-                ],
-              ),
-      ),
+        if (checked)
+          Padding(
+            padding: const EdgeInsets.only(left: 10, right: 10),
+            child: QuantityTag(
+              name: line.name,
+              rayon: line.rayon,
+              quantity: quantity,
+              unit: unit,
+              height: 28,
+              tapHeight: 42,
+              onTap: onQuantityTap,
+            ),
+          ),
+      ],
     );
   }
 }

@@ -156,7 +156,11 @@ class _LineBuilder {
 /// Brouillon d'écran de la Revue (AD-1), jamais persisté : ce qu'Antoine a
 /// décoché et corrigé, par [RevueLine.key].
 class RevueDraft {
-  const RevueDraft({this.unchecked = const {}, this.corrections = const {}});
+  const RevueDraft({
+    this.unchecked = const {},
+    this.corrections = const {},
+    this.units = const {},
+  });
 
   /// Clés des lignes décochées : rien n'en est écrit.
   final Set<String> unchecked;
@@ -164,6 +168,10 @@ class RevueDraft {
   /// Quantité stockée saisie dans l'unité du champ ([RevueLine.fieldUnit]),
   /// par clé de ligne ; nulle : champ vidé, « sans quantité ».
   final Map<String, int?> corrections;
+
+  /// Unité stockée d'une correction quand le Module quantité en a changé
+  /// (V2), par clé de ligne ; absente : [RevueLine.fieldUnit].
+  final Map<String, Unit> units;
 }
 
 /// Contribution `week_selection` à écrire par Ajouter à la liste.
@@ -216,9 +224,11 @@ List<RevueWrite> revueWrites(Revue revue, RevueDraft draft) {
     for (final line in group.lines) {
       final key = line.key;
       if (draft.unchecked.contains(key)) continue;
+      final unitChanged =
+          draft.units.containsKey(key) && draft.units[key] != line.unit;
       final corrected =
           draft.corrections.containsKey(key) &&
-          draft.corrections[key] != line.quantity;
+          (draft.corrections[key] != line.quantity || unitChanged);
       if (!corrected) {
         for (final c in line.contributions) {
           writes.add(
@@ -233,7 +243,7 @@ List<RevueWrite> revueWrites(Revue revue, RevueDraft draft) {
         continue;
       }
       final total = draft.corrections[key];
-      final unit = line.fieldUnit;
+      final unit = draft.units[key] ?? line.fieldUnit;
       final shares = total == null
           ? [for (final _ in line.contributions) 0]
           : prorata(total, [
