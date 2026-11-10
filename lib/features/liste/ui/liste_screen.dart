@@ -8,7 +8,6 @@ import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
-import 'package:kadi/core/ui/settings_action.dart';
 import 'package:kadi/core/ui/tab_app_bar.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
@@ -295,10 +294,7 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: const TabAppBar(
-            title: StringsFr.tabListe,
-            actions: [SettingsAction()],
-          ),
+          appBar: const TabAppBar(title: StringsFr.tabListe),
           body: switch ((groups, checked)) {
             (final groups?, final checked?)
                 when groups.isEmpty && checked.isEmpty =>

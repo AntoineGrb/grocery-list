@@ -165,26 +165,6 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
                 color: onSurface,
                 icon: const Icon(Icons.add),
               ),
-              PopupMenuButton<_MenuAction>(
-                tooltip: StringsFr.plusDOptions,
-                // Cible de 48 dp, comme le + voisin.
-                padding: const EdgeInsets.all(KadiSpacing.s3),
-                icon: Icon(Icons.more_vert, color: onSurface),
-                onSelected: (action) => switch (action) {
-                  _MenuAction.nouvelleListe => _nouvelleListe(context, ref),
-                  _MenuAction.parametres => context.push(AppRoutes.parametres),
-                },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: _MenuAction.nouvelleListe,
-                    child: Text(StringsFr.nouvelleListe),
-                  ),
-                  PopupMenuItem(
-                    value: _MenuAction.parametres,
-                    child: Text(StringsFr.parametres),
-                  ),
-                ],
-              ),
             ],
           ),
           body: switch (cards) {
@@ -301,7 +281,6 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
 }
 
 /// Actions du menu ⋮ de Recettes.
-enum _MenuAction { nouvelleListe, parametres }
 
 /// Champ « Chercher une recette » : pilule de 44 dp `surface-container`.
 /// Filtre par nom, casse et accents ignorés.

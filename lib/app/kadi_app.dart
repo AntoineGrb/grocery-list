@@ -35,8 +35,7 @@ class KadiApp extends ConsumerStatefulWidget {
 }
 
 class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
-  /// Créé une fois, après le démarrage : il ouvre sur Recettes au premier
-  /// lancement, sur la Liste sinon (AD-13).
+  /// Créé une fois, après le démarrage : il ouvre toujours sur la Liste.
   GoRouter? _router;
 
   late final KeepScreenOnController _keepScreenOn;
@@ -80,14 +79,13 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
     );
   }
 
-  GoRouter _routerFor({required bool firstLaunch}) =>
-      _router ??= _createRouter(firstLaunch: firstLaunch)
-        ..routerDelegate.addListener(_updateKeepScreenOn);
+  GoRouter _routerFor() =>
+      _router ??= _createRouter()..routerDelegate.addListener(_updateKeepScreenOn);
 
-  GoRouter _createRouter({required bool firstLaunch}) => createAppRouter(
-    initialLocation: firstLaunch ? AppRoutes.recettes : AppRoutes.liste,
+  GoRouter _createRouter() => createAppRouter(
     recettes: (_) => const RecettesScreen(),
     liste: (_) => const ListeScreen(),
+    parametres: (_) => const ParametresScreen(),
     pushed: [
       GoRoute(
         path: AppRoutes.revue,
@@ -101,10 +99,6 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
         path: AppRoutes.recettePattern,
         builder: (context, state) =>
             FicheRecetteScreen(recipeId: state.pathParameters['id']),
-      ),
-      GoRoute(
-        path: AppRoutes.parametres,
-        builder: (context, state) => const ParametresScreen(),
       ),
       GoRoute(
         path: AppRoutes.parcours,
@@ -134,7 +128,7 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final startup = ref.watch(appStartupProvider);
     return switch (startup) {
-      AsyncData(value: final firstLaunch) => MaterialApp.router(
+      AsyncData() => MaterialApp.router(
         title: StringsFr.appName,
         debugShowCheckedModeBanner: false,
         theme: KadiTheme.light,
@@ -142,7 +136,7 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
         locale: _locale,
         supportedLocales: const [_locale],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
-        routerConfig: _routerFor(firstLaunch: firstLaunch),
+        routerConfig: _routerFor(),
       ),
       AsyncError() => const _StaticApp(child: BlockingErrorScreen()),
       _ => const _StaticApp(child: Scaffold()),

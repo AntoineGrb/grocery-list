@@ -17,8 +17,8 @@ final seedAssetLoaderProvider = Provider<SeedAssetLoader>(
 ///
 /// Rend `true` au premier lancement : le chargeur a levé le drapeau en
 /// insérant des recettes exemples, maintenant ou à un démarrage qui n'a pas
-/// abouti. Le drapeau est alors baissé (AD-13), et l'app s'ouvre sur
-/// Recettes pour cette session seulement.
+/// abouti. Le drapeau est alors baissé (AD-13), et Recettes montre sa ligne
+/// d'accueil pour cette session seulement.
 final appStartupProvider = FutureProvider<bool>((ref) async {
   final settings = ref.watch(settingsRepositoryProvider);
   final loader = SeedLoader(

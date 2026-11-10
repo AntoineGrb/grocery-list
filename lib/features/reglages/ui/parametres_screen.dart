@@ -8,10 +8,10 @@ import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/tab_app_bar.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// Paramètres : écran poussé plein écran, flèche retour, sans Barre de
-/// navigation. Lignes de paramètre (`settings-row`) en Switch M3 :
+/// Paramètres : troisième onglet de la coque, sans flèche retour. Lignes de paramètre (`settings-row`) en Switch M3 :
 /// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, les
 /// lignes de navigation « Parcours » (Paramètres › Parcours, R19),
 /// « Articles » (Paramètres › Articles, R18) et « Fréquents » (Paramètres ›
@@ -41,7 +41,7 @@ class ParametresScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider).value;
     return Scaffold(
-      appBar: AppBar(title: const Text(StringsFr.parametres)),
+      appBar: const TabAppBar(title: StringsFr.parametres),
       body: settings == null
           ? const SizedBox.shrink()
           : ListView(

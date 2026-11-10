@@ -20,7 +20,7 @@ abstract final class AppRoutes {
   /// Fiche de la recette [id] (icône « modifier » de sa carte).
   static String recette(String id) => '/recette/$id';
 
-  /// Paramètres (⚙ de Liste et Recettes) : poussée hors de la coque.
+  /// Paramètres : troisième onglet de la coque.
   static const parametres = '/parametres';
 
   /// Paramètres › Parcours (ligne « Parcours ») : poussée au-dessus des
@@ -36,9 +36,9 @@ abstract final class AppRoutes {
   static const frequents = '/parametres/frequents';
 }
 
-/// Navigation de l'app (AD-13) : un `StatefulShellRoute` à deux branches,
-/// Recettes et Liste, qui gardent leur état ; ouverture sur [initialLocation],
-/// la Liste sauf au premier lancement (Recettes).
+/// Navigation de l'app (AD-13) : un `StatefulShellRoute` à trois branches,
+/// Liste, Recettes et Paramètres, qui gardent leur état ; ouverture sur
+/// [initialLocation], la Liste.
 ///
 /// Les écrans sont fournis par l'appelant : `core` ne dépend d'aucune
 /// fonctionnalité. [pushed] sont les routes poussées (Revue…), sur le
@@ -46,6 +46,7 @@ abstract final class AppRoutes {
 GoRouter createAppRouter({
   required WidgetBuilder recettes,
   required WidgetBuilder liste,
+  required WidgetBuilder parametres,
   List<RouteBase> pushed = const [],
   String initialLocation = AppRoutes.liste,
 }) {
@@ -58,6 +59,14 @@ GoRouter createAppRouter({
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: AppRoutes.liste,
+                builder: (context, state) => liste(context),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: AppRoutes.recettes,
                 builder: (context, state) => recettes(context),
               ),
@@ -66,8 +75,8 @@ GoRouter createAppRouter({
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: AppRoutes.liste,
-                builder: (context, state) => liste(context),
+                path: AppRoutes.parametres,
+                builder: (context, state) => parametres(context),
               ),
             ],
           ),
@@ -78,7 +87,7 @@ GoRouter createAppRouter({
   );
 }
 
-/// Coque à deux onglets : Barre de navigation Recettes / Liste.
+/// Coque à trois onglets : Barre de navigation Liste / Recettes / Paramètres.
 class AppShell extends StatelessWidget {
   const AppShell({super.key, required this.shell});
 
@@ -94,14 +103,19 @@ class AppShell extends StatelessWidget {
             shell.goBranch(i, initialLocation: i == shell.currentIndex),
         destinations: const [
           NavigationDestination(
+            icon: Icon(Icons.checklist_outlined),
+            selectedIcon: Icon(Icons.checklist_outlined),
+            label: StringsFr.tabListe,
+          ),
+          NavigationDestination(
             icon: Icon(Icons.menu_book_outlined),
             selectedIcon: Icon(Icons.menu_book_outlined),
             label: StringsFr.tabRecettes,
           ),
           NavigationDestination(
-            icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist_outlined),
-            label: StringsFr.tabListe,
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings_outlined),
+            label: StringsFr.parametres,
           ),
         ],
       ),
