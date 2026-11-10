@@ -64,12 +64,14 @@ List<RayonGroup> groupByRoute(List<ListeItem> items, List<Rayon> routeOrder) =>
 
 /// [lines] triées par nom normalisé, tri stable (ordre d'ajout à égalité).
 List<ListeItem> _byName(List<ListeItem> lines) {
-  final keyed = [
-    for (final (i, line) in lines.indexed) (normalizeName(line.name), i, line),
-  ]..sort((a, b) {
-      final byName = a.$1.compareTo(b.$1);
-      return byName != 0 ? byName : a.$2.compareTo(b.$2);
-    });
+  final keyed =
+      [
+        for (final (i, line) in lines.indexed)
+          (normalizeName(line.name), i, line),
+      ]..sort((a, b) {
+        final byName = a.$1.compareTo(b.$1);
+        return byName != 0 ? byName : a.$2.compareTo(b.$2);
+      });
   return [for (final (_, _, line) in keyed) line];
 }
 

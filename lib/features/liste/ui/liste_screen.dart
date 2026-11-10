@@ -315,10 +315,7 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     final groups = ref.watch(listeGroupsProvider).value;
     final checked = ref.watch(listeCheckedProvider).value;
     final empty =
-        groups != null &&
-        checked != null &&
-        groups.isEmpty &&
-        checked.isEmpty;
+        groups != null && checked != null && groups.isEmpty && checked.isEmpty;
     final allChecked =
         groups != null &&
         checked != null &&

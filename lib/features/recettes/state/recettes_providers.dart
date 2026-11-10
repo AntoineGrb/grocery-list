@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +13,7 @@ import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../data/photo_from_link.dart';
 import '../data/recettes_repository.dart';
 import '../data/recipe_photos.dart';
 import 'revue.dart';
@@ -48,6 +50,14 @@ final photoPickerProvider = Provider<PickPhoto>((ref) {
     return file?.path;
   };
 });
+
+/// Photo depuis un lien : le texte collé lu, l'image téléchargée si besoin,
+/// puis plafonnée et réencodée en JPEG ([photoFromLink]). Lève une
+/// [PhotoLinkException]. Remplacé en test.
+final photoFromLinkProvider = Provider<Future<Uint8List> Function(String)>(
+  (ref) =>
+      (text) => photoFromLink(text, downloadImageBytes),
+);
 
 /// Ouverture d'un lien de recette dans le navigateur (`url_launcher`,
 /// application externe). Remplacé en test.

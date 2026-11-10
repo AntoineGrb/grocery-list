@@ -337,8 +337,7 @@ class ListeRepository {
   Future<List<UndoRow>> removeRecipeContributions() async {
     final contributions =
         await (_db.select(_db.listContributions)..where(
-              (c) =>
-                  c.deletedAt.isNull() & c.source.equals('week_selection'),
+              (c) => c.deletedAt.isNull() & c.source.equals('week_selection'),
             ))
             .get();
     if (contributions.isEmpty) return const [];

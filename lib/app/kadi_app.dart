@@ -80,7 +80,8 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
   }
 
   GoRouter _routerFor() =>
-      _router ??= _createRouter()..routerDelegate.addListener(_updateKeepScreenOn);
+      _router ??= _createRouter()
+        ..routerDelegate.addListener(_updateKeepScreenOn);
 
   GoRouter _createRouter() => createAppRouter(
     recettes: (_) => const RecettesScreen(),

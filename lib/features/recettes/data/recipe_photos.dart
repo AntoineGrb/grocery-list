@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:uuid/uuid.dart';
 
@@ -58,6 +59,23 @@ class RecipePhotos {
     final target = fileIn(dir, name);
     try {
       await File(sourcePath).copy(target.path);
+    } catch (_) {
+      await _deleteFile(target);
+      rethrow;
+    }
+    return name;
+  }
+
+  /// Écrit l'image JPEG déjà plafonnée [bytes] (photo depuis un lien) sous
+  /// `photos/<uuid v4>.jpg` et rend ce nom de fichier. Lève sur un échec,
+  /// sans laisser de fichier.
+  Future<String> importBytes(Uint8List bytes) async {
+    final dir = await directory();
+    await dir.create(recursive: true);
+    final name = '${_uuid.v4()}.jpg';
+    final target = fileIn(dir, name);
+    try {
+      await target.writeAsBytes(bytes, flush: true);
     } catch (_) {
       await _deleteFile(target);
       rethrow;

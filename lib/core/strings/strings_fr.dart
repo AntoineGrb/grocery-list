@@ -95,6 +95,17 @@ abstract final class StringsFr {
   static const ajouterUnePhoto = 'Ajouter une photo';
   static const galerie = 'Galerie';
   static const appareilPhoto = 'Appareil photo';
+  static const depuisUnLien = 'Depuis un lien';
+
+  // Dialogue « Photo depuis un lien ».
+  static const photoDepuisUnLien = 'Photo depuis un lien';
+  static const adresseDeLImage = 'Adresse de l’image';
+  static const collerLAdresse = 'Coller';
+  static const photoLienAide =
+      'Sur Google Images, appuie longuement sur une image puis « Copier l’adresse de l’image », et colle-la ici.';
+  static const chercherSurGoogleImages = 'Chercher sur Google Images';
+  static const lienPasUneImage = 'Ce lien ne mène pas à une image.';
+  static const pasDeConnexion = 'Pas de connexion. Réessaie.';
 
   /// Actions sous l'aperçu de la photo, et leur lecture par TalkBack.
   static const remplacer = 'Remplacer';

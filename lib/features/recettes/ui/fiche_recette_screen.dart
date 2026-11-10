@@ -21,12 +21,14 @@ import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
 
+import '../data/photo_from_link.dart';
 import '../data/recettes_repository.dart';
 import '../data/recipe_link.dart';
 import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
 import 'fiche_recette_rows.dart';
 import 'ingredient_sheet.dart';
+import 'photo_link_dialog.dart';
 import 'recipe_photo_image.dart';
 
 /// Durée du défilement qui montre un ingrédient ajouté.
@@ -328,16 +330,45 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
   ///
   /// Tant que le choix est en cours, « Enregistrer » est grisé et le retour
   /// demande confirmation.
-  Future<void> _pickPhoto(PhotoSource source) async {
+  Future<void> _pickPhoto(PhotoSource source) {
+    final pick = ref.read(photoPickerProvider);
+    return _takePhoto(() async {
+      final path = await pick(source);
+      return path == null ? null : _photos.importPhoto(path);
+    });
+  }
+
+  /// Photo depuis un lien : le dialogue d'adresse, puis l'image téléchargée,
+  /// plafonnée et copiée sous `photos/`, comme [_pickPhoto]. Un lien qui ne
+  /// mène pas à une image ou un échec réseau montrent leur snackbar.
+  Future<void> _photoFromLink() async {
+    if (_picking || _saving) return;
+    final text = await showPhotoLinkDialog(
+      context,
+      recipeName: _nameController.text,
+    );
+    if (text == null || !mounted) return;
+    final fromLink = ref.read(photoFromLinkProvider);
+    await _takePhoto(() async => _photos.importBytes(await fromLink(text)));
+  }
+
+  /// Ajoute au brouillon la photo que rend [import] (son nom sous
+  /// `photos/`, `null` si annulé).
+  Future<void> _takePhoto(Future<String?> Function() import) async {
     if (_picking || _saving) return;
     setState(() => _picking = true);
     final messenger = ScaffoldMessenger.of(context);
-    final pick = ref.read(photoPickerProvider);
     final String name;
     try {
-      final path = await pick(source);
-      if (path == null) return;
-      name = await _photos.importPhoto(path);
+      final imported = await import();
+      if (imported == null) return;
+      name = imported;
+    } on PhotoLinkException catch (e) {
+      showErrorSnackBar(messenger, switch (e.failure) {
+        PhotoLinkFailure.notAnImage => StringsFr.lienPasUneImage,
+        PhotoLinkFailure.network => StringsFr.pasDeConnexion,
+      });
+      return;
     } catch (_) {
       showErrorSnackBar(messenger, StringsFr.photoImpossible);
       return;
@@ -596,6 +627,7 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
                 Icons.photo_camera_outlined,
                 StringsFr.appareilPhoto,
               ),
+              option(_PhotoLink.value, Icons.link, StringsFr.depuisUnLien),
               if (hasPhoto)
                 option(
                   _RemovePhoto.value,
@@ -611,6 +643,8 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     switch (choice) {
       case final PhotoSource source:
         await _pickPhoto(source);
+      case _PhotoLink.value:
+        await _photoFromLink();
       case _RemovePhoto.value:
         _removePhoto();
     }
@@ -976,6 +1010,9 @@ enum _FicheAction { supprimer }
 
 /// Choix « Retirer la photo » de la pastille appareil photo.
 enum _RemovePhoto { value }
+
+/// Choix « Depuis un lien » de la feuille photo.
+enum _PhotoLink { value }
 
 /// La recette a été supprimée pendant l'enregistrement : la transaction est
 /// annulée.

@@ -25,7 +25,9 @@ class RayonHeader extends StatelessWidget {
         ),
         // Flexible : en très grande police, le nom passe à la ligne dans la
         // pastille au lieu de déborder.
-        child: Row(children: [Flexible(child: RayonPastille(rayon: rayon))]),
+        child: Row(
+          children: [Flexible(child: RayonPastille(rayon: rayon))],
+        ),
       ),
     );
   }

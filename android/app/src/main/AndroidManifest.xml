@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Photo de recette depuis un lien : téléchargement de l'image. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Kadi"
         android:name="${applicationName}"
