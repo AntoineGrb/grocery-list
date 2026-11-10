@@ -407,14 +407,15 @@ La refonte issue de Claude Design (`redesign/README.md`, écrans 2a, 2b, 3a, 3c,
 - **Recettes** :
   - une ligne par recette : monogramme, nom, « N ingrédients », puis le bouton « + Ajouter » ou « ✓ Ajoutée » à l'encre ;
   - une recherche et les filtres « Toutes · N » et « Cette semaine · n » ;
-  - le + de l'AppBar remplace le FAB, et le menu ⋮ regroupe Nouvelle liste et Paramètres.
+  - le + de l'AppBar remplace le FAB ; à sa droite, ↻ « Vider les recettes » (retours 2026-11-10, le menu ⋮ a disparu).
 - **Fiche recette** :
   - en-tête avec le monogramme 72, le nom en display et « Ajouter un lien » ;
   - lignes de 54 dp : disque picto (qui ouvre le menu des rayons), nom, tag quantité ;
   - on glisse une ligne vers la gauche pour la retirer ;
   - le champ d'ajout est une pilule. L'ajout d'ingrédient se fait dans une feuille couvrant 88 % de l'écran.
 - **Revue** : le titre display « Qu'as-tu déjà ? », puis des cartes par rayon. Une ligne gardée montre un rond plein et le tag ; une ligne « J'ai ! » montre une maison et un nom barré.
-- **Liste** : une barre de progression à l'encre, le nombre d'articles restants par rayon, et sous l'article, sa recette d'origine.
+- **Liste** : une barre de progression à l'encre et, sous l'article, sa recette d'origine. Retours 2026-11-10 : plus de compteur par rayon ; ↻ « Vider la liste » dans l'AppBar ; état vide illustré (disque `surfaceContainerHigh` de 120, panier Phosphor 56, titre display, bouton contour « Choisir des recettes »).
+- **Barre de navigation** (retours 2026-11-10) : Liste · Recettes · Paramètres (`settings_outlined`).
 - **Panneau +** :
   - collé en bas de l'écran, avec le bouton d'envoi ↑ sur la ligne du champ ;
   - trois tags de 36 dp : Quantité, Rayon et ⚡ Fréquents. Les fréquents s'affichent en pastilles, seulement sur demande.

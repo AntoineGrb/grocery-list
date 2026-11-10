@@ -15,6 +15,18 @@ sources:
 
 Ces points **remplacent** ceux des sections ci-dessous là où ils diffèrent. Voir `DESIGN.md` § V2 et `redesign/README.md`.
 
+### Retours de test (2026-11-10)
+
+- **Navigation** : trois onglets, **Liste · Recettes · Paramètres**. L'app s'ouvre toujours sur la Liste, premier lancement compris ; la ligne d'accueil de Recettes reste. Paramètres est un onglet, sans flèche retour ; Parcours, Articles et Fréquents s'ouvrent par-dessus, sans barre. Plus d'icône ⚙ ni de menu ⋮ sur Recettes.
+- **Liste** :
+  - dans un rayon, les articles sont triés par nom, sans tenir compte des accents ni de la casse. Sans groupement, l'ordre d'ajout reste ;
+  - plus de compteur à côté des rayons ;
+  - liste vide : grand disque avec un panier, « Ta liste est vide », une phrase et le bouton « Choisir des recettes » (onglet Recettes) ;
+  - l'icône ↻ « Vider la liste » (cachée si la liste est vide) retire, après confirmation, toutes les lignes, cochées ou non, et les recettes de la semaine, avec Annuler.
+- **Recettes** : AppBar + puis ↻ « Vider les recettes ». Après le dialogue « Vider les recettes ? », les recettes de la semaine sont désélectionnées et leurs contributions retirées de la liste. Une ligne qui ne venait que des recettes disparaît ; une ligne avec un ajout ou une quantité retouchée à la main reste. Annulable. L'ancienne « Nouvelle liste » disparaît.
+- **Catalogue** : seuls les Paramètres ajoutent au catalogue (Articles, Fréquents). Un ingrédient créé dans une recette est hors catalogue, comme un ajout du Panneau +. Paramètres › Articles : « Supprimer l'article » dans la fiche, avec Annuler ; l'article sort du catalogue et des fréquents, n'est plus proposé en saisie, et reste dans les recettes et la liste.
+- **Photo de recette** : Galerie, Appareil photo, **Depuis un lien**. Le dialogue prend l'adresse au presse-papiers (aussi au retour du navigateur), offre « Coller » et « Chercher sur Google Images » (navigateur, nom de la recette). Il accepte un lien direct, un lien de page Google Images (`imgurl`) et une image `data:image`. L'image est téléchargée (15 s, 10 Mo), plafonnée à 1600 px et réencodée en JPEG 85. Échecs : « Ce lien ne mène pas à une image. », « Pas de connexion. Réessaie. ». Seule fonction réseau de l'app (permission Internet).
+
 ### Recettes
 
 - Un tap sur la **ligne** ouvre la Fiche recette.
