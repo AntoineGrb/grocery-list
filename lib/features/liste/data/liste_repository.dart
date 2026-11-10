@@ -327,6 +327,69 @@ class ListeRepository {
     ];
   }
 
+  /// Retire de la liste ce qu'y ont mis les recettes (Vider les recettes),
+  /// à appeler dans une transaction : les contributions actives
+  /// `week_selection` sont supprimées logiquement, puis chaque ligne active,
+  /// cochée ou non, qui n'a plus aucune contribution active. Une ligne qui
+  /// garde un ajout ou une édition reste, avec leur quantité. Rend l'état
+  /// d'avant pour Annuler (AD-10) ; sans contribution de recette, rien
+  /// n'est écrit.
+  Future<List<UndoRow>> removeRecipeContributions() async {
+    final contributions =
+        await (_db.select(_db.listContributions)..where(
+              (c) =>
+                  c.deletedAt.isNull() & c.source.equals('week_selection'),
+            ))
+            .get();
+    if (contributions.isEmpty) return const [];
+    final touched = {for (final c in contributions) c.lineId};
+    final candidates = await (_db.select(
+      _db.listLines,
+    )..where((l) => l.id.isIn(touched) & l.deletedAt.isNull())).get();
+    final kept = {
+      for (final c
+          in await (_db.select(_db.listContributions)..where(
+                (c) =>
+                    c.lineId.isIn(touched) &
+                    c.deletedAt.isNull() &
+                    c.source.equals('week_selection').not(),
+              ))
+              .get())
+        c.lineId,
+    };
+    final lines = [
+      for (final l in candidates)
+        if (!kept.contains(l.id)) l,
+    ];
+
+    final previous = [
+      for (final l in lines) l.updatedAt,
+      for (final c in contributions) c.updatedAt,
+    ].reduce((a, b) => a > b ? a : b);
+    final stamp = _clock.stamp(previous);
+
+    await (_db.update(
+      _db.listContributions,
+    )..where((c) => c.id.isIn([for (final c in contributions) c.id]))).write(
+      ListContributionsCompanion(
+        deletedAt: Value(stamp),
+        updatedAt: Value(stamp),
+      ),
+    );
+    if (lines.isNotEmpty) {
+      await (_db.update(
+        _db.listLines,
+      )..where((l) => l.id.isIn([for (final l in lines) l.id]))).write(
+        ListLinesCompanion(deletedAt: Value(stamp), updatedAt: Value(stamp)),
+      );
+    }
+
+    return [
+      for (final l in lines) UndoRow.before(_db.listLines, l),
+      for (final c in contributions) UndoRow.before(_db.listContributions, c),
+    ];
+  }
+
   /// Supprime la ligne [lineId], cochée ou non (glisser, Feuille d'édition,
   /// TalkBack) : la ligne et ses contributions actives sont supprimées
   /// logiquement, dans une transaction (AD-7). Rend leur état d'avant pour

@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kadi/app/actions/deselectionner_une_recette.dart';
-import 'package:kadi/app/actions/nouvelle_liste.dart';
+import 'package:kadi/app/actions/vider_les_recettes.dart';
 import 'package:kadi/app/startup.dart';
 import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -106,30 +106,31 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
     }
   }
 
-  /// Action Nouvelle liste (R8) : Dialogue de confirmation, puis, confirmée,
-  /// l'action transverse qui efface la liste et la sélection (AD-3), sans
-  /// Annuler (C9). « Garder », le retour et un tap hors du dialogue
-  /// n'écrivent rien.
+  /// Vider les recettes (↻) : Dialogue de confirmation, puis, confirmée,
+  /// l'action transverse qui retire les recettes de la semaine et leurs
+  /// ingrédients de la liste, avec Annuler. « Garder », le retour et un tap
+  /// hors du dialogue n'écrivent rien.
   ///
   /// [context] est celui du `Builder` de Recettes, sous son messager.
-  Future<void> _nouvelleListe(BuildContext context, WidgetRef ref) async {
+  Future<void> _viderLesRecettes(BuildContext context, WidgetRef ref) async {
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showConfirmDialog(
       context,
-      title: StringsFr.nouvelleListeTitre,
-      message: StringsFr.nouvelleListeTexte,
+      title: StringsFr.viderLesRecettesTitre,
+      message: StringsFr.viderLesRecettesTexte,
       keepLabel: StringsFr.garder,
-      confirmLabel: StringsFr.effacerEtRecommencer,
+      confirmLabel: StringsFr.vider,
     );
     if (!confirmed || !context.mounted) return;
+    final UndoEntry? entry;
     try {
-      await ref.read(nouvelleListeProvider).call();
+      entry = await ref.read(viderLesRecettesProvider).call();
     } catch (_) {
-      showErrorSnackBar(messenger, StringsFr.nouvelleListeImpossible);
+      showErrorSnackBar(messenger, StringsFr.viderLesRecettesImpossible);
       return;
     }
-    // Un Annuler encore affiché ne rendrait plus rien (emplacement vidé).
-    messenger.hideCurrentSnackBar();
+    if (entry == null || !context.mounted) return;
+    showUndoSnackBar(context, StringsFr.recettesVidees, entry);
   }
 
   @override
@@ -164,6 +165,12 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
                 tooltip: StringsFr.nouvelleRecette,
                 color: onSurface,
                 icon: const Icon(Icons.add),
+              ),
+              IconButton(
+                onPressed: () => _viderLesRecettes(context, ref),
+                tooltip: StringsFr.viderLesRecettes,
+                color: onSurface,
+                icon: const Icon(Icons.restart_alt),
               ),
             ],
           ),
@@ -357,7 +364,6 @@ class _FilterChip extends StatelessWidget {
           child: Container(
             constraints: const BoxConstraints(minHeight: 32),
             padding: const EdgeInsets.symmetric(horizontal: 10),
-            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: selected ? scheme.onSurface : Colors.transparent,
               border: Border.all(color: scheme.onSurface),

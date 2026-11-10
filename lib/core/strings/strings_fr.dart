@@ -16,7 +16,7 @@ abstract final class StringsFr {
 
   // Vider la liste : action de la Barre d'application de la Liste.
   static const viderLaListe = 'Vider la liste';
-  static const viderLaListeTitre = 'Vider la liste ?';
+  static const viderLaListeTitre = 'Vider la liste ?';
   static const viderLaListeTexte =
       'Tous les articles, cochés ou non, et les recettes de la semaine seront retirés.';
   static const vider = 'Vider';
@@ -111,16 +111,16 @@ abstract final class StringsFr {
   static const ouvrirLeLien = 'Ouvrir le lien';
   static const lienImpossible = 'Impossible d’ouvrir le lien.';
 
-  // Nouvelle liste : action de la Barre d'application de Recettes et son
-  // Dialogue de confirmation.
-  static const nouvelleListe = 'Nouvelle liste';
-  static const nouvelleListeTitre = 'Nouvelle liste ?';
-  static const nouvelleListeTexte =
-      'La liste en cours et la sélection de la semaine seront effacées.';
+  // Vider les recettes : action ↻ de la Barre d'application de Recettes et
+  // son Dialogue de confirmation.
+  static const viderLesRecettes = 'Vider les recettes';
+  static const viderLesRecettesTitre = 'Vider les recettes ?';
+  static const viderLesRecettesTexte =
+      'Les recettes de la semaine et leurs ingrédients seront retirés de la liste. Tes ajouts restent.';
   static const garder = 'Garder';
-  static const effacerEtRecommencer = 'Effacer et recommencer';
-  static const nouvelleListeImpossible =
-      'Impossible d’effacer la liste. Réessaie.';
+  static const recettesVidees = 'Recettes vidées';
+  static const viderLesRecettesImpossible =
+      'Impossible de vider les recettes. Réessaie.';
 
   // Revue.
   static const revue = 'Revue';
