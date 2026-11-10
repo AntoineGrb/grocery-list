@@ -51,24 +51,28 @@ class QuantityTag extends StatelessWidget {
               child: Icon(KadiGlyphs.scales, size: 17, color: colors.accent),
             ),
           )
-        : Container(
-            constraints: BoxConstraints(minHeight: height),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colors.pastille,
-              borderRadius: radius,
-            ),
-            // Police agrandie : la valeur entière, réduite si la place manque.
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                maxLines: 1,
-                style: theme.textTheme.labelLarge?.copyWith(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurface,
+        // IntrinsicWidth : le tag prend la largeur de sa valeur, pas toute
+        // la place offerte (Revue : jusqu'à 40 % de l'écran).
+        : IntrinsicWidth(
+            child: Container(
+              constraints: BoxConstraints(minHeight: height),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: colors.pastille,
+                borderRadius: radius,
+              ),
+              // Police agrandie : la valeur entière, réduite si la place manque.
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurface,
+                  ),
                 ),
               ),
             ),
