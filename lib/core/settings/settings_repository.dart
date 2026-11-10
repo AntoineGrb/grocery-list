@@ -112,6 +112,13 @@ class SettingsRepository {
     SettingsCompanion(groupByRayon: Value(value)),
   );
 
+  /// Thème de l'app ; sans ligne de réglages, ou valeur inchangée, rien
+  /// n'est écrit.
+  Future<void> setTheme(ThemePreference value) => _write(
+    (r) => r.themeMode == value.code,
+    SettingsCompanion(themeMode: Value(value.code)),
+  );
+
   /// Ordre du parcours (R19) : [order] porte les 13 rayons, chacun une fois,
   /// sinon [ArgumentError]. Sans ligne de réglages, ou ordre inchangé, rien
   /// n'est écrit.
@@ -203,5 +210,6 @@ class SettingsRepository {
     keepScreenOn: r.keepScreenOn,
     firstLaunch: r.firstLaunch,
     seedVersions: Map.unmodifiable(decodeSeedVersions(r.seedVersions)),
+    theme: ThemePreference.fromCode(r.themeMode),
   );
 }

@@ -27,13 +27,9 @@ abstract final class AppRoutes {
   /// Paramètres.
   static const parcours = '/parametres/parcours';
 
-  /// Paramètres › Articles (ligne « Articles ») : poussée au-dessus des
-  /// Paramètres.
-  static const articles = '/parametres/articles';
-
-  /// Paramètres › Fréquents (ligne « Fréquents », bouton « Gérer » du
+  /// Paramètres › Articles (ligne « Articles », bouton « Gérer » du
   /// Panneau +) : poussée au-dessus des Paramètres ou de la Liste.
-  static const frequents = '/parametres/frequents';
+  static const articles = '/parametres/articles';
 }
 
 /// Navigation de l'app (AD-13) : un `StatefulShellRoute` à trois branches,

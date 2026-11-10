@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/screen/screen_awake.dart';
+import 'package:kadi/core/settings/app_settings.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_theme.dart';
@@ -11,7 +12,6 @@ import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:kadi/features/reglages/ui/articles_screen.dart';
-import 'package:kadi/features/reglages/ui/frequents_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -109,10 +109,6 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
         path: AppRoutes.articles,
         builder: (context, state) => const ArticlesScreen(),
       ),
-      GoRoute(
-        path: AppRoutes.frequents,
-        builder: (context, state) => const FrequentsScreen(),
-      ),
     ],
   );
 
@@ -128,12 +124,20 @@ class _KadiAppState extends ConsumerState<KadiApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final startup = ref.watch(appStartupProvider);
+    final theme = ref.watch(
+      settingsProvider.select((s) => s.value?.theme ?? ThemePreference.system),
+    );
     return switch (startup) {
       AsyncData() => MaterialApp.router(
         title: StringsFr.appName,
         debugShowCheckedModeBanner: false,
         theme: KadiTheme.light,
         darkTheme: KadiTheme.dark,
+        themeMode: switch (theme) {
+          ThemePreference.system => ThemeMode.system,
+          ThemePreference.light => ThemeMode.light,
+          ThemePreference.dark => ThemeMode.dark,
+        },
         locale: _locale,
         supportedLocales: const [_locale],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,

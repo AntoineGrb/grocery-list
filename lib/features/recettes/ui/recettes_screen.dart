@@ -369,12 +369,17 @@ class _FilterChip extends StatelessWidget {
               border: Border.all(color: scheme.onSurface),
               borderRadius: BorderRadius.circular(KadiRadius.sm),
             ),
-            child: Text(
-              label,
-              style: theme.textTheme.labelLarge?.copyWith(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: selected ? scheme.surface : scheme.onSurface,
+            // Centré dans les 32 dp, à la largeur du texte (pas celle du
+            // Wrap).
+            child: Align(
+              widthFactor: 1,
+              child: Text(
+                label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: selected ? scheme.surface : scheme.onSurface,
+                ),
               ),
             ),
           ),

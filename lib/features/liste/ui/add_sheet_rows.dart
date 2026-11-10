@@ -154,7 +154,7 @@ class FrequentsTitle extends StatelessWidget {
               // il se ferme, puis l'écran est poussé au-dessus de la Liste.
               final router = GoRouter.of(context);
               Navigator.pop(context);
-              router.push(AppRoutes.frequents);
+              router.push(AppRoutes.articles);
             },
             style: TextButton.styleFrom(
               foregroundColor: scheme.onSurfaceVariant,

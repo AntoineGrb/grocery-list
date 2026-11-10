@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/ui/error_snackbar.dart';
+import 'package:kadi/core/ui/frequent_bolt.dart';
 import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
@@ -17,6 +19,10 @@ import 'article_sheet.dart';
 /// (casse et accents ignorés), une ligne « Créer « … » » en tête, qui ouvre
 /// la Fiche article préremplie du nom nettoyé. Les articles hors catalogue
 /// n'apparaissent jamais.
+///
+/// À droite de chaque article, l'éclair des fréquents : vide, un tap en fait
+/// un fréquent (ajouté en dernier) et le remplit ; plein, un tap le retire.
+/// C'est le seul endroit où l'on gère les fréquents.
 class ArticlesScreen extends ConsumerStatefulWidget {
   const ArticlesScreen({super.key});
 
@@ -35,6 +41,25 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Bascule [article] dans les fréquents ; un échec montre un snackbar.
+  Future<void> _toggleFrequent(
+    BuildContext context,
+    CatalogueArticle article,
+    bool frequent,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = ref.read(catalogueRepositoryProvider);
+    try {
+      if (frequent) {
+        await repository.removeFrequent(article.id);
+      } else {
+        await repository.addFrequent(article.id);
+      }
+    } catch (_) {
+      showErrorSnackBar(messenger, StringsFr.frequentImpossible);
+    }
   }
 
   /// Ouvre la Fiche de [article] ; supprimé, un snackbar Annuler suit.
@@ -57,6 +82,9 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
     final showCreate =
         searching && fresh != null && !hasExactName(fresh, query);
     final name = CatalogueRepository.cleanName(query);
+    final frequentIds = {
+      for (final a in ref.watch(frequentsProvider).value ?? const []) a.id,
+    };
 
     return Scaffold(
       appBar: AppBar(title: const Text(StringsFr.articlesTitre)),
@@ -82,6 +110,15 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
                 key: ValueKey(article.id),
                 article: article,
                 onTap: () => _open(context, article),
+                trailing: FrequentBolt(
+                  name: article.name,
+                  frequent: frequentIds.contains(article.id),
+                  onTap: () => _toggleFrequent(
+                    context,
+                    article,
+                    frequentIds.contains(article.id),
+                  ),
+                ),
               ),
             ),
           ),

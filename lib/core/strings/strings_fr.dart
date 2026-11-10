@@ -218,6 +218,8 @@ abstract final class StringsFr {
   static const parametres = 'Paramètres';
   static const garderEcranAllume = 'Garder l’écran allumé';
   static const garderEcranAllumeDetail = 'Pendant que la liste est affichée';
+  static const themeSombre = 'Thème sombre';
+  static const themeSombreDetail = 'Sinon, le thème clair';
   static const grouperParRayon = 'Grouper par rayon';
   static const grouperParRayonDetail = 'Sinon, la liste suit l’ordre d’ajout';
   static const reglageImpossible = 'Réglage impossible à enregistrer.';
@@ -233,7 +235,8 @@ abstract final class StringsFr {
   // Paramètres › Articles : ligne de navigation, titre de l'écran, Champ de
   // recherche et Fiche article.
   static const articlesTitre = 'Articles';
-  static const articlesDetail = 'Ton catalogue d’articles';
+  static const articlesDetail = 'Ton catalogue d’articles et tes fréquents';
+  static String frequentDe(String name) => '$name, fréquent';
   static const chercherUnArticle = 'Chercher un article';
 
   /// Titre de la Fiche article d'une création.

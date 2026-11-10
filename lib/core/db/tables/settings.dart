@@ -18,4 +18,7 @@ class Settings extends Table with SyncColumns {
   /// `seed_version` par fichier de `assets/seed/`, en JSON
   /// (`{"articles": 1}`) (AD-8).
   TextColumn get seedVersions => text()();
+
+  /// Thème de l'app : `system` (suit le téléphone), `light` ou `dark`.
+  TextColumn get themeMode => text().withDefault(const Constant('system'))();
 }

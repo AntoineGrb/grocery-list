@@ -2145,6 +2145,18 @@ class $SettingsTable extends Settings
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _themeModeMeta = const VerificationMeta(
+    'themeMode',
+  );
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+    'theme_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('system'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -2155,6 +2167,7 @@ class $SettingsTable extends Settings
     keepScreenOn,
     firstLaunch,
     seedVersions,
+    themeMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2239,6 +2252,12 @@ class $SettingsTable extends Settings
     } else if (isInserting) {
       context.missing(_seedVersionsMeta);
     }
+    if (data.containsKey('theme_mode')) {
+      context.handle(
+        _themeModeMeta,
+        themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
+      );
+    }
     return context;
   }
 
@@ -2280,6 +2299,10 @@ class $SettingsTable extends Settings
         DriftSqlType.string,
         data['${effectivePrefix}seed_versions'],
       )!,
+      themeMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme_mode'],
+      )!,
     );
   }
 
@@ -2305,6 +2328,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   /// `seed_version` par fichier de `assets/seed/`, en JSON
   /// (`{"articles": 1}`) (AD-8).
   final String seedVersions;
+
+  /// Thème de l'app : `system` (suit le téléphone), `light` ou `dark`.
+  final String themeMode;
   const SettingsRow({
     required this.id,
     required this.updatedAt,
@@ -2314,6 +2340,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.keepScreenOn,
     required this.firstLaunch,
     required this.seedVersions,
+    required this.themeMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2328,6 +2355,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['keep_screen_on'] = Variable<bool>(keepScreenOn);
     map['first_launch'] = Variable<bool>(firstLaunch);
     map['seed_versions'] = Variable<String>(seedVersions);
+    map['theme_mode'] = Variable<String>(themeMode);
     return map;
   }
 
@@ -2343,6 +2371,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       keepScreenOn: Value(keepScreenOn),
       firstLaunch: Value(firstLaunch),
       seedVersions: Value(seedVersions),
+      themeMode: Value(themeMode),
     );
   }
 
@@ -2360,6 +2389,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       keepScreenOn: serializer.fromJson<bool>(json['keepScreenOn']),
       firstLaunch: serializer.fromJson<bool>(json['firstLaunch']),
       seedVersions: serializer.fromJson<String>(json['seedVersions']),
+      themeMode: serializer.fromJson<String>(json['themeMode']),
     );
   }
   @override
@@ -2374,6 +2404,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'keepScreenOn': serializer.toJson<bool>(keepScreenOn),
       'firstLaunch': serializer.toJson<bool>(firstLaunch),
       'seedVersions': serializer.toJson<String>(seedVersions),
+      'themeMode': serializer.toJson<String>(themeMode),
     };
   }
 
@@ -2386,6 +2417,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     bool? keepScreenOn,
     bool? firstLaunch,
     String? seedVersions,
+    String? themeMode,
   }) => SettingsRow(
     id: id ?? this.id,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -2395,6 +2427,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     keepScreenOn: keepScreenOn ?? this.keepScreenOn,
     firstLaunch: firstLaunch ?? this.firstLaunch,
     seedVersions: seedVersions ?? this.seedVersions,
+    themeMode: themeMode ?? this.themeMode,
   );
   SettingsRow copyWithCompanion(SettingsCompanion data) {
     return SettingsRow(
@@ -2416,6 +2449,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       seedVersions: data.seedVersions.present
           ? data.seedVersions.value
           : this.seedVersions,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
     );
   }
 
@@ -2429,7 +2463,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('groupByRayon: $groupByRayon, ')
           ..write('keepScreenOn: $keepScreenOn, ')
           ..write('firstLaunch: $firstLaunch, ')
-          ..write('seedVersions: $seedVersions')
+          ..write('seedVersions: $seedVersions, ')
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -2444,6 +2479,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     keepScreenOn,
     firstLaunch,
     seedVersions,
+    themeMode,
   );
   @override
   bool operator ==(Object other) =>
@@ -2456,7 +2492,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.groupByRayon == this.groupByRayon &&
           other.keepScreenOn == this.keepScreenOn &&
           other.firstLaunch == this.firstLaunch &&
-          other.seedVersions == this.seedVersions);
+          other.seedVersions == this.seedVersions &&
+          other.themeMode == this.themeMode);
 }
 
 class SettingsCompanion extends UpdateCompanion<SettingsRow> {
@@ -2468,6 +2505,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<bool> keepScreenOn;
   final Value<bool> firstLaunch;
   final Value<String> seedVersions;
+  final Value<String> themeMode;
   final Value<int> rowid;
   const SettingsCompanion({
     this.id = const Value.absent(),
@@ -2478,6 +2516,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
     this.keepScreenOn = const Value.absent(),
     this.firstLaunch = const Value.absent(),
     this.seedVersions = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SettingsCompanion.insert({
@@ -2489,6 +2528,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
     required bool keepScreenOn,
     required bool firstLaunch,
     required String seedVersions,
+    this.themeMode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        updatedAt = Value(updatedAt),
@@ -2506,6 +2546,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<bool>? keepScreenOn,
     Expression<bool>? firstLaunch,
     Expression<String>? seedVersions,
+    Expression<String>? themeMode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2517,6 +2558,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
       if (keepScreenOn != null) 'keep_screen_on': keepScreenOn,
       if (firstLaunch != null) 'first_launch': firstLaunch,
       if (seedVersions != null) 'seed_versions': seedVersions,
+      if (themeMode != null) 'theme_mode': themeMode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2530,6 +2572,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
     Value<bool>? keepScreenOn,
     Value<bool>? firstLaunch,
     Value<String>? seedVersions,
+    Value<String>? themeMode,
     Value<int>? rowid,
   }) {
     return SettingsCompanion(
@@ -2541,6 +2584,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
       keepScreenOn: keepScreenOn ?? this.keepScreenOn,
       firstLaunch: firstLaunch ?? this.firstLaunch,
       seedVersions: seedVersions ?? this.seedVersions,
+      themeMode: themeMode ?? this.themeMode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2572,6 +2616,9 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
     if (seedVersions.present) {
       map['seed_versions'] = Variable<String>(seedVersions.value);
     }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2589,6 +2636,7 @@ class SettingsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('keepScreenOn: $keepScreenOn, ')
           ..write('firstLaunch: $firstLaunch, ')
           ..write('seedVersions: $seedVersions, ')
+          ..write('themeMode: $themeMode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5702,6 +5750,7 @@ typedef $$SettingsTableCreateCompanionBuilder = SettingsCompanion Function({
   required bool keepScreenOn,
   required bool firstLaunch,
   required String seedVersions,
+  Value<String> themeMode,
   Value<int> rowid,
 });
 typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
@@ -5713,6 +5762,7 @@ typedef $$SettingsTableUpdateCompanionBuilder = SettingsCompanion Function({
   Value<bool> keepScreenOn,
   Value<bool> firstLaunch,
   Value<String> seedVersions,
+  Value<String> themeMode,
   Value<int> rowid,
 });
 
@@ -5762,6 +5812,11 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<String> get seedVersions => $composableBuilder(
     column: $table.seedVersions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -5814,6 +5869,11 @@ class $$SettingsTableOrderingComposer
     column: $table.seedVersions,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -5858,6 +5918,9 @@ class $$SettingsTableAnnotationComposer
     column: $table.seedVersions,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
 }
 
 class $$SettingsTableTableManager
@@ -5899,6 +5962,7 @@ class $$SettingsTableTableManager
                 Value<bool> keepScreenOn = const Value.absent(),
                 Value<bool> firstLaunch = const Value.absent(),
                 Value<String> seedVersions = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
@@ -5909,6 +5973,7 @@ class $$SettingsTableTableManager
                 keepScreenOn: keepScreenOn,
                 firstLaunch: firstLaunch,
                 seedVersions: seedVersions,
+                themeMode: themeMode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -5921,6 +5986,7 @@ class $$SettingsTableTableManager
                 required bool keepScreenOn,
                 required bool firstLaunch,
                 required String seedVersions,
+                Value<String> themeMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
@@ -5931,6 +5997,7 @@ class $$SettingsTableTableManager
                 keepScreenOn: keepScreenOn,
                 firstLaunch: firstLaunch,
                 seedVersions: seedVersions,
+                themeMode: themeMode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

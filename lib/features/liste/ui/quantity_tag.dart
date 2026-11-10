@@ -1,3 +1,4 @@
+import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -79,8 +80,8 @@ TextStyle? addTagTextStyle(BuildContext context, Color color) =>
     Theme.of(context).textTheme.labelLarge
         ?.copyWith(fontSize: 14, fontWeight: FontWeight.w500, color: color);
 
-/// Tag quantité du Panneau + (V2 2f). Vide : [emptyLabel] sur le fond des
-/// tags. Plein : [value] en `surface` sur fond encre, jamais d'argile.
+/// Tag quantité du Panneau + (V2 2f) : la balance puis le texte. Vide :
+/// [emptyLabel] sur le fond des tags. Plein : [value] en `surface` sur fond encre, jamais d'argile.
 class PanelQuantityTag extends StatelessWidget {
   const PanelQuantityTag({
     super.key,
@@ -106,14 +107,28 @@ class PanelQuantityTag extends StatelessWidget {
       semanticLabel: semanticLabel,
       onTap: onTap,
       padding: EdgeInsets.symmetric(horizontal: filled ? 12 : 10),
-      child: Text(
-        filled ? value : emptyLabel,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: addTagTextStyle(
-          context,
-          filled ? scheme.surface : scheme.onSurface,
-        ),
+      // La balance du Module quantité, avant le texte.
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            KadiGlyphs.scales,
+            size: 17,
+            color: filled ? scheme.surface : scheme.onSurface,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              filled ? value : emptyLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: addTagTextStyle(
+                context,
+                filled ? scheme.surface : scheme.onSurface,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

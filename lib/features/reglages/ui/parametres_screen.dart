@@ -4,6 +4,7 @@ import 'package:kadi/app/actions/exporter_mes_donnees.dart';
 import 'package:kadi/app/actions/importer_une_sauvegarde.dart';
 import 'package:kadi/core/backup/backup_import.dart';
 import 'package:kadi/core/router/app_router.dart';
+import 'package:kadi/core/settings/app_settings.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
@@ -12,10 +13,10 @@ import 'package:kadi/core/ui/tab_app_bar.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// Paramètres : troisième onglet de la coque, sans flèche retour. Lignes de paramètre (`settings-row`) en Switch M3 :
-/// Écran allumé (R14) et groupement de la Liste par rayon ; dessous, les
+/// Écran allumé (R14), thème sombre et groupement de la Liste par rayon ; dessous, les
 /// lignes de navigation « Parcours » (Paramètres › Parcours, R19),
-/// « Articles » (Paramètres › Articles, R18) et « Fréquents » (Paramètres ›
-/// Fréquents, R16), puis les lignes « Exporter mes données » et « Importer
+/// « Articles » (Paramètres › Articles, R18, où l'on gère aussi les
+/// fréquents, R16), puis les lignes « Exporter mes données » et « Importer
 /// une sauvegarde » (R21).
 ///
 /// Les switches suivent les réglages en base (AD-1) et y écrivent par le
@@ -53,6 +54,26 @@ class ParametresScreen extends ConsumerWidget {
                   onChanged: (value) =>
                       _write(context, ref, (r) => r.setKeepScreenOn(value)),
                 ),
+                // Tant qu'aucun thème n'est choisi, le switch montre celui
+                // du téléphone.
+                _SettingsSwitch(
+                  title: StringsFr.themeSombre,
+                  subtitle: StringsFr.themeSombreDetail,
+                  value: switch (settings.theme) {
+                    ThemePreference.dark => true,
+                    ThemePreference.light => false,
+                    ThemePreference.system =>
+                      MediaQuery.platformBrightnessOf(context) ==
+                          Brightness.dark,
+                  },
+                  onChanged: (value) => _write(
+                    context,
+                    ref,
+                    (r) => r.setTheme(
+                      value ? ThemePreference.dark : ThemePreference.light,
+                    ),
+                  ),
+                ),
                 _SettingsSwitch(
                   title: StringsFr.grouperParRayon,
                   subtitle: StringsFr.grouperParRayonDetail,
@@ -71,12 +92,6 @@ class ParametresScreen extends ConsumerWidget {
                   title: StringsFr.articlesTitre,
                   subtitle: StringsFr.articlesDetail,
                   onTap: () => context.push(AppRoutes.articles),
-                ),
-                _SettingsRow(
-                  chevron: true,
-                  title: StringsFr.frequentsTitre,
-                  subtitle: StringsFr.frequentsDetail,
-                  onTap: () => context.push(AppRoutes.frequents),
                 ),
                 const _ExportRow(),
                 const _ImportRow(),

@@ -47,7 +47,7 @@ class AppDatabase extends _$AppDatabase {
   /// l'incrémente, ajoute une étape de migration non destructive et
   /// `dart run drift_dev make-migrations`.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -64,6 +64,11 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(schema.recipes);
         await m.createTable(schema.recipeIngredients);
         await m.createTable(schema.weekSelections);
+      },
+      // v4 : thème choisi dans les Paramètres ; les réglages existants
+      // suivent le téléphone (défaut `system`).
+      from3To4: (m, schema) async {
+        await m.addColumn(schema.settings, schema.settings.themeMode);
       },
     ),
     beforeOpen: (details) async {
