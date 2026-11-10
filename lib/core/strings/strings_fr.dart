@@ -9,8 +9,20 @@ abstract final class StringsFr {
   static const tabListe = 'Liste';
 
   // États vides.
+  static const listeVideTitre = 'Ta liste est vide';
   static const listeVide =
-      'Ta liste est vide. Choisis tes recettes de la semaine ou ajoute un article avec +.';
+      'Choisis tes recettes de la semaine ou ajoute un article avec +.';
+  static const choisirDesRecettes = 'Choisir des recettes';
+
+  // Vider la liste : action de la Barre d'application de la Liste.
+  static const viderLaListe = 'Vider la liste';
+  static const viderLaListeTitre = 'Vider la liste ?';
+  static const viderLaListeTexte =
+      'Tous les articles, cochés ou non, et les recettes de la semaine seront retirés.';
+  static const vider = 'Vider';
+  static const listeVidee = 'Liste vidée';
+  static const viderLaListeImpossible =
+      'Impossible de vider la liste. Réessaie.';
   static const recettesVide =
       'Pas encore de recette. Ajoute ta première avec +.';
 

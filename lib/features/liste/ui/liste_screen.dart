@@ -1,11 +1,15 @@
 import 'dart:math' as math;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:kadi/app/actions/terminer_les_courses.dart';
+import 'package:kadi/core/pictos/phosphor_table.dart';
 import 'package:kadi/core/rayons/rayon.dart';
+import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/confirm_dialog.dart';
 import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/ui/tab_app_bar.dart';
@@ -204,6 +208,32 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     showUndoSnackBar(context, StringsFr.coursesTerminees, entry);
   }
 
+  /// Vider la liste (↻ de la Barre d'application) : Dialogue de
+  /// confirmation, puis toutes les lignes, cochées ou non, et la sélection
+  /// de la semaine sont retirées, comme Terminer les courses, avec Annuler.
+  ///
+  /// [context] est celui du `Builder` de la Liste, sous son messager.
+  Future<void> _vider(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showConfirmDialog(
+      context,
+      title: StringsFr.viderLaListeTitre,
+      message: StringsFr.viderLaListeTexte,
+      keepLabel: StringsFr.garder,
+      confirmLabel: StringsFr.vider,
+    );
+    if (!confirmed || !context.mounted) return;
+    final UndoEntry? entry;
+    try {
+      entry = await ref.read(terminerLesCoursesProvider).call();
+    } catch (_) {
+      showErrorSnackBar(messenger, StringsFr.viderLaListeImpossible);
+      return;
+    }
+    if (entry == null || !context.mounted) return;
+    showUndoSnackBar(context, StringsFr.listeVidee, entry);
+  }
+
   /// Supprime la ligne de [item] (glisser, Feuille d'édition, TalkBack) et
   /// montre le snackbar Annuler sous le messager de la Liste (AD-10).
   ///
@@ -265,7 +295,15 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
             : math.max(0.0, bodyTop + constraints.maxHeight - panelTop);
         return Padding(
           padding: EdgeInsets.only(bottom: hidden),
-          child: const EmptyState(message: StringsFr.listeVide),
+          child: EmptyState(
+            glyph: phosphorIcons['basket'],
+            title: StringsFr.listeVideTitre,
+            message: StringsFr.listeVide,
+            action: OutlinedButton(
+              onPressed: () => context.go(AppRoutes.recettes),
+              child: const Text(StringsFr.choisirDesRecettes),
+            ),
+          ),
         );
       },
     );
@@ -276,6 +314,11 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     ref.listen(listeGroupsProvider, (_, next) => _onGroups(next.value));
     final groups = ref.watch(listeGroupsProvider).value;
     final checked = ref.watch(listeCheckedProvider).value;
+    final empty =
+        groups != null &&
+        checked != null &&
+        groups.isEmpty &&
+        checked.isEmpty;
     final allChecked =
         groups != null &&
         checked != null &&
@@ -294,7 +337,18 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
-          appBar: const TabAppBar(title: StringsFr.tabListe),
+          appBar: TabAppBar(
+            title: StringsFr.tabListe,
+            actions: [
+              if (groups != null && checked != null && !empty)
+                IconButton(
+                  onPressed: () => _vider(context),
+                  tooltip: StringsFr.viderLaListe,
+                  color: Theme.of(context).colorScheme.onSurface,
+                  icon: const Icon(Icons.restart_alt),
+                ),
+            ],
+          ),
           body: switch ((groups, checked)) {
             (final groups?, final checked?)
                 when groups.isEmpty && checked.isEmpty =>
@@ -320,7 +374,7 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
                     // Sans groupement, une seule suite de lignes, sans
                     // En-tête de rayon. Un rayon tout coché disparaît.
                     if (group.rayon case final rayon?)
-                      RayonHeader(rayon: rayon, count: group.items.length),
+                      RayonHeader(rayon: rayon),
                     for (final item in group.items)
                       _uncheckedRow(context, item),
                   ],

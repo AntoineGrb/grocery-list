@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
+import 'package:kadi/features/catalogue/data/normalize_name.dart';
 
 import '../data/liste_repository.dart';
 import 'liste_panel.dart';
@@ -49,7 +50,8 @@ List<RayonGroup> ungrouped(List<ListeItem> items) =>
     items.isEmpty ? const [] : [RayonGroup(null, items)];
 
 /// Regroupe [items] par rayon dans l'ordre [routeOrder] ; seuls les rayons
-/// non vides restent. Dans un rayon, l'ordre d'ajout est conservé.
+/// non vides restent. Dans un rayon, les lignes sont triées par nom (casse
+/// et accents ignorés) ; à nom égal, l'ordre d'ajout est conservé.
 List<RayonGroup> groupByRoute(List<ListeItem> items, List<Rayon> routeOrder) =>
     [
       for (final (rayon, lines) in groupByRayon(
@@ -57,8 +59,19 @@ List<RayonGroup> groupByRoute(List<ListeItem> items, List<Rayon> routeOrder) =>
         (item) => item.rayon,
         routeOrder,
       ))
-        RayonGroup(rayon, lines),
+        RayonGroup(rayon, _byName(lines)),
     ];
+
+/// [lines] triées par nom normalisé, tri stable (ordre d'ajout à égalité).
+List<ListeItem> _byName(List<ListeItem> lines) {
+  final keyed = [
+    for (final (i, line) in lines.indexed) (normalizeName(line.name), i, line),
+  ]..sort((a, b) {
+      final byName = a.$1.compareTo(b.$1);
+      return byName != 0 ? byName : a.$2.compareTo(b.$2);
+    });
+  return [for (final (_, _, line) in keyed) line];
+}
 
 /// Lignes cochées de la Section Cochés, la dernière cochée en tête.
 final listeCheckedProvider = StreamProvider<List<ListeItem>>(
