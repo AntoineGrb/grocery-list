@@ -73,15 +73,14 @@ final toValidateCountProvider = Provider<int>((ref) {
   return cards.where((c) => c.selected && !c.validated).length;
 });
 
-/// « Créer « … » » de la Fiche recette : l'article au catalogue par l'unique
-/// `createArticle` (Divers, sans unité ; un nom porté par un article hors
-/// catalogue y entre, même id, AD-17), en une transaction. Lève sur un échec,
-/// sans rien écrire.
+/// « Créer « … » » de la Fiche recette : l'article actif de ce nom, au
+/// catalogue ou non, sinon un nouvel article **hors catalogue** (Divers,
+/// sans unité, AD-17) : seuls les Paramètres ajoutent au catalogue. Une
+/// transaction ; lève sur un échec, sans rien écrire.
 final creerArticleProvider =
     Provider<Future<CatalogueArticle> Function(String name)>((ref) {
-      final db = ref.watch(databaseProvider);
       final catalogue = ref.watch(catalogueRepositoryProvider);
-      return (name) => db.transaction(() => catalogue.createArticle(name));
+      return catalogue.resolveTypedArticle;
     });
 
 /// Lit, à l'ouverture de la Revue, les sélections à valider et construit

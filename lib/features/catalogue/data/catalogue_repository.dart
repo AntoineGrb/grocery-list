@@ -427,6 +427,37 @@ class CatalogueRepository {
     return [for (final f in frequents) UndoRow.before(_db.frequents, f)];
   });
 
+  /// Supprime l'article [articleId] du catalogue (Paramètres › Articles) :
+  /// il passe hors catalogue (`in_catalogue` faux, plus proposé en saisie,
+  /// AD-17) et son fréquent actif est supprimé logiquement, dans une
+  /// transaction. Les recettes et les lignes de liste qui l'utilisent ne
+  /// changent pas. Rend l'état d'avant pour Annuler (AD-10) ; un article
+  /// absent, supprimé ou déjà hors catalogue n'écrit rien.
+  Future<List<UndoRow>> removeFromCatalogue(String articleId) =>
+      _db.transaction(() async {
+        final article =
+            await (_db.select(_db.articles)..where(
+                  (a) =>
+                      a.id.equals(articleId) &
+                      a.deletedAt.isNull() &
+                      a.inCatalogue.equals(true),
+                ))
+                .getSingleOrNull();
+        if (article == null) return const <UndoRow>[];
+        await (_db.update(
+          _db.articles,
+        )..where((a) => a.id.equals(articleId))).write(
+          ArticlesCompanion(
+            inCatalogue: const Value(false),
+            updatedAt: Value(_clock.stamp(article.updatedAt)),
+          ),
+        );
+        return [
+          UndoRow.before(_db.articles, article),
+          ...await removeFrequent(articleId),
+        ];
+      });
+
   /// Réconcilie les articles après la fusion d'une sauvegarde (AD-9), à
   /// appeler dans la transaction de l'import : parmi les articles actifs de
   /// même nom normalisé (AD-17), un seul est gardé, celui qui existait

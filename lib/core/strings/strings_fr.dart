@@ -235,6 +235,10 @@ abstract final class StringsFr {
   static const puceUniteSans = 'sans';
   static const nomDejaPris = 'Un article porte déjà ce nom.';
   static const articleImpossible = 'Article impossible à enregistrer.';
+  static const supprimerLArticle = 'Supprimer l’article';
+  static String articleSupprime(String name) => '« $name » supprimé';
+  static const suppressionArticleImpossible =
+      'Impossible de supprimer l’article. Réessaie.';
 
   // Fiche article : bouton du Picto et grille de pictos.
   static const changerLePicto = 'Changer le picto';

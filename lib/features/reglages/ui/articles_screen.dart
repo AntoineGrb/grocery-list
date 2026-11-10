@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/undo/undo_snackbar.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -34,6 +35,13 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Ouvre la Fiche de [article] ; supprimé, un snackbar Annuler suit.
+  Future<void> _open(BuildContext context, CatalogueArticle article) async {
+    final entry = await showArticleSheet(context, article: article);
+    if (entry == null || !context.mounted) return;
+    showUndoSnackBar(context, StringsFr.articleSupprime(article.name), entry);
   }
 
   @override
@@ -73,7 +81,7 @@ class _ArticlesScreenState extends ConsumerState<ArticlesScreen> {
               lineOf: (article) => ArticleLine(
                 key: ValueKey(article.id),
                 article: article,
-                onTap: () => showArticleSheet(context, article: article),
+                onTap: () => _open(context, article),
               ),
             ),
           ),

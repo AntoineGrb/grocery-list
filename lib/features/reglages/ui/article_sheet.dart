@@ -6,6 +6,7 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/error_snackbar.dart';
 import 'package:kadi/core/ui/rayon_picker.dart';
+import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/state/catalogue_providers.dart';
@@ -19,12 +20,13 @@ import 'picto_grid_sheet.dart';
 const _newArticlePicto = 'article';
 
 /// Ouvre la Fiche article (AD-13 : feuille modale du navigateur racine) :
-/// celle de [article], ou une création préremplie de [name].
-Future<void> showArticleSheet(
+/// celle de [article], ou une création préremplie de [name]. Rend l'entrée
+/// Annuler de « Supprimer l'article », nulle sinon.
+Future<UndoEntry?> showArticleSheet(
   BuildContext context, {
   CatalogueArticle? article,
   String name = '',
-}) => showModalBottomSheet<void>(
+}) => showModalBottomSheet<UndoEntry>(
   context: context,
   useRootNavigator: true,
   isScrollControlled: true,
@@ -156,6 +158,28 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
     if (mounted) Navigator.pop(context);
   }
 
+  /// « Supprimer l'article » : il sort du catalogue et des fréquents ; la
+  /// fiche se ferme et rend l'entrée Annuler. Un échec montre un snackbar
+  /// dans la fiche, qui reste ouverte.
+  Future<void> _remove(CatalogueArticle article) async {
+    setState(() => _saving = true);
+    final List<UndoRow> rows;
+    try {
+      rows = await ref
+          .read(catalogueRepositoryProvider)
+          .removeFromCatalogue(article.id);
+    } catch (_) {
+      if (mounted) setState(() => _saving = false);
+      final messenger = _messengerKey.currentState;
+      if (messenger != null) {
+        showErrorSnackBar(messenger, StringsFr.suppressionArticleImpossible);
+      }
+      return;
+    }
+    final entry = rows.isEmpty ? null : ref.read(undoProvider).record(rows);
+    if (mounted) Navigator.pop(context, entry);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -227,6 +251,15 @@ class _ArticleSheetState extends ConsumerState<ArticleSheet> {
               onPressed: _canSave ? _save : null,
               child: const Text(StringsFr.enregistrer),
             ),
+            if (article != null) ...[
+              const SizedBox(height: KadiSpacing.s2),
+              TextButton.icon(
+                onPressed: _saving ? null : () => _remove(article),
+                style: TextButton.styleFrom(foregroundColor: scheme.error),
+                icon: const Icon(Icons.delete_outline),
+                label: const Text(StringsFr.supprimerLArticle),
+              ),
+            ],
           ],
         ),
       ),
