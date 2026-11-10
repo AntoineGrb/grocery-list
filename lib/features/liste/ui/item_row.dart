@@ -12,9 +12,13 @@ import 'package:material_ui/material_ui.dart';
 import '../data/liste_repository.dart';
 import '../state/liste_providers.dart';
 
-/// Délai entre le tap sur la case et l'écriture : l'animation de la case M3
-/// (≈ 200 ms) plus un temps de lecture.
-const _checkDelay = Duration(milliseconds: 300);
+/// Délai entre le tap sur la case et le départ de la ligne : l'animation de
+/// la case (≈ 200 ms) plus un temps de lecture.
+const _checkDelay = Duration(milliseconds: 250);
+
+/// Départ de la ligne cochée ou décochée : fondu et repli, puis écriture ;
+/// elle réapparaît dans sa nouvelle section.
+const _leaveDuration = Duration(milliseconds: 300);
 
 /// Actions TalkBack équivalentes au glisser et à l'appui long (R24).
 const _supprimerAction = CustomSemanticsAction(label: StringsFr.supprimer);
@@ -47,6 +51,9 @@ class _ItemRowState extends ConsumerState<ItemRow> {
   /// État visé par un tap dont l'écriture n'est pas encore faite.
   bool? _pending;
 
+  /// Vrai pendant le fondu de départ, avant l'écriture.
+  bool _leaving = false;
+
   /// Ligne glissée et supprimée : masquée jusqu'à ce que le flux de la
   /// Liste la retire. Un `Dismissible` rejeté doit quitter l'arbre tout de
   /// suite.
@@ -59,7 +66,10 @@ class _ItemRowState extends ConsumerState<ItemRow> {
   @override
   void didUpdateWidget(ItemRow oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.item.checked != widget.item.checked) _pending = null;
+    if (oldWidget.item.checked != widget.item.checked) {
+      _pending = null;
+      _leaving = false;
+    }
     if (_dismissed && !identical(oldWidget.item, widget.item)) {
       _dismissed = false;
       _generation++;
@@ -100,14 +110,23 @@ class _ItemRowState extends ConsumerState<ItemRow> {
     required String announcement,
   }) async {
     try {
-      if (delay > Duration.zero) await Future<void>.delayed(delay);
+      if (delay > Duration.zero) {
+        await Future<void>.delayed(delay);
+        if (mounted) setState(() => _leaving = true);
+        await Future<void>.delayed(_leaveDuration);
+      }
       if (check) {
         await repository.check(lineId);
       } else {
         await repository.uncheck(lineId);
       }
     } catch (_) {
-      if (mounted) setState(() => _pending = null);
+      if (mounted) {
+        setState(() {
+          _pending = null;
+          _leaving = false;
+        });
+      }
       return;
     }
     await SemanticsService.sendAnnouncement(
@@ -232,6 +251,22 @@ class _ItemRowState extends ConsumerState<ItemRow> {
         child: row,
       );
     }
+
+    // Fondu et repli de la ligne qui change de section.
+    row = ClipRect(
+      child: AnimatedAlign(
+        alignment: Alignment.topCenter,
+        heightFactor: _leaving ? 0 : 1,
+        duration: _leaveDuration,
+        curve: Curves.easeInOut,
+        child: AnimatedOpacity(
+          opacity: _leaving ? 0 : 1,
+          duration: _leaveDuration,
+          curve: Curves.easeOut,
+          child: row,
+        ),
+      ),
+    );
 
     final onRemove = widget.onRemove;
     return Semantics(
