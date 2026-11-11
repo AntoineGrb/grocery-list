@@ -392,6 +392,22 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
     unawaited(_cleanPhotos());
   }
 
+  /// Poubelle de l'AppBar : Dialogue de confirmation, puis [_delete].
+  Future<void> _confirmDelete() async {
+    if (_deleting || _saving) return;
+    final name = cleanRecipeName(_nameController.text);
+    final confirmed = await showConfirmDialog(
+      context,
+      title: StringsFr.supprimerLaRecetteTitre,
+      message: StringsFr.supprimerLaRecetteTexte(
+        name.isEmpty ? StringsFr.recette : name,
+      ),
+      keepLabel: StringsFr.garder,
+      confirmLabel: StringsFr.supprimer,
+    );
+    if (confirmed && mounted) await _delete();
+  }
+
   /// « Supprimer la recette » : la recette en base est supprimée logiquement
   /// et la fiche se ferme en rendant son nom et son entrée Annuler ; le
   /// brouillon non enregistré est perdu. Un échec montre un snackbar ; la
@@ -554,6 +570,9 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
               );
             },
           ),
+          // Avec une action, un snackbar reste sinon affiché jusqu'au tap.
+          persist: false,
+          behavior: SnackBarBehavior.floating,
         ),
       );
   }
@@ -959,17 +978,11 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
         appBar: AppBar(
           actions: [
             if (_saved)
-              PopupMenuButton<_FicheAction>(
-                tooltip: StringsFr.plusDOptions,
-                padding: const EdgeInsets.all(KadiSpacing.s3),
-                icon: Icon(Icons.more_vert, color: scheme.onSurface),
-                onSelected: (_) => _delete(),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: _FicheAction.supprimer,
-                    child: Text(StringsFr.supprimerLaRecette),
-                  ),
-                ],
+              IconButton(
+                tooltip: StringsFr.supprimerLaRecette,
+                color: scheme.onSurface,
+                icon: const Icon(Icons.delete_outline),
+                onPressed: _confirmDelete,
               ),
             const SizedBox(width: KadiSpacing.s2),
           ],
@@ -1006,7 +1019,6 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
 }
 
 /// Actions du menu ⋮ de la Fiche recette.
-enum _FicheAction { supprimer }
 
 /// Choix « Retirer la photo » de la pastille appareil photo.
 enum _RemovePhoto { value }

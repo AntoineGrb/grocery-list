@@ -1,4 +1,5 @@
-import 'package:flutter/services.dart';
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -8,19 +9,19 @@ import 'package:material_ui/material_ui.dart';
 import '../data/photo_from_link.dart';
 import '../state/recettes_providers.dart';
 
-/// Dialogue « Photo depuis un lien » : rend le texte collé, `null` si
-/// Antoine annule.
-Future<String?> showPhotoLinkDialog(
+/// Dialogue « Photo depuis un lien » : rend l'image copiée ou le texte
+/// collé, `null` si Antoine annule.
+Future<ClipContent?> showPhotoLinkDialog(
   BuildContext context, {
   required String recipeName,
-}) => showDialog<String>(
+}) => showDialog<ClipContent>(
   context: context,
   builder: (_) => PhotoLinkDialog(recipeName: recipeName),
 );
 
 /// Champ d'adresse d'image, prérempli par le presse-papiers s'il contient
-/// un lien d'image (et de nouveau au retour du navigateur, champ vide) ;
-/// bouton « Coller » ; « Chercher sur Google Images » ouvre le navigateur
+/// une image copiée (son aperçu remplace le champ) ou un lien d'image, et
+/// de nouveau au retour du navigateur ; bouton « Coller » ; « Chercher sur Google Images » ouvre le navigateur
 /// sur le nom de la recette. « Ajouter » rend le texte.
 class PhotoLinkDialog extends ConsumerStatefulWidget {
   const PhotoLinkDialog({super.key, required this.recipeName});
@@ -35,10 +36,20 @@ class _PhotoLinkDialogState extends ConsumerState<PhotoLinkDialog> {
   final _controller = TextEditingController();
   late final AppLifecycleListener _lifecycle;
 
+  /// Image copiée prise au presse-papiers.
+  Uint8List? _image;
+
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(onResume: _fillFromClipboard);
+    // Au retour du navigateur, Android ne laisse lire le presse-papiers
+    // qu'une fois la fenêtre au premier plan : un court délai.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => Future<void>.delayed(
+        const Duration(milliseconds: 300),
+        _fillFromClipboard,
+      ),
+    );
     _fillFromClipboard();
   }
 
@@ -49,27 +60,36 @@ class _PhotoLinkDialogState extends ConsumerState<PhotoLinkDialog> {
     super.dispose();
   }
 
-  /// Champ vide et lien d'image au presse-papiers : il le prend.
+  /// Rien de saisi, et une image ou un lien d'image au presse-papiers :
+  /// le dialogue le prend.
   Future<void> _fillFromClipboard() async {
-    if (_controller.text.trim().isNotEmpty) return;
-    final text = await _clipboardText();
-    if (!mounted || text == null || parseImageLink(text) == null) return;
-    if (_controller.text.trim().isNotEmpty) return;
-    setState(() => _controller.text = text.trim());
-  }
-
-  Future<void> _paste() async {
-    final text = await _clipboardText();
-    if (!mounted || text == null) return;
-    setState(() => _controller.text = text.trim());
-  }
-
-  static Future<String?> _clipboardText() async {
-    try {
-      return (await Clipboard.getData(Clipboard.kTextPlain))?.text;
-    } catch (_) {
-      return null;
+    if (!mounted || _image != null || _controller.text.trim().isNotEmpty) {
+      return;
     }
+    final clip = await ref.read(clipboardReaderProvider)();
+    if (!mounted || clip == null) return;
+    if (_image != null || _controller.text.trim().isNotEmpty) return;
+    final text = clip.text?.trim() ?? '';
+    if (clip.image != null) {
+      setState(() => _image = clip.image);
+    } else if (parseImageLink(text) != null) {
+      setState(() => _controller.text = text);
+    }
+  }
+
+  /// « Coller » : l'image copiée, sinon le texte, quel qu'il soit.
+  Future<void> _paste() async {
+    final clip = await ref.read(clipboardReaderProvider)();
+    if (!mounted || clip == null) return;
+    setState(() {
+      if (clip.image != null) {
+        _image = clip.image;
+        _controller.clear();
+      } else if (clip.text case final text?) {
+        _image = null;
+        _controller.text = text.trim();
+      }
+    });
   }
 
   Future<void> _search() async {
@@ -91,6 +111,7 @@ class _PhotoLinkDialogState extends ConsumerState<PhotoLinkDialog> {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final text = _controller.text.trim();
+    final image = _image;
     return AlertDialog(
       title: const Text(StringsFr.photoDepuisUnLien),
       content: SingleChildScrollView(
@@ -111,20 +132,45 @@ class _PhotoLinkDialogState extends ConsumerState<PhotoLinkDialog> {
               label: const Text(StringsFr.chercherSurGoogleImages),
             ),
             const SizedBox(height: KadiSpacing.s3),
-            TextField(
-              controller: _controller,
-              keyboardType: TextInputType.url,
-              maxLines: 1,
-              onChanged: (_) => setState(() {}),
-              decoration: InputDecoration(
-                labelText: StringsFr.adresseDeLImage,
-                suffixIcon: IconButton(
-                  onPressed: _paste,
-                  tooltip: StringsFr.collerLAdresse,
-                  icon: const Icon(Icons.content_paste),
+            if (image != null)
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(KadiRadius.sm),
+                    child: Image.memory(
+                      image,
+                      width: 72,
+                      height: 72,
+                      fit: BoxFit.cover,
+                      cacheWidth: 216,
+                      errorBuilder: (_, _, _) =>
+                          const SizedBox.square(dimension: 72),
+                    ),
+                  ),
+                  const SizedBox(width: KadiSpacing.s3),
+                  const Expanded(child: Text(StringsFr.imageCopiee)),
+                  IconButton(
+                    onPressed: () => setState(() => _image = null),
+                    tooltip: StringsFr.effacerLeTexte,
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              )
+            else
+              TextField(
+                controller: _controller,
+                keyboardType: TextInputType.url,
+                maxLines: 1,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: StringsFr.adresseDeLImage,
+                  suffixIcon: IconButton(
+                    onPressed: _paste,
+                    tooltip: StringsFr.collerLAdresse,
+                    icon: const Icon(Icons.content_paste),
+                  ),
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -134,9 +180,11 @@ class _PhotoLinkDialogState extends ConsumerState<PhotoLinkDialog> {
           child: const Text(StringsFr.annuler),
         ),
         TextButton(
-          onPressed: text.isEmpty
+          onPressed: image != null
+              ? () => Navigator.of(context).pop((text: null, image: image))
+              : text.isEmpty
               ? null
-              : () => Navigator.of(context).pop(text),
+              : () => Navigator.of(context).pop((text: text, image: null)),
           child: const Text(StringsFr.ajouter),
         ),
       ],

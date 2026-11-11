@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 
 import 'recipe_photos.dart';
@@ -150,6 +151,52 @@ Uint8List toRecipeJpeg(Uint8List bytes) {
       ? img.copyResize(decoded, width: maxSide)
       : img.copyResize(decoded, height: maxSide);
   return img.encodeJpg(image, quality: photoQuality);
+}
+
+/// Contenu du presse-papiers : un texte, ou une image copiée (octets).
+typedef ClipContent = ({String? text, Uint8List? image});
+
+/// Lit le presse-papiers ; remplacé en test.
+typedef ReadClip = Future<ClipContent?> Function();
+
+const _clipboardChannel = MethodChannel('kadi/clipboard');
+
+/// Presse-papiers par le canal Android `kadi/clipboard` (texte ou image
+/// copiée par « Copier l'image »), sinon le texte de [Clipboard].
+Future<ClipContent?> readClipboard() async {
+  try {
+    final raw = await _clipboardChannel.invokeMapMethod<String, Object?>(
+      'read',
+    );
+    if (raw == null) return null;
+    final image = raw['image'];
+    final text = raw['text'];
+    return (
+      text: text is String ? text : null,
+      image: image is Uint8List ? image : null,
+    );
+  } on MissingPluginException {
+    // Hors Android (tests) : le texte seul.
+  } on PlatformException {
+    return null;
+  }
+  try {
+    final text = (await Clipboard.getData(Clipboard.kTextPlain))?.text;
+    return text == null ? null : (text: text, image: null);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Image JPEG prête pour `photos/` à partir de [choice] : l'image copiée,
+/// ou le texte collé ([photoFromLink]). Lève une [PhotoLinkException].
+Future<Uint8List> photoFromChoice(
+  ClipContent choice,
+  DownloadBytes download,
+) async {
+  final image = choice.image;
+  if (image != null) return Isolate.run(() => toRecipeJpeg(image));
+  return photoFromLink(choice.text ?? '', download);
 }
 
 /// Image JPEG prête pour `photos/` à partir du texte collé [text] : lien

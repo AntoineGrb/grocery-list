@@ -86,6 +86,9 @@ abstract final class StringsFr {
 
   /// Bouton du bas de la fiche d'une recette enregistrée.
   static const supprimerLaRecette = 'Supprimer la recette';
+  static const supprimerLaRecetteTitre = 'Supprimer la recette ?';
+  static String supprimerLaRecetteTexte(String name) =>
+      '« $name » sera supprimée. La liste en cours ne change pas.';
 
   /// Snackbar Annuler de Recettes après une suppression :
   /// « Recette supprimée : Chili ».
@@ -102,7 +105,8 @@ abstract final class StringsFr {
   static const adresseDeLImage = 'Adresse de l’image';
   static const collerLAdresse = 'Coller';
   static const photoLienAide =
-      'Sur Google Images, appuie longuement sur une image puis « Copier l’adresse de l’image », et colle-la ici.';
+      'Sur Google Images, ouvre une image, appuie longuement dessus puis « Copier l’image » (ou copie son adresse), et reviens ici.';
+  static const imageCopiee = 'Image copiée';
   static const chercherSurGoogleImages = 'Chercher sur Google Images';
   static const lienPasUneImage = 'Ce lien ne mène pas à une image.';
   static const pasDeConnexion = 'Pas de connexion. Réessaie.';
@@ -192,6 +196,7 @@ abstract final class StringsFr {
   static String retireDeLaListe(String name) => 'Retiré de la liste : $name';
   static const supprimer = 'Supprimer';
   static const modifier = 'Modifier';
+  static const enregistrerLesModifications = 'Enregistrer les modifications';
   static const quantite = 'Quantité';
 
   /// Tag quantité d'une ligne du Panneau + sans quantité.

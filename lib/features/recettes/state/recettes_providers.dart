@@ -51,13 +51,17 @@ final photoPickerProvider = Provider<PickPhoto>((ref) {
   };
 });
 
-/// Photo depuis un lien : le texte collé lu, l'image téléchargée si besoin,
-/// puis plafonnée et réencodée en JPEG ([photoFromLink]). Lève une
-/// [PhotoLinkException]. Remplacé en test.
-final photoFromLinkProvider = Provider<Future<Uint8List> Function(String)>(
+/// Photo depuis un lien : l'image copiée, ou le texte collé lu et l'image
+/// téléchargée si besoin, puis plafonnée et réencodée en JPEG
+/// ([photoFromChoice]). Lève une [PhotoLinkException]. Remplacé en test.
+final photoFromLinkProvider = Provider<Future<Uint8List> Function(ClipContent)>(
   (ref) =>
-      (text) => photoFromLink(text, downloadImageBytes),
+      (choice) => photoFromChoice(choice, downloadImageBytes),
 );
+
+/// Lecture du presse-papiers du dialogue « Photo depuis un lien ».
+/// Remplacé en test.
+final clipboardReaderProvider = Provider<ReadClip>((ref) => readClipboard);
 
 /// Ouverture d'un lien de recette dans le navigateur (`url_launcher`,
 /// application externe). Remplacé en test.
