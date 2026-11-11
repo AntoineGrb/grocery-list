@@ -75,6 +75,10 @@ List<ListeItem> _byName(List<ListeItem> lines) {
   return [for (final (_, _, line) in keyed) line];
 }
 
+/// Lignes décochées dont l'écriture est lancée : à leur retour dans la
+/// Liste, elles s'ouvrent en fondu au lieu d'apparaître d'un coup.
+final listeReturningProvider = Provider<Set<String>>((ref) => <String>{});
+
 /// Lignes cochées de la Section Cochés, la dernière cochée en tête.
 final listeCheckedProvider = StreamProvider<List<ListeItem>>(
   (ref) => ref.watch(listeRepositoryProvider).watchChecked(),

@@ -91,29 +91,40 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
     return Scaffold(
+      // Le clavier ne pousse ni ne redimensionne la coque : chaque onglet
+      // gère le sien, et la Barre de navigation ne bouge jamais.
+      resizeToAvoidBottomInset: false,
       body: shell,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: (i) =>
-            shell.goBranch(i, initialLocation: i == shell.currentIndex),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.checklist_outlined),
-            selectedIcon: Icon(Icons.checklist_outlined),
-            label: StringsFr.tabListe,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book_outlined),
-            label: StringsFr.tabRecettes,
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings_outlined),
-            label: StringsFr.parametres,
-          ),
-        ],
+      // Clavier ouvert, la marge basse du MediaQuery tombe à zéro : la barre
+      // garde celle de la barre de gestes, sinon elle saute à la fermeture.
+      bottomNavigationBar: MediaQuery(
+        data: media.copyWith(
+          padding: media.padding.copyWith(bottom: media.viewPadding.bottom),
+        ),
+        child: NavigationBar(
+          selectedIndex: shell.currentIndex,
+          onDestinationSelected: (i) =>
+              shell.goBranch(i, initialLocation: i == shell.currentIndex),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.checklist_outlined),
+              selectedIcon: Icon(Icons.checklist_outlined),
+              label: StringsFr.tabListe,
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.menu_book_outlined),
+              selectedIcon: Icon(Icons.menu_book_outlined),
+              label: StringsFr.tabRecettes,
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.settings_outlined),
+              selectedIcon: Icon(Icons.settings_outlined),
+              label: StringsFr.parametres,
+            ),
+          ],
+        ),
       ),
     );
   }

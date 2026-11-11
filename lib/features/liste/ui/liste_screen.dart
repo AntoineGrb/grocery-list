@@ -6,6 +6,7 @@ import 'package:kadi/app/actions/terminer_les_courses.dart';
 import 'package:kadi/core/pictos/phosphor_table.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/router/app_router.dart';
+import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -27,6 +28,7 @@ import 'item_edit_sheet.dart';
 import 'item_row.dart';
 import 'rayon_header.dart';
 import 'row_highlight.dart';
+import 'size_reveal.dart';
 
 const _revealDuration = Duration(milliseconds: 250);
 
@@ -75,6 +77,16 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
 
   /// Rayon de chaque ligne à la dernière émission.
   var _lineRayons = <String, Rayon>{};
+
+  /// Rayons affichés à la dernière émission ; nul avant la première.
+  Set<Rayon>? _rayonsShown;
+
+  /// Rayons apparus à la dernière émission, panneau fermé : leur En-tête
+  /// s'ouvre en fondu.
+  final _appearingRayons = <Rayon>{};
+
+  /// Rayons devenus vides : leur En-tête se replie, puis disparaît.
+  final _vanishing = <Rayon>{};
 
   @override
   void initState() {
@@ -147,6 +159,17 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     _lineKeys.removeWhere((lineId, _) => !known.contains(lineId));
     _replays.removeWhere((lineId, _) => !known.contains(lineId));
     _arriving.clear();
+
+    final rayonsNow = {for (final group in groups) ?group.rayon};
+    final rayonsBefore = _rayonsShown;
+    _rayonsShown = rayonsNow;
+    _appearingRayons.clear();
+    if (rayonsBefore != null && !_panel.isOpen) {
+      _vanishing.addAll(rayonsBefore.difference(rayonsNow));
+      _appearingRayons.addAll(rayonsNow.difference(rayonsBefore));
+    }
+    _vanishing.removeAll(rayonsNow);
+
     if (previous == null || !_panel.isOpen) return;
     _arriving.addAll(known.difference(previous));
     if (_arriving.isNotEmpty) _target = lines.lastWhere(_arriving.contains);
@@ -269,6 +292,16 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
 
   /// Ligne non cochée [item], mesurable et animée à son arrivée.
   Widget _uncheckedRow(BuildContext context, ListeItem item) {
+    // Une ligne décochée qui revient s'ouvre en fondu.
+    final returning = ref.read(listeReturningProvider).remove(item.lineId);
+    return SizeReveal(
+      key: ValueKey(('row', item.lineId)),
+      appear: returning,
+      child: _highlightedRow(context, item),
+    );
+  }
+
+  Widget _highlightedRow(BuildContext context, ListeItem item) {
     return RowHighlight(
       key: _lineKeys.putIfAbsent(item.lineId, () => GlobalKey()),
       color: KadiColors.of(context).rayon(item.rayon).pastille,
@@ -283,9 +316,21 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     );
   }
 
+  /// Hauteur de la Liste couverte par le Panneau +, du haut du panneau au
+  /// bas du corps haut de [bodyHeight] ; nulle panneau fermé. [context] est
+  /// au-dessus du Scaffold de la Liste : il garde la marge haute.
+  double? _coveredHeight(BuildContext context, double bodyHeight) {
+    final panelTop = _panel.top;
+    if (panelTop == null) return null;
+    final bodyTop = MediaQuery.paddingOf(context).top + kToolbarHeight;
+    return math.max(0.0, bodyTop + bodyHeight - panelTop);
+  }
+
   /// Message de liste vide, centré dans la zone libre au-dessus du panneau.
   /// [context] est au-dessus du Scaffold de la Liste : il garde la marge haute.
   Widget _emptyList(BuildContext context) {
+    // Liste vide : plus d'En-tête à replier.
+    _vanishing.clear();
     final bodyTop = MediaQuery.paddingOf(context).top + kToolbarHeight;
     return LayoutBuilder(
       builder: (_, constraints) {
@@ -307,6 +352,26 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
         );
       },
     );
+  }
+
+  /// Groupes de [groups] et, à leur place dans le parcours, les rayons qui
+  /// se replient (sans groupe).
+  List<(Rayon?, RayonGroup?)> _entries(List<RayonGroup> groups) {
+    final entries = <(Rayon?, RayonGroup?)>[
+      for (final group in groups) (group.rayon, group),
+      for (final rayon in _vanishing) (rayon, null),
+    ];
+    if (_vanishing.isEmpty) return entries;
+    final route = ref.read(settingsProvider).value?.routeOrder ?? Rayon.values;
+    int rank((Rayon?, RayonGroup?) e) =>
+        e.$1 == null ? -1 : route.indexOf(e.$1!);
+    // Tri stable : l'ordre des groupes est déjà celui du parcours.
+    final indexed = entries.indexed.toList()
+      ..sort((a, b) {
+        final byRank = rank(a.$2).compareTo(rank(b.$2));
+        return byRank != 0 ? byRank : a.$1.compareTo(b.$1);
+      });
+    return [for (final (_, e) in indexed) e];
   }
 
   @override
@@ -334,6 +399,9 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
+          // Le Panneau + passe par-dessus avec le clavier : la Liste ne se
+          // redimensionne pas.
+          resizeToAvoidBottomInset: false,
           appBar: TabAppBar(
             title: StringsFr.tabListe,
             actions: [
@@ -350,41 +418,61 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
             (final groups?, final checked?)
                 when groups.isEmpty && checked.isEmpty =>
               _emptyList(context),
-            (final groups?, final checked?) => SingleChildScrollView(
-              key: _viewportKey,
-              controller: _scroll,
-              // Toute la hauteur du panneau : la dernière ligne reste
-              // atteignable, et le surplus est invisible.
-              padding: EdgeInsets.only(
-                bottom: _panel.height ?? KadiSpacing.listBottomInset,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _Progress(
-                    checked: checked.length,
-                    total:
-                        checked.length +
-                        groups.fold(0, (n, g) => n + g.items.length),
-                  ),
-                  for (final group in groups) ...[
-                    // Sans groupement, une seule suite de lignes, sans
-                    // En-tête de rayon. Un rayon tout coché disparaît.
-                    if (group.rayon case final rayon?)
-                      RayonHeader(rayon: rayon),
-                    for (final item in group.items)
-                      _uncheckedRow(context, item),
-                  ],
-                  // Clé : la section garde son état quand des groupes
-                  // apparaissent ou disparaissent au-dessus d'elle.
-                  if (checked.isNotEmpty)
-                    CheckedSection(
-                      key: const ValueKey('checked-section'),
-                      items: checked,
-                      onRemove: (item) => _remove(context, item),
-                      onEdit: (item) => _edit(context, item),
+            (final groups?, final checked?) => LayoutBuilder(
+              builder: (_, constraints) => SingleChildScrollView(
+                key: _viewportKey,
+                controller: _scroll,
+                // Panneau ouvert : toute la part de la Liste qu'il couvre, clavier
+                // compris (la Liste ne se redimensionne pas) ; la dernière ligne
+                // reste atteignable, et le surplus est invisible.
+                padding: EdgeInsets.only(
+                  bottom:
+                      _coveredHeight(context, constraints.maxHeight) ??
+                      KadiSpacing.listBottomInset,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _Progress(
+                      checked: checked.length,
+                      total:
+                          checked.length +
+                          groups.fold(0, (n, g) => n + g.items.length),
                     ),
-                ],
+                    for (final (rayon, group) in _entries(groups)) ...[
+                      if (group == null)
+                        // Rayon devenu vide : son En-tête se replie.
+                        SizeReveal(
+                          key: ValueKey(('vanish', rayon)),
+                          vanish: true,
+                          onVanished: () =>
+                              setState(() => _vanishing.remove(rayon)),
+                          child: RayonHeader(rayon: rayon!),
+                        )
+                      else ...[
+                        // Sans groupement, une seule suite de lignes, sans
+                        // En-tête de rayon. Un rayon tout coché disparaît.
+                        if (rayon != null)
+                          SizeReveal(
+                            key: ValueKey(('header', rayon)),
+                            appear: _appearingRayons.contains(rayon),
+                            child: RayonHeader(rayon: rayon),
+                          ),
+                        for (final item in group.items)
+                          _uncheckedRow(context, item),
+                      ],
+                    ],
+                    // Clé : la section garde son état quand des groupes
+                    // apparaissent ou disparaissent au-dessus d'elle.
+                    if (checked.isNotEmpty)
+                      CheckedSection(
+                        key: const ValueKey('checked-section'),
+                        items: checked,
+                        onRemove: (item) => _remove(context, item),
+                        onEdit: (item) => _edit(context, item),
+                      ),
+                  ],
+                ),
               ),
             ),
             _ => const SizedBox.shrink(),

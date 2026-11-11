@@ -87,6 +87,7 @@ class _ItemRowState extends ConsumerState<ItemRow> {
 
     // Tout est lu maintenant : la ligne peut être démontée (ou reconstruite
     // ailleurs) avant l'écriture.
+    if (!target) ref.read(listeReturningProvider).add(item.lineId);
     _write(
       repository: ref.read(listeRepositoryProvider),
       view: View.of(context),
