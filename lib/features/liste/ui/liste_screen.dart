@@ -316,16 +316,6 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
     );
   }
 
-  /// Hauteur de la Liste couverte par le Panneau +, du haut du panneau au
-  /// bas du corps haut de [bodyHeight] ; nulle panneau fermé. [context] est
-  /// au-dessus du Scaffold de la Liste : il garde la marge haute.
-  double? _coveredHeight(BuildContext context, double bodyHeight) {
-    final panelTop = _panel.top;
-    if (panelTop == null) return null;
-    final bodyTop = MediaQuery.paddingOf(context).top + kToolbarHeight;
-    return math.max(0.0, bodyTop + bodyHeight - panelTop);
-  }
-
   /// Message de liste vide, centré dans la zone libre au-dessus du panneau.
   /// [context] est au-dessus du Scaffold de la Liste : il garde la marge haute.
   Widget _emptyList(BuildContext context) {
@@ -399,9 +389,6 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
       key: _messengerKey,
       child: Builder(
         builder: (context) => Scaffold(
-          // Le Panneau + passe par-dessus avec le clavier : la Liste ne se
-          // redimensionne pas.
-          resizeToAvoidBottomInset: false,
           appBar: TabAppBar(
             title: StringsFr.tabListe,
             actions: [
@@ -418,61 +405,56 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
             (final groups?, final checked?)
                 when groups.isEmpty && checked.isEmpty =>
               _emptyList(context),
-            (final groups?, final checked?) => LayoutBuilder(
-              builder: (_, constraints) => SingleChildScrollView(
-                key: _viewportKey,
-                controller: _scroll,
-                // Panneau ouvert : toute la part de la Liste qu'il couvre, clavier
-                // compris (la Liste ne se redimensionne pas) ; la dernière ligne
-                // reste atteignable, et le surplus est invisible.
-                padding: EdgeInsets.only(
-                  bottom:
-                      _coveredHeight(context, constraints.maxHeight) ??
-                      KadiSpacing.listBottomInset,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _Progress(
-                      checked: checked.length,
-                      total:
-                          checked.length +
-                          groups.fold(0, (n, g) => n + g.items.length),
-                    ),
-                    for (final (rayon, group) in _entries(groups)) ...[
-                      if (group == null)
-                        // Rayon devenu vide : son En-tête se replie.
+            (final groups?, final checked?) => SingleChildScrollView(
+              key: _viewportKey,
+              controller: _scroll,
+              // Toute la hauteur du panneau : la dernière ligne reste
+              // atteignable, et le surplus est invisible.
+              padding: EdgeInsets.only(
+                bottom: _panel.height ?? KadiSpacing.listBottomInset,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _Progress(
+                    checked: checked.length,
+                    total:
+                        checked.length +
+                        groups.fold(0, (n, g) => n + g.items.length),
+                  ),
+                  for (final (rayon, group) in _entries(groups)) ...[
+                    if (group == null)
+                      // Rayon devenu vide : son En-tête se replie.
+                      SizeReveal(
+                        key: ValueKey(('vanish', rayon)),
+                        vanish: true,
+                        onVanished: () =>
+                            setState(() => _vanishing.remove(rayon)),
+                        child: RayonHeader(rayon: rayon!),
+                      )
+                    else ...[
+                      // Sans groupement, une seule suite de lignes, sans
+                      // En-tête de rayon. Un rayon tout coché disparaît.
+                      if (rayon != null)
                         SizeReveal(
-                          key: ValueKey(('vanish', rayon)),
-                          vanish: true,
-                          onVanished: () =>
-                              setState(() => _vanishing.remove(rayon)),
-                          child: RayonHeader(rayon: rayon!),
-                        )
-                      else ...[
-                        // Sans groupement, une seule suite de lignes, sans
-                        // En-tête de rayon. Un rayon tout coché disparaît.
-                        if (rayon != null)
-                          SizeReveal(
-                            key: ValueKey(('header', rayon)),
-                            appear: _appearingRayons.contains(rayon),
-                            child: RayonHeader(rayon: rayon),
-                          ),
-                        for (final item in group.items)
-                          _uncheckedRow(context, item),
-                      ],
+                          key: ValueKey(('header', rayon)),
+                          appear: _appearingRayons.contains(rayon),
+                          child: RayonHeader(rayon: rayon),
+                        ),
+                      for (final item in group.items)
+                        _uncheckedRow(context, item),
                     ],
-                    // Clé : la section garde son état quand des groupes
-                    // apparaissent ou disparaissent au-dessus d'elle.
-                    if (checked.isNotEmpty)
-                      CheckedSection(
-                        key: const ValueKey('checked-section'),
-                        items: checked,
-                        onRemove: (item) => _remove(context, item),
-                        onEdit: (item) => _edit(context, item),
-                      ),
                   ],
-                ),
+                  // Clé : la section garde son état quand des groupes
+                  // apparaissent ou disparaissent au-dessus d'elle.
+                  if (checked.isNotEmpty)
+                    CheckedSection(
+                      key: const ValueKey('checked-section'),
+                      items: checked,
+                      onRemove: (item) => _remove(context, item),
+                      onEdit: (item) => _edit(context, item),
+                    ),
+                ],
               ),
             ),
             _ => const SizedBox.shrink(),

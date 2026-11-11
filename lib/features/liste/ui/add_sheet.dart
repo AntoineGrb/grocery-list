@@ -209,37 +209,8 @@ class _AddSheetState extends ConsumerState<AddSheet> {
     setState(() => _tagsHeight = height);
   }
 
-  /// Animation d'entrée de la feuille, écoutée jusqu'à sa fin.
-  Animation<double>? _entrance;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (_entrance != null) return;
-    // Le clavier s'ouvre une fois le panneau monté : les deux animations à
-    // la fois font sauter la montée.
-    final animation = ModalRoute.of(context)?.animation;
-    if (animation == null || animation.status == AnimationStatus.completed) {
-      _entrance = kAlwaysCompleteAnimation;
-      WidgetsBinding.instance.addPostFrameCallback((_) => _focusField());
-      return;
-    }
-    _entrance = animation..addStatusListener(_onEntrance);
-  }
-
-  void _onEntrance(AnimationStatus status) {
-    if (status != AnimationStatus.completed) return;
-    _entrance?.removeStatusListener(_onEntrance);
-    _focusField();
-  }
-
-  void _focusField() {
-    if (mounted && !_frequentsOpen) _fieldFocus.requestFocus();
-  }
-
   @override
   void dispose() {
-    _entrance?.removeStatusListener(_onEntrance);
     _controller.dispose();
     _fieldFocus.dispose();
     super.dispose();
@@ -664,6 +635,7 @@ class _AddSheetState extends ConsumerState<AddSheet> {
                               child: TextField(
                                 controller: _controller,
                                 focusNode: _fieldFocus,
+                                autofocus: true,
                                 textInputAction: TextInputAction.done,
                                 // Majuscule en début de saisie, comme une liste.
                                 textCapitalization:
