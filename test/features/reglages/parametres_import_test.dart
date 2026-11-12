@@ -10,7 +10,9 @@ import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../../helpers/navigation.dart';
+
 import 'package:kadi/features/recettes/data/recipe_photos.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -120,12 +122,15 @@ Future<_Env> _openParametres(
       ),
     ],
   );
-  await tester.tap(find.byType(SettingsAction));
+  await tester.tap(parametresTab);
   await tester.pumpAndSettle();
   return _Env(db, picker, photos);
 }
 
 Future<void> _tapImport(WidgetTester tester) async {
+  // Sous la Barre de navigation : la ligne est d'abord amenée à l'écran.
+  await tester.ensureVisible(_importRow);
+  await tester.pumpAndSettle();
   await tester.tap(_importRow);
   await tester.pumpAndSettle();
 }

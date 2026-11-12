@@ -9,6 +9,7 @@ import 'generated/schema.dart';
 import 'generated/schema_v1.dart' as v1;
 import 'generated/schema_v2.dart' as v2;
 import 'generated/schema_v3.dart' as v3;
+import 'generated/schema_v4.dart' as v4;
 
 /// Un test par étape de migration (AD-14). Chaque version est figée dans
 /// `drift_schemas/app_database/`.
@@ -30,6 +31,56 @@ void main() {
     final db = AppDatabase.forTesting(schema.newConnection());
     await verifier.migrateAndValidate(db, 3);
     await db.close();
+  });
+
+  test('v4 : schéma créé conforme au dump', () async {
+    final schema = await verifier.schemaAt(4);
+    final db = AppDatabase.forTesting(schema.newConnection());
+    await verifier.migrateAndValidate(db, 4);
+    await db.close();
+  });
+
+  for (final from in [1, 2, 3]) {
+    test('v$from → v4 : schéma conforme au dump', () async {
+      final schema = await verifier.schemaAt(from);
+      final db = AppDatabase.forTesting(schema.newConnection());
+      await verifier.migrateAndValidate(db, 4);
+      await db.close();
+    });
+  }
+
+  test('v3 → v4 : réglages gardés, thème qui suit le téléphone', () async {
+    await verifier.testWithDataIntegrity(
+      oldVersion: 3,
+      newVersion: 4,
+      createOld: v3.DatabaseAtV3.new,
+      createNew: v4.DatabaseAtV4.new,
+      openTestedDatabase: AppDatabase.forTesting,
+      createItems: (batch, oldDb) {
+        batch.insert(
+          oldDb.settings,
+          v3.SettingsCompanion.insert(
+            id: 'settings',
+            updatedAt: 7,
+            routeOrder: 'boulangerie,cremerie',
+            groupByRayon: 0,
+            keepScreenOn: 1,
+            firstLaunch: 0,
+            seedVersions: '{"articles":1}',
+          ),
+        );
+      },
+      validateItems: (newDb) async {
+        final row = await newDb.select(newDb.settings).getSingle();
+        expect(row.id, 'settings');
+        expect(row.updatedAt, 7);
+        expect(row.routeOrder, 'boulangerie,cremerie');
+        expect(row.groupByRayon, 0);
+        expect(row.keepScreenOn, 1);
+        expect(row.seedVersions, '{"articles":1}');
+        expect(row.themeMode, 'system');
+      },
+    );
   });
 
   for (final from in [1, 2]) {

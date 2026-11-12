@@ -72,7 +72,7 @@ void main() {
   ];
 
   test('Export complet : 8 tables, lignes brutes, ligne supprimée présente, '
-      'format_version = 3, photo sous photos/', () async {
+      'format_version = 4, photo sous photos/', () async {
     db = await seededDatabase();
     final clock = Clock();
     final liste = ListeRepository(db, clock);
@@ -109,7 +109,7 @@ void main() {
 
     final archive = unzip(file);
     final data = dataOf(archive);
-    expect(data[BackupFormat.formatVersionKey], 3);
+    expect(data[BackupFormat.formatVersionKey], 4);
     expect(data[BackupFormat.formatVersionKey], db.schemaVersion);
     expect(
       data[BackupFormat.exportedAtKey],

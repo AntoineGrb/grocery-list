@@ -10,7 +10,8 @@ import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/catalogue/data/frequent_id.dart';
 import 'package:kadi/features/recettes/data/recipe_photos.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
-import 'package:kadi/features/reglages/ui/frequents_screen.dart';
+import 'package:kadi/core/ui/frequent_bolt.dart';
+import 'package:kadi/features/reglages/ui/articles_screen.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -123,12 +124,12 @@ void sauvegarde() {
       expect(itemRow('Courgettes'), findsOneWidget);
       await letSnackBarClose(tester);
 
-      // Un fréquent ajouté.
+      // Un fréquent ajouté, par son éclair dans Articles.
       await openParametres(tester);
-      await tapParametre(tester, StringsFr.frequentsTitre);
+      await tapParametre(tester, StringsFr.articlesTitre);
       await tester.enterText(
         find.descendant(
-          of: find.byType(FrequentsScreen),
+          of: find.byType(ArticlesScreen),
           matching: find.byType(TextField),
         ),
         'pil',
@@ -136,9 +137,7 @@ void sauvegarde() {
       await tester.pumpAndSettle();
       await tapAndSettle(
         tester,
-        find.byWidgetPredicate(
-          (w) => w is FrequentResultLine && w.article.name == 'Piles',
-        ),
+        find.byWidgetPredicate((w) => w is FrequentBolt && w.name == 'Piles'),
       );
       await _back(tester);
 

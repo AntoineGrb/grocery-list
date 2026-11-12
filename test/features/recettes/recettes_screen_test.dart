@@ -636,12 +636,10 @@ void main() {
     });
   });
 
-  group('Nouvelle liste (R8) et Terminer les courses (R10)', () {
+  group('Vider les recettes et Terminer les courses (R10)', () {
     final garder = find.widgetWithText(TextButton, StringsFr.garder);
-    final effacer = find.widgetWithText(
-      TextButton,
-      StringsFr.effacerEtRecommencer,
-    );
+    final effacer = find.widgetWithText(TextButton, StringsFr.vider);
+    final action = find.byTooltip(StringsFr.viderLesRecettes);
 
     /// Coche la ligne de la Liste de [name].
     Future<void> checkOnListe(WidgetTester tester, String name) async {
@@ -668,27 +666,36 @@ void main() {
     }
 
     Future<void> openDialog(WidgetTester tester) async {
-      await recettesMenu(tester, StringsFr.nouvelleListe);
+      await tester.tap(action);
+      await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
     }
 
-    /// Les trois tables touchées par Nouvelle liste.
+    /// Les trois tables touchées par Vider les recettes.
     Future<List<Object>> snapshot(AppDatabase db) async => [
       ...await db.select(db.listLines).get(),
       ...await db.select(db.listContributions).get(),
       ...await db.select(db.weekSelections).get(),
     ];
 
-    testWidgets('dans le menu ⋮ de la Barre d’application, lu « Plus '
-        'd’options » ; dialogue avec ses textes et couleurs', (tester) async {
+    testWidgets('↻ de la Barre d’application, à droite du +, lu « Vider '
+        'les recettes » ; dialogue avec ses textes et couleurs', (
+      tester,
+    ) async {
       final handle = tester.ensureSemantics();
       await pumpKadi(tester);
       await _openRecettes(tester);
 
-      final menu = find.byTooltip(StringsFr.plusDOptions);
+      final menu = action;
       expect(
         find.descendant(of: find.byType(AppBar), matching: menu),
         findsOneWidget,
+      );
+      expect(
+        tester.getCenter(menu).dx,
+        greaterThan(
+          tester.getCenter(find.byTooltip(StringsFr.nouvelleRecette)).dx,
+        ),
       );
       final size = tester.getSize(menu);
       expect(size.height, greaterThanOrEqualTo(KadiSpacing.touchTarget));
@@ -697,8 +704,8 @@ void main() {
 
       // Toujours visible, même sans sélection ni liste.
       await openDialog(tester);
-      expect(find.text(StringsFr.nouvelleListeTitre), findsOneWidget);
-      expect(find.text(StringsFr.nouvelleListeTexte), findsOneWidget);
+      expect(find.text(StringsFr.viderLesRecettesTitre), findsOneWidget);
+      expect(find.text(StringsFr.viderLesRecettesTexte), findsOneWidget);
       expect(garder, findsOneWidget);
       expect(effacer, findsOneWidget);
       final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
@@ -725,8 +732,8 @@ void main() {
       handle.dispose();
     });
 
-    testWidgets('Effacer et recommencer : aucune carte sélectionnée, pas de '
-        '« Valider », pas d’Annuler, la Liste vide', (tester) async {
+    testWidgets('Vider : aucune carte sélectionnée, pas de « Valider », '
+        'Annuler proposé, les lignes des recettes retirées', (tester) async {
       final handle = tester.ensureSemantics();
       final db = await semaineEnCours(tester);
 
@@ -747,7 +754,7 @@ void main() {
         );
       }
       expect(find.byType(FilledButton), findsNothing);
-      expect(find.byType(SnackBar), findsNothing);
+      expect(find.text(StringsFr.recettesVidees), findsOneWidget);
       expect(find.byType(RecipeRow), findsNWidgets(4));
       final selections = await db.select(db.weekSelections).get();
       expect(selections.every((s) => s.deletedAt != null), isTrue);
@@ -756,6 +763,8 @@ void main() {
       expect(find.text(StringsFr.listeVide), findsOneWidget);
       expect(find.byType(ItemRow), findsNothing);
       expect(find.textContaining('Cochés'), findsNothing);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
       handle.dispose();
     });
 
@@ -801,7 +810,7 @@ void main() {
       await tester.tap(effacer);
       await tester.pumpAndSettle();
 
-      expect(find.text(StringsFr.nouvelleListeImpossible), findsOneWidget);
+      expect(find.text(StringsFr.viderLesRecettesImpossible), findsOneWidget);
       expect(await snapshot(db), before);
       expect(validerButton(1), findsOneWidget);
       await tester.pump(const Duration(seconds: 5));
@@ -818,13 +827,13 @@ void main() {
       await pumpKadi(tester);
       await _openRecettes(tester);
       expect(tester.takeException(), isNull);
-      final menu = find.byTooltip(StringsFr.plusDOptions);
+      final menu = action;
       expect(menu.hitTestable(), findsOneWidget);
       expect(tester.getRect(menu).right, lessThanOrEqualTo(360));
 
       await openDialog(tester);
       expect(tester.takeException(), isNull);
-      expect(find.text(StringsFr.nouvelleListeTexte), findsOneWidget);
+      expect(find.text(StringsFr.viderLesRecettesTexte), findsOneWidget);
       expect(garder.hitTestable(), findsOneWidget);
       expect(effacer.hitTestable(), findsOneWidget);
       await tester.tap(garder);

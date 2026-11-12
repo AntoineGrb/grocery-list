@@ -131,6 +131,24 @@ class _Phone {
 }
 
 void main() {
+  test('migration du format 3 → 4 : les réglages prennent theme_mode '
+      '« system », le reste est gardé', () {
+    final migrated = BackupImporter.migrations[3]!({
+      'settings': [
+        {'id': 'settings', 'keep_screen_on': 1},
+      ],
+      'articles': [
+        {'id': 'a'},
+      ],
+    });
+    expect(migrated['settings'], [
+      {'theme_mode': 'system', 'id': 'settings', 'keep_screen_on': 1},
+    ]);
+    expect(migrated['articles'], [
+      {'id': 'a'},
+    ]);
+  });
+
   // Deux téléphones par test, chacun sur sa propre base en mémoire (son
   // propre exécuteur) : aucune course possible.
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;

@@ -193,12 +193,17 @@ Future<void> openRevue(WidgetTester tester, int n) async {
   await tester.pumpAndSettle();
 }
 
-/// Ouvre le menu ⋮ de Recettes et touche son action [label] (« Nouvelle
-/// liste », « Paramètres »).
-Future<void> recettesMenu(WidgetTester tester, String label) async {
-  await tester.tap(find.byTooltip(StringsFr.plusDOptions));
+/// Poubelle de la Fiche recette, présente pour une recette en base.
+Finder get ficheDeleteButton => find.descendant(
+  of: find.byType(FicheRecetteScreen),
+  matching: find.byTooltip(StringsFr.supprimerLaRecette),
+);
+
+/// « Supprimer la recette » par la poubelle de la fiche, confirmé.
+Future<void> deleteFromFiche(WidgetTester tester) async {
+  await tester.tap(ficheDeleteButton);
   await tester.pumpAndSettle();
-  await tester.tap(find.text(label));
+  await tester.tap(find.widgetWithText(TextButton, StringsFr.supprimer));
   await tester.pumpAndSettle();
 }
 

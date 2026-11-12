@@ -5,12 +5,13 @@ import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../../helpers/navigation.dart';
+
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
-import '../../helpers/recettes.dart';
 
 /// Réglages dont toute écriture des Paramètres échoue.
 class _FailingSettings extends SettingsRepository {
@@ -36,57 +37,58 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> _openParametres(WidgetTester tester) =>
-    _tap(tester, find.byType(SettingsAction));
+    _tap(tester, parametresTab);
 
 Future<SettingsRow> _row(AppDatabase db) => db.select(db.settings).getSingle();
 
 void main() {
-  testWidgets('⚙ de la Liste ouvre Paramètres plein écran, flèche retour, '
-      'sans Barre de navigation', (tester) async {
+  testWidgets('onglet Paramètres, le troisième : sans flèche retour, la '
+      'Barre de navigation reste', (tester) async {
     await pumpKadi(tester);
+    final labels = [
+      for (final d in tester.widgetList<NavigationDestination>(
+        find.byType(NavigationDestination),
+      ))
+        d.label,
+    ];
+    expect(labels, [
+      StringsFr.tabListe,
+      StringsFr.tabRecettes,
+      StringsFr.parametres,
+    ]);
 
     await _openParametres(tester);
     expect(find.byType(ParametresScreen), findsOneWidget);
-    expect(find.text(StringsFr.parametres), findsOneWidget);
-    expect(find.byType(BackButton), findsOneWidget);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(BackButton), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
     expect(_switch(StringsFr.garderEcranAllume), findsOneWidget);
+    expect(_switch(StringsFr.themeSombre), findsOneWidget);
     expect(_switch(StringsFr.grouperParRayon), findsOneWidget);
-    expect(find.text(StringsFr.garderEcranAllumeDetail), findsOneWidget);
-    expect(find.text(StringsFr.grouperParRayonDetail), findsOneWidget);
+    expect(find.text(StringsFr.frequentsTitre), findsNothing);
 
-    await _tap(tester, find.byType(BackButton));
+    await _tap(tester, listeTab);
     expect(find.byType(ParametresScreen), findsNothing);
-    expect(find.text(StringsFr.tabListe), findsWidgets);
   });
 
-  testWidgets('menu ⋮ de Recettes : « Paramètres » ouvre Paramètres', (
-    tester,
-  ) async {
-    await pumpKadi(tester);
-    await _tap(tester, find.text(StringsFr.tabRecettes));
+  testWidgets('Thème sombre : suit le téléphone tant qu’il n’est pas '
+      'touché ; le switch écrit le thème et l’app le prend', (tester) async {
+    final db = await pumpKadi(tester);
+    await _openParametres(tester);
+    ThemeMode? mode() =>
+        tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode;
 
-    expect(find.byType(SettingsAction), findsNothing);
-    await recettesMenu(tester, StringsFr.parametres);
-    expect(find.byType(ParametresScreen), findsOneWidget);
-  });
+    expect((await _row(db)).themeMode, 'system');
+    expect(mode(), ThemeMode.system);
+    expect(_value(tester, StringsFr.themeSombre), isFalse);
 
-  testWidgets('⚙ : cible de 48 dp au moins, couleur on-surface', (
-    tester,
-  ) async {
-    await pumpKadi(tester);
-    final gear = find.byType(SettingsAction);
-    final size = tester.getSize(
-      find.descendant(of: gear, matching: find.byType(IconButton)),
-    );
-    expect(size.width, greaterThanOrEqualTo(48));
-    expect(size.height, greaterThanOrEqualTo(48));
-    final color = tester
-        .widget<IconButton>(
-          find.descendant(of: gear, matching: find.byType(IconButton)),
-        )
-        .color;
-    expect(color, Theme.of(tester.element(gear)).colorScheme.onSurface);
+    await _tap(tester, _switch(StringsFr.themeSombre));
+    expect((await _row(db)).themeMode, 'dark');
+    expect(mode(), ThemeMode.dark);
+    expect(_value(tester, StringsFr.themeSombre), isTrue);
+
+    await _tap(tester, _switch(StringsFr.themeSombre));
+    expect((await _row(db)).themeMode, 'light');
+    expect(mode(), ThemeMode.light);
   });
 
   testWidgets('par défaut : Écran allumé désactivé, groupement activé ; les '
@@ -157,24 +159,11 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('TalkBack : ⚙ lu « Paramètres », switches lus avec leur '
-      'libellé et leur état', (tester) async {
+  testWidgets('TalkBack : switches lus avec leur libellé et leur état', (
+    tester,
+  ) async {
     final handle = tester.ensureSemantics();
     await pumpKadi(tester);
-
-    // Le `tooltip` de l'IconButton donne ce que lit TalkBack : il est porté
-    // par la propriété `tooltip` du nœud, pas par son `label`.
-    final gear = find.byType(SettingsAction);
-    expect(gear, findsOneWidget);
-    expect(
-      tester.getSemantics(gear),
-      isSemantics(
-        tooltip: StringsFr.parametres,
-        isButton: true,
-        isEnabled: true,
-        hasTapAction: true,
-      ),
-    );
     await _openParametres(tester);
 
     expect(
@@ -218,10 +207,15 @@ void main() {
     for (final text in [
       StringsFr.garderEcranAllume,
       StringsFr.garderEcranAllumeDetail,
+      StringsFr.themeSombre,
+      StringsFr.themeSombreDetail,
       StringsFr.grouperParRayon,
       StringsFr.grouperParRayonDetail,
     ]) {
       final finder = find.text(text);
+      // La liste défile : chaque ligne est amenée à l'écran.
+      await tester.ensureVisible(finder);
+      await tester.pumpAndSettle();
       expect(finder.hitTestable(), findsOneWidget, reason: text);
       expect(tester.getRect(finder).right, lessThanOrEqualTo(360));
       expect(tester.widget<Text>(finder).overflow, isNull, reason: text);

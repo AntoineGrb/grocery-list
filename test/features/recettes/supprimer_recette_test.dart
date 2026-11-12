@@ -16,19 +16,11 @@ import '../../helpers/test_db.dart';
 Future<void> _edit(WidgetTester tester, String name) =>
     editRecipe(tester, name);
 
-/// Menu ⋮ de la Fiche recette, présent pour une recette en base.
-Finder get _deleteButton => find.descendant(
-  of: find.byType(FicheRecetteScreen),
-  matching: find.byTooltip(StringsFr.plusDOptions),
-);
+/// Poubelle de la Fiche recette, présente pour une recette en base.
+Finder get _deleteButton => ficheDeleteButton;
 
-/// « Supprimer la recette » par le menu ⋮ de la fiche.
-Future<void> _delete(WidgetTester tester) async {
-  await tester.tap(_deleteButton);
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(StringsFr.supprimerLaRecette));
-  await tester.pumpAndSettle();
-}
+/// « Supprimer la recette » par la poubelle de la fiche, confirmé.
+Future<void> _delete(WidgetTester tester) => deleteFromFiche(tester);
 
 Finder get _undoAction =>
     find.widgetWithText(SnackBarAction, StringsFr.annuler);
@@ -47,17 +39,19 @@ Future<List<Object>> _listAndSelections(AppDatabase db) async => [
 
 void main() {
   group('premier lancement (R11, AD-13)', () {
-    testWidgets('installation neuve : Recettes, ligne d’accueil au-dessus '
-        'des cartes, drapeau baissé ; relance : la Liste, sans ligne '
-        'd’accueil', (tester) async {
+    testWidgets('installation neuve : la Liste, puis Recettes et sa ligne '
+        'd’accueil au-dessus des cartes, drapeau baissé ; relance : la Liste, '
+        'sans ligne d’accueil', (tester) async {
       tallPhone(tester);
       final handle = tester.ensureSemantics();
       final db = await pumpKadi(tester, firstLaunch: true);
 
+      expect(find.byType(ListeScreen), findsOneWidget);
+      await openTab(tester, StringsFr.tabRecettes);
       expect(find.byType(RecettesScreen), findsOneWidget);
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        0,
+        1,
       );
       expect(find.byType(RecipeRow), findsNWidgets(4));
       expect(_welcome, findsOneWidget);
@@ -87,7 +81,7 @@ void main() {
       expect(find.text(StringsFr.listeVide), findsOneWidget);
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        1,
+        0,
       );
       await openTab(tester, StringsFr.tabRecettes);
       expect(find.byType(RecipeRow), findsNWidgets(4));
@@ -108,6 +102,7 @@ void main() {
         'd’accueil, même après Annuler', (tester) async {
       tallPhone(tester);
       final db = await pumpKadi(tester, firstLaunch: true);
+      await openTab(tester, StringsFr.tabRecettes);
       expect(_welcome, findsOneWidget);
 
       for (final name in [
@@ -211,8 +206,9 @@ void main() {
       );
     });
 
-    testWidgets('menu ⋮ de la fiche, 48 dp, avec « Supprimer la recette » ; '
-        'absent d’une fiche neuve, ni tant qu’elle n’est pas enregistrée', (
+    testWidgets('poubelle de la fiche, 48 dp, lue « Supprimer la recette », '
+        'dialogue de confirmation ; absente d’une fiche neuve tant qu’elle '
+        'n’est pas enregistrée', (
       tester,
     ) async {
       tallPhone(tester);
@@ -226,20 +222,25 @@ void main() {
         tester.getSize(_deleteButton).height,
         greaterThanOrEqualTo(KadiSpacing.touchTarget),
       );
-      await tester.tap(_deleteButton);
-      await tester.pumpAndSettle();
       expect(
-        tester.getSemantics(
-          find.bySemanticsLabel(StringsFr.supprimerLaRecette),
-        ),
+        tester.getSemantics(_deleteButton),
         isSemantics(
-          label: StringsFr.supprimerLaRecette,
+          tooltip: StringsFr.supprimerLaRecette,
           isButton: true,
           hasTapAction: true,
         ),
       );
-      await tester.tapAt(const Offset(10, 700));
+      await tester.tap(_deleteButton);
       await tester.pumpAndSettle();
+      expect(find.text(StringsFr.supprimerLaRecetteTitre), findsOneWidget);
+      expect(
+        find.text(StringsFr.supprimerLaRecetteTexte('Chili con carne')),
+        findsOneWidget,
+      );
+      // Garder : rien ne change.
+      await tester.tap(find.widgetWithText(TextButton, StringsFr.garder));
+      await tester.pumpAndSettle();
+      expect(find.byType(FicheRecetteScreen), findsOneWidget);
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
 
@@ -319,6 +320,7 @@ void main() {
         addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
         tallPhone(tester, const Size(360, 800));
         await pumpKadi(tester, firstLaunch: true);
+        await openTab(tester, StringsFr.tabRecettes);
         expect(tester.takeException(), isNull);
         final welcome = tester.widget<Text>(_welcome);
         expect(welcome.maxLines, isNull);
@@ -329,11 +331,12 @@ void main() {
         await tester.tap(_deleteButton);
         await tester.pumpAndSettle();
         final label = tester.widget<Text>(
-          find.text(StringsFr.supprimerLaRecette),
+          find.text(StringsFr.supprimerLaRecetteTitre),
         );
         expect(label.maxLines, isNull);
         expect(label.overflow, isNull);
-        await tester.tapAt(const Offset(10, 700));
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.widgetWithText(TextButton, StringsFr.garder));
         await tester.pumpAndSettle();
 
         await _delete(tester);

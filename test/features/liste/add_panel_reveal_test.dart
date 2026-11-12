@@ -6,6 +6,7 @@ import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/ui/empty_state.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
 import 'package:kadi/core/ui/rayon_pastille.dart';
@@ -195,6 +196,11 @@ void _expectAbovePanel(WidgetTester tester, String name) {
   expect(bottom, lessThanOrEqualTo(_panel(tester).top! + 1));
   expect(tester.getTopLeft(_row(name)).dy, greaterThanOrEqualTo(_appBarBottom));
 }
+
+/// Bloc de la Liste vide : disque, titre, phrase et bouton.
+Finder get _emptyBlock => find
+    .descendant(of: find.byType(EmptyState), matching: find.byType(Column))
+    .first;
 
 void main() {
   group('addPanelHeight', () {
@@ -555,7 +561,8 @@ void main() {
       await _pumpPhone(tester);
       await _openPanel(tester);
 
-      final message = find.text(StringsFr.listeVide);
+      // Le bloc illustré (disque, titre, phrase, bouton) est centré.
+      final message = _emptyBlock;
       expect(
         tester.getCenter(message).dy,
         closeTo((_appBarBottom + _panel(tester).top!) / 2, 1),
@@ -575,7 +582,7 @@ void main() {
       await _openPanel(tester);
 
       expect(
-        tester.getCenter(find.text(StringsFr.listeVide)).dy,
+        tester.getCenter(_emptyBlock).dy,
         closeTo((_appBarBottom + _panel(tester).top!) / 2, 1),
       );
     });

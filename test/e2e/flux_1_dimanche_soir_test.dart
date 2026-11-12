@@ -80,13 +80,12 @@ void flux1DimancheSoir() {
       await tester.pumpAndSettle();
       expect(itemRow('Riz'), findsOneWidget);
 
-      // 1. Recettes, Action Nouvelle liste, confirmée.
-      await openTab(tester, StringsFr.tabRecettes);
-      await recettesMenu(tester, StringsFr.nouvelleListe);
-      expect(find.text(StringsFr.nouvelleListeTitre), findsOneWidget);
-      await tapAndSettle(tester, find.text(StringsFr.effacerEtRecommencer));
-      await openTab(tester, StringsFr.tabListe);
+      // 1. Liste, ↻ Vider la liste, confirmé.
+      await tapAndSettle(tester, find.byTooltip(StringsFr.viderLaListe));
+      expect(find.text(StringsFr.viderLaListeTitre), findsOneWidget);
+      await tapAndSettle(tester, find.text(StringsFr.vider));
       expect(find.text(StringsFr.listeVide), findsOneWidget);
+      await letSnackBarClose(tester);
 
       // 2 à 5.
       await _choisirLaSemaine(tester);

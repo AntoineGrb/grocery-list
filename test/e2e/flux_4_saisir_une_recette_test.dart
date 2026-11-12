@@ -126,7 +126,9 @@ void flux4SaisirUneRecette() {
       )..where((a) => a.name.equals('Épices'))).getSingle();
       expect(
         (epices.rayon, epices.unit, epices.inCatalogue),
-        (Rayon.divers.code, null, true),
+        // Créé dans une recette : hors catalogue (seuls les Paramètres y
+        // ajoutent).
+        (Rayon.divers.code, null, false),
       );
     });
 

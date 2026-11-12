@@ -6,7 +6,9 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../../helpers/navigation.dart';
+
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/state/liste_panel.dart';
 import 'package:kadi/features/liste/state/liste_providers.dart';
@@ -48,11 +50,12 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-/// Ouvre Paramètres par ⚙, bascule « Grouper par rayon », revient à la Liste.
+/// Ouvre l'onglet Paramètres, bascule « Grouper par rayon », revient à la
+/// Liste.
 Future<void> _toggleGrouping(WidgetTester tester) async {
-  await _tap(tester, find.byType(SettingsAction));
+  await _tap(tester, parametresTab);
   await _tap(tester, find.text(StringsFr.grouperParRayon));
-  await _tap(tester, find.byType(BackButton));
+  await _tap(tester, listeTab);
 }
 
 /// Monte Kadi avec Lait (Crèmerie), Tomates (F&L) et Pain de mie

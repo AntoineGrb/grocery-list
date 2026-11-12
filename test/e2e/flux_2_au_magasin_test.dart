@@ -21,12 +21,13 @@ Future<void> _listeDuChili(WidgetTester tester) async {
   await openRevue(tester, 1);
   await tapAndSettle(tester, ajouterALaListe);
   await letSnackBarClose(tester);
+  // Par nom dans chaque rayon (retours V2).
   expect(shownItems(tester), [
     'Oignons',
     'Poivrons',
     'Viande hachée',
-    'Tomates concassées',
     'Riz',
+    'Tomates concassées',
   ]);
 }
 
@@ -67,7 +68,7 @@ void flux2AuMagasin() {
       await checkItem(tester, 'Riz', inSection: true);
       expect(itemRow('Riz', inSection: true), findsNothing);
       expect(shownHeaders(tester), [StringsFr.rayonEpicerieSalee]);
-      expect(shownItems(tester), ['Tomates concassées', 'Riz']);
+      expect(shownItems(tester), ['Riz', 'Tomates concassées']);
       expect(_terminer, findsNothing);
 
       // 5. Le dernier article.
@@ -124,23 +125,22 @@ void flux2AuMagasin() {
       expect(_terminer, findsNothing);
     });
 
-    testBothThemes('Échec : Riz laissé non coché, Nouvelle liste efface '
+    testBothThemes('Échec : Riz laissé non coché, Vider la liste efface '
         'tout', (tester) async {
       phone(tester);
       await pumpE2e(tester);
       await _listeDuChili(tester);
       await checkItem(tester, 'Oignons');
 
+      await tapAndSettle(tester, find.byTooltip(StringsFr.viderLaListe));
+      await tapAndSettle(tester, find.text(StringsFr.vider));
+      expect(find.text(StringsFr.listeVide), findsOneWidget);
+      expect(find.byType(CheckedSection), findsNothing);
       await openTab(tester, StringsFr.tabRecettes);
-      await recettesMenu(tester, StringsFr.nouvelleListe);
-      await tapAndSettle(tester, find.text(StringsFr.effacerEtRecommencer));
       expect(
         find.bySemanticsLabel(StringsFr.ajouterALaSemaine('Chili con carne')),
         findsOneWidget,
       );
-      await openTab(tester, StringsFr.tabListe);
-      expect(find.text(StringsFr.listeVide), findsOneWidget);
-      expect(find.byType(CheckedSection), findsNothing);
     });
   });
 }

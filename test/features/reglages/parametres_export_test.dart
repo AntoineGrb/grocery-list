@@ -9,7 +9,9 @@ import 'package:kadi/core/backup/backup_providers.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../../helpers/navigation.dart';
+
 import 'package:kadi/features/recettes/data/recipe_photos.dart';
 import 'package:kadi/features/recettes/state/recettes_providers.dart';
 import 'package:material_ui/material_ui.dart';
@@ -85,7 +87,7 @@ Future<_Env> _openParametres(
         ),
     ],
   );
-  await tester.tap(find.byType(SettingsAction));
+  await tester.tap(parametresTab);
   await tester.pumpAndSettle();
   return _Env(db, share, photos);
 }

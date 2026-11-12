@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:kadi/core/clock/clock.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../helpers/navigation.dart';
+
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
@@ -41,7 +43,7 @@ Finder _routeHandle(Rayon rayon) => find.descendant(
 /// Ouvre Paramètres › Parcours depuis la Liste, glisse Boulangerie (2e) en
 /// premier par sa poignée, puis revient à la Liste.
 Future<void> _boulangerieEnPremier(WidgetTester tester) async {
-  await _tap(tester, find.byType(SettingsAction));
+  await _tap(tester, parametresTab);
   await _tap(tester, find.text(StringsFr.parcours));
   final height = tester
       .getSize(
@@ -66,7 +68,7 @@ Future<void> _boulangerieEnPremier(WidgetTester tester) async {
   );
 
   await _tap(tester, find.byType(BackButton));
-  await _tap(tester, find.byType(BackButton));
+  await _tap(tester, listeTab);
   expect(find.byType(ListeScreen), findsOneWidget);
 }
 

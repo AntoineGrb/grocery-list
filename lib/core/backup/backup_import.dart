@@ -56,10 +56,20 @@ class BackupImporter {
   final SettingsRepository _settings;
 
   /// Migrations du format, par version de départ : la migration `n` mène un
-  /// fichier de la version `n` à `n + 1`. Vide tant que le schéma n'a pas
-  /// changé depuis la version 3 ; une version absente de la table (et
-  /// différente de `schemaVersion`) est refusée.
-  static const Map<int, BackupMigration> migrations = {};
+  /// fichier de la version `n` à `n + 1`. Une version absente de la table
+  /// (et différente de `schemaVersion`) est refusée.
+  static const Map<int, BackupMigration> migrations = {3: _from3To4};
+
+  /// v4 : `settings.theme_mode`, qui suit le téléphone (`system`).
+  static Map<String, List<BackupRow>> _from3To4(
+    Map<String, List<BackupRow>> tables,
+  ) => {
+    ...tables,
+    if (tables['settings'] case final rows?)
+      'settings': [
+        for (final row in rows) {'theme_mode': 'system', ...row},
+      ],
+  };
 
   /// Ordre de la fusion, celui des dépendances (AD-9). Une table future
   /// absente de la liste est fusionnée après celles-ci, avant les réglages.

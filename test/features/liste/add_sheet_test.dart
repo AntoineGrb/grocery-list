@@ -16,7 +16,7 @@ import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/item_edit_sheet.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
-import 'package:kadi/features/reglages/ui/frequents_screen.dart';
+import 'package:kadi/features/reglages/ui/articles_screen.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../helpers/pump_app.dart';
@@ -251,7 +251,7 @@ void main() {
     expect(_inSheet(find.byType(RayonHeader)), findsNothing);
   });
 
-  testWidgets('bouton Gérer : le panneau se ferme et Paramètres › Fréquents '
+  testWidgets('bouton Gérer : le panneau se ferme et Paramètres › Articles '
       's’ouvre ; au retour, la Liste, panneau fermé', (tester) async {
     await _pumpApp(tester);
     await _openSheet(tester);
@@ -261,11 +261,11 @@ void main() {
 
     expect(_sheet, findsNothing);
     expect(_editSheet, findsNothing);
-    expect(find.byType(FrequentsScreen), findsOneWidget);
+    expect(find.byType(ArticlesScreen), findsOneWidget);
 
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.byType(FrequentsScreen), findsNothing);
+    expect(find.byType(ArticlesScreen), findsNothing);
     expect(_sheet, findsNothing);
     expect(find.byType(FloatingActionButton).hitTestable(), findsOneWidget);
   });
@@ -330,13 +330,13 @@ void main() {
         tester.getTopLeft(find.widgetWithText(RayonHeader, 'Crèmerie')).dy,
       ),
     );
-    // En-tête avec le nombre d'articles restants (V2).
+    // Plus de compteur dans l'En-tête (retours V2).
     expect(
       find.descendant(
         of: find.widgetWithText(RayonHeader, 'Crèmerie'),
         matching: find.text('1'),
       ),
-      findsOneWidget,
+      findsNothing,
     );
   });
 

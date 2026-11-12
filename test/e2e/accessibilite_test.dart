@@ -9,7 +9,6 @@ import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:kadi/features/reglages/ui/article_lines.dart';
 import 'package:kadi/features/reglages/ui/article_sheet.dart';
 import 'package:kadi/features/reglages/ui/articles_screen.dart';
-import 'package:kadi/features/reglages/ui/frequents_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:kadi/features/reglages/ui/picto_grid_sheet.dart';
 import 'package:material_ui/material_ui.dart';
@@ -117,11 +116,6 @@ Future<void> _visitSurfaces(WidgetTester tester, SurfaceCheck check) async {
   await _pressBack(tester);
   expect(find.byType(ArticleSheet), findsNothing);
   await tapAndSettle(tester, find.byType(BackButton));
-
-  await tapParametre(tester, StringsFr.frequentsTitre);
-  expect(find.byType(FrequentsScreen), findsOneWidget);
-  await check('Paramètres › Fréquents');
-  await tapAndSettle(tester, find.byType(BackButton));
 }
 
 void accessibilite() {
@@ -147,7 +141,7 @@ void accessibilite() {
           );
         }
       });
-      expect(visited, hasLength(15));
+      expect(visited, hasLength(14));
       handle.dispose();
     });
 
@@ -163,7 +157,7 @@ void accessibilite() {
         visited.add(surface);
         expect(tester.takeException(), isNull, reason: surface);
       });
-      expect(visited, hasLength(15));
+      expect(visited, hasLength(14));
     });
 
     testBothThemes('animations désactivées : une coche et un ajout du '

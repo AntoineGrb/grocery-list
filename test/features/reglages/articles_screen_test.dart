@@ -7,8 +7,12 @@ import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/pictos/picto.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
+import 'package:kadi/core/theme/kadi_tokens.dart';
+import 'package:kadi/core/ui/frequent_bolt.dart';
 import 'package:kadi/core/ui/rayon_picker.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../../helpers/navigation.dart';
+
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/catalogue/data/catalogue_repository.dart';
 import 'package:kadi/features/catalogue/data/frequent_id.dart';
@@ -68,7 +72,7 @@ Finder get _parametresScrollable => find
 /// Ouvre Paramètres par ⚙, puis Articles par sa ligne (amenée à l'écran :
 /// les Paramètres sont une liste paresseuse).
 Future<void> _openArticles(WidgetTester tester) async {
-  await _tap(tester, find.byType(SettingsAction));
+  await _tap(tester, parametresTab);
   await tester.scrollUntilVisible(
     find.text(StringsFr.articlesTitre),
     100,
@@ -180,11 +184,10 @@ Future<List<ListLine>> _activeLines(AppDatabase db, String articleId) =>
           ..where((l) => l.articleId.equals(articleId) & l.deletedAt.isNull()))
         .get();
 
-/// Revient à l'onglet ouvert sous les Paramètres (retour sur Articles, puis
-/// sur Paramètres).
+/// Revient à la Liste : retour sur Articles, puis onglet Liste.
 Future<void> _backToTabs(WidgetTester tester) async {
   await _tap(tester, find.byType(BackButton));
-  await _tap(tester, find.byType(BackButton));
+  await _tap(tester, listeTab);
   expect(find.byType(ParametresScreen), findsNothing);
 }
 
@@ -226,7 +229,7 @@ void main() {
       'pousse Articles, titre et flèche retour', (tester) async {
     tallPhone(tester);
     await pumpKadi(tester);
-    await _tap(tester, find.byType(SettingsAction));
+    await _tap(tester, parametresTab);
 
     expect(find.text(StringsFr.articlesDetail), findsOneWidget);
     final parcours = tester.getTopLeft(find.text(StringsFr.parcours)).dy;
@@ -897,6 +900,8 @@ void main() {
       lessThanOrEqualTo(360),
     );
 
+    await tester.ensureVisible(_line('Papier toilette'));
+    await tester.pumpAndSettle();
     await _tap(tester, _line('Papier toilette'));
     expect(tester.takeException(), isNull);
     expect(_sheet, findsOneWidget);
@@ -907,5 +912,107 @@ void main() {
     await tester.ensureVisible(_unitChip(null));
     await tester.pumpAndSettle();
     expect(_unitChip(null).hitTestable(), findsOneWidget);
+  });
+
+  group('Fréquents et suppression (retours V2)', () {
+    Finder bolt(String name) =>
+        find.byWidgetPredicate((w) => w is FrequentBolt && w.name == name);
+
+    Future<bool> isFrequent(AppDatabase db, String articleId) async {
+      final rows = await (db.select(db.frequents)..where(
+            (f) => f.articleId.equals(articleId) & f.deletedAt.isNull(),
+          ))
+          .get();
+      return rows.isNotEmpty;
+    }
+
+    testWidgets('l’éclair d’un article en fait un fréquent, plein ; un '
+        'second tap le retire, vide', (tester) async {
+      final db = await _pumpArticles(tester);
+      await _type(tester, 'Riz');
+      final before = await isFrequent(db, SeedIds.riz);
+      expect(tester.widget<FrequentBolt>(bolt('Riz')).frequent, before);
+
+      await _tap(tester, bolt('Riz'));
+      expect(await isFrequent(db, SeedIds.riz), !before);
+      expect(tester.widget<FrequentBolt>(bolt('Riz')).frequent, !before);
+
+      await _tap(tester, bolt('Riz'));
+      expect(await isFrequent(db, SeedIds.riz), before);
+      expect(tester.widget<FrequentBolt>(bolt('Riz')).frequent, before);
+    });
+
+    testWidgets('éclair : cible de 48 dp, lu « Riz, fréquent » avec son '
+        'état', (tester) async {
+      final handle = tester.ensureSemantics();
+      await _pumpArticles(tester);
+      await _type(tester, 'Riz');
+      final size = tester.getSize(bolt('Riz'));
+      expect(size.width, greaterThanOrEqualTo(KadiSpacing.touchTarget));
+      expect(size.height, greaterThanOrEqualTo(KadiSpacing.touchTarget));
+      expect(
+        tester.getSemantics(bolt('Riz')),
+        isSemantics(
+          label: StringsFr.frequentDe('Riz'),
+          isButton: true,
+          hasToggledState: true,
+          hasTapAction: true,
+        ),
+      );
+      handle.dispose();
+    });
+
+    testWidgets('Supprimer l’article : il sort du catalogue et des '
+        'fréquents, la ligne de liste reste ; Annuler le remet', (
+      tester,
+    ) async {
+      final db = await _pumpArticles(
+        tester,
+        before: (db) async {
+          await CatalogueRepository(db, Clock()).addFrequent(SeedIds.riz);
+          await ListeRepository(db, Clock()).addArticle(SeedIds.riz);
+        },
+      );
+      await _type(tester, 'Riz');
+      await _tap(
+        tester,
+        find
+            .descendant(
+              of: find.byType(ArticleLine),
+              matching: find.text('Riz'),
+            )
+            .first,
+      );
+      expect(find.byType(ArticleSheet), findsOneWidget);
+      await tester.ensureVisible(find.text(StringsFr.supprimerLArticle));
+      await _tap(tester, find.text(StringsFr.supprimerLArticle));
+
+      expect(find.byType(ArticleSheet), findsNothing);
+      expect(find.text(StringsFr.articleSupprime('Riz')), findsOneWidget);
+      final riz = await (db.select(
+        db.articles,
+      )..where((a) => a.id.equals(SeedIds.riz))).getSingle();
+      expect(riz.inCatalogue, isFalse);
+      expect(riz.deletedAt, isNull);
+      expect(await isFrequent(db, SeedIds.riz), isFalse);
+      expect(
+        (await ListeRepository(
+          db,
+          Clock(),
+        ).watchUnchecked().first).map((i) => i.articleId),
+        contains(SeedIds.riz),
+      );
+      expect(bolt('Riz'), findsNothing);
+
+      await _tap(
+        tester,
+        find.widgetWithText(SnackBarAction, StringsFr.annuler),
+      );
+      final back = await (db.select(
+        db.articles,
+      )..where((a) => a.id.equals(SeedIds.riz))).getSingle();
+      expect(back.inCatalogue, isTrue);
+      expect(await isFrequent(db, SeedIds.riz), isTrue);
+    });
   });
 }

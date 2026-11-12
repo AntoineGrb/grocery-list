@@ -163,12 +163,16 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
               IconButton(
                 onPressed: () => _openFiche(context, AppRoutes.nouvelleRecette),
                 tooltip: StringsFr.nouvelleRecette,
+                // Cible de 48 dp.
+                padding: const EdgeInsets.all(KadiSpacing.s3),
                 color: onSurface,
                 icon: const Icon(Icons.add),
               ),
               IconButton(
                 onPressed: () => _viderLesRecettes(context, ref),
                 tooltip: StringsFr.viderLesRecettes,
+                // Cible de 48 dp.
+                padding: const EdgeInsets.all(KadiSpacing.s3),
                 color: onSurface,
                 icon: const Icon(Icons.restart_alt),
               ),

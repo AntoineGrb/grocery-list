@@ -11,7 +11,9 @@ import 'package:kadi/core/settings/settings_providers.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/ui/rayon_pastille.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../../helpers/navigation.dart';
+
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:kadi/features/reglages/ui/parcours_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -40,7 +42,7 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 
 /// Ouvre Paramètres par ⚙, puis Parcours par sa ligne.
 Future<void> _openParcours(WidgetTester tester) async {
-  await _tap(tester, find.byType(SettingsAction));
+  await _tap(tester, parametresTab);
   await _tap(tester, find.text(StringsFr.parcours));
   expect(find.byType(ParcoursScreen), findsOneWidget);
 }
@@ -142,7 +144,7 @@ void main() {
       'rayons dans l’ordre par défaut', (tester) async {
     tallPhone(tester);
     await pumpKadi(tester);
-    await _tap(tester, find.byType(SettingsAction));
+    await _tap(tester, parametresTab);
 
     final parcours = find.widgetWithText(ListTile, StringsFr.parcours);
     expect(parcours, findsOneWidget);
@@ -619,10 +621,21 @@ void main() {
     tester.view.physicalSize = const Size(360, 800);
     addTearDown(tester.view.reset);
     await pumpKadi(tester);
-    await _tap(tester, find.byType(SettingsAction));
+    await _tap(tester, parametresTab);
     expect(tester.takeException(), isNull);
     for (final text in [StringsFr.parcours, StringsFr.parcoursDetail]) {
       final finder = find.text(text);
+      // Paramètres est une liste paresseuse : la ligne est d'abord bâtie.
+      await tester.scrollUntilVisible(
+        finder,
+        100,
+        scrollable: find
+            .descendant(
+              of: find.byType(ParametresScreen),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       await tester.ensureVisible(finder);
       await tester.pumpAndSettle();
       expect(finder.hitTestable(), findsOneWidget, reason: text);

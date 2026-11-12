@@ -396,6 +396,8 @@ class _ListeScreenState extends ConsumerState<ListeScreen> {
                 IconButton(
                   onPressed: () => _vider(context),
                   tooltip: StringsFr.viderLaListe,
+                  // Cible de 48 dp.
+                  padding: const EdgeInsets.all(KadiSpacing.s3),
                   color: Theme.of(context).colorScheme.onSurface,
                   icon: const Icon(Icons.restart_alt),
                 ),
@@ -503,7 +505,7 @@ class _Progress extends StatelessWidget {
     final ratio = total == 0 ? 0.0 : checked / total;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
-        : const Duration(milliseconds: 300);
+        : const Duration(milliseconds: 200);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         KadiSpacing.margin,

@@ -26,17 +26,17 @@ Future<AppDatabase> _pumpApp(
 }
 
 void main() {
-  testWidgets('installation neuve : Recettes et ses recettes exemples, puis '
-      'la Liste vide', (tester) async {
+  testWidgets('installation neuve : la Liste vide, puis Recettes, sa ligne '
+      'd’accueil et ses recettes exemples', (tester) async {
     await _pumpApp(tester, firstLaunch: true);
 
+    expect(find.text(StringsFr.listeVide), findsOneWidget);
+
+    await tester.tap(find.text(StringsFr.tabRecettes));
+    await tester.pumpAndSettle();
     expect(find.text(StringsFr.recettesVide), findsNothing);
     expect(find.text(StringsFr.recettesAccueil), findsOneWidget);
     expect(find.text('Chili con carne'), findsOneWidget);
-
-    await tester.tap(find.text(StringsFr.tabListe));
-    await tester.pumpAndSettle();
-    expect(find.text(StringsFr.listeVide), findsOneWidget);
   });
 
   testWidgets('lancement suivant : la Liste vide, puis Recettes et ses '
@@ -102,10 +102,10 @@ void main() {
 
       expect(find.text(StringsFr.listeVide), findsNothing);
       expect(find.text('Crèmerie'), findsOneWidget);
-      // V2 : le nombre d'articles restants à droite de l'en-tête.
-      expect(find.text('1'), findsOneWidget);
+      // Plus de compteur à droite de l'en-tête (retours V2).
+      expect(find.text('1'), findsNothing);
       expect(find.text('Lait'), findsOneWidget);
-      expect(find.bySemanticsLabel(RegExp(r'^Crèmerie, 1$')), findsOneWidget);
+      expect(find.bySemanticsLabel(RegExp(r'^Crèmerie$')), findsOneWidget);
       expect(find.bySemanticsLabel('Lait, Crèmerie'), findsOneWidget);
       handle.dispose();
     },

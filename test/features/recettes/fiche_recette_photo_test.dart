@@ -569,8 +569,7 @@ void main() {
     env.picker.results.add(env.source.path);
     await _pick(tester);
 
-    await _tap(tester, find.byTooltip(StringsFr.plusDOptions));
-    await _tap(tester, find.text(StringsFr.supprimerLaRecette));
+    await deleteFromFiche(tester);
 
     expect(find.byType(FicheRecetteScreen), findsNothing);
     expect(recipeCard('Chili con carne'), findsNothing);

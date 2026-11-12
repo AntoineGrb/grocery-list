@@ -980,6 +980,8 @@ class _FicheRecetteState extends ConsumerState<FicheRecetteScreen> {
             if (_saved)
               IconButton(
                 tooltip: StringsFr.supprimerLaRecette,
+                // Cible de 48 dp.
+                padding: const EdgeInsets.all(KadiSpacing.s3),
                 color: scheme.onSurface,
                 icon: const Icon(Icons.delete_outline),
                 onPressed: _confirmDelete,

@@ -1,4 +1,4 @@
-import 'package:drift/drift.dart' show BooleanExpressionOperators, Value;
+import 'package:drift/drift.dart' show BooleanExpressionOperators;
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,15 +7,14 @@ import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/db/db_providers.dart';
 import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/theme/kadi_tokens.dart';
-import 'package:kadi/core/ui/quantity_field.dart';
-import 'package:kadi/core/ui/rayon_pastille.dart';
-import 'package:kadi/core/ui/rayon_picker.dart';
 import 'package:kadi/core/undo/undo.dart';
 import 'package:kadi/core/units/unit.dart';
 import 'package:kadi/features/liste/data/liste_repository.dart';
 import 'package:kadi/features/liste/ui/checked_section.dart';
 import 'package:kadi/features/liste/ui/item_edit_sheet.dart';
+import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
+import 'package:kadi/features/liste/ui/quantity_tag.dart';
+import 'package:kadi/features/liste/ui/rayon_tag.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:material_ui/material_ui.dart';
@@ -125,16 +124,16 @@ void main() {
       find.widgetWithText(RayonHeader, 'Fruits & légumes'),
       findsOneWidget,
     );
-    // En-tête de rayon avec le nombre d'articles restants (V2 2e).
+    // En-tête de rayon sans compteur (retours V2).
     expect(
       find.descendant(of: find.byType(RayonHeader), matching: find.text('1')),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       tester.getSemantics(
-        find.bySemanticsLabel(RegExp(r'^Fruits et légumes, 1$')),
+        find.bySemanticsLabel(RegExp(r'^Fruits et légumes$')),
       ),
-      isSemantics(label: 'Fruits et légumes, 1', isHeader: true),
+      isSemantics(label: 'Fruits et légumes', isHeader: true),
     );
     expect(
       find.bySemanticsLabel('Tomates, 500 g, Fruits et légumes'),
@@ -148,11 +147,7 @@ void main() {
     expect(find.text('500 g'), findsOneWidget);
     expect(find.text('2 pièces'), findsOneWidget);
     expect(
-      find.descendant(of: find.byType(RayonHeader), matching: find.text('2')),
-      findsOneWidget,
-    );
-    expect(
-      find.bySemanticsLabel(RegExp(r'^Fruits et légumes, 2$')),
+      find.bySemanticsLabel(RegExp(r'^Fruits et légumes$')),
       findsOneWidget,
     );
     expect(
@@ -236,7 +231,7 @@ void main() {
       expect(tester.widget<Checkbox>(_box('Tomates')).value, isFalse);
       expect(find.text('Fruits & légumes'), findsOneWidget);
       expect(
-        find.bySemanticsLabel(RegExp(r'^Fruits et légumes, 1$')),
+        find.bySemanticsLabel(RegExp(r'^Fruits et légumes$')),
         findsOneWidget,
       );
       expect(find.text(StringsFr.cochesTitre(1)), findsOneWidget);
@@ -562,16 +557,6 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    /// Couleur de bordure de la pastille de [rayon] dans la feuille.
-    Color? pastilleBorder(WidgetTester tester, Rayon rayon) {
-      final pastille = tester.widget<RayonPastille>(
-        inSheet(
-          find.byWidgetPredicate((w) => w is RayonPastille && w.rayon == rayon),
-        ),
-      );
-      return (pastille.border as Border?)?.top.color;
-    }
-
     Future<ListLine> lineOf(AppDatabase db, String articleId) =>
         (db.select(db.listLines)..where(
               (l) => l.articleId.equals(articleId) & l.deletedAt.isNull(),
@@ -612,86 +597,105 @@ void main() {
       );
     });
 
-    testWidgets('appui long sur Lardons : feuille avec Champ quantité (g), '
-        'Choix de rayon (Viande/Poisson entouré) et « Supprimer »', (
+    final saveButton = find.byTooltip(StringsFr.enregistrerLesModifications);
+    final quantityTagInSheet = inSheet(find.byType(PanelQuantityTag));
+    final rayonTagInSheet = inSheet(find.byType(RayonTag));
+    final deleteTagInSheet = inSheet(find.text(StringsFr.supprimer));
+
+    bool saveEnabled(WidgetTester tester) =>
+        tester.widget<IconButton>(saveButton).onPressed != null;
+
+    /// Règle la quantité de la feuille par le Module quantité : [unit] si
+    /// donnée, puis [text] au clavier, puis OK.
+    Future<void> setQuantity(
+      WidgetTester tester,
+      String text, {
+      String? unit,
+    }) async {
+      await tester.tap(quantityTagInSheet);
+      await tester.pumpAndSettle();
+      if (unit != null) {
+        await tester.tap(find.bySemanticsLabel(StringsFr.uniteDe(unit)));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.byKey(const Key('quantity-sheet-number')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('quantity-sheet-input')),
+        text,
+      );
+      await tester.tap(find.text(StringsFr.ok));
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> chooseRayon(WidgetTester tester, Rayon rayon) async {
+      await tester.tap(rayonTagInSheet);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(ValueKey(rayon)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey(rayon)));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('appui long sur Lardons : feuille au dessin du Panneau +, '
+        'nom, ✎ grisé, tags Quantité et Rayon préremplis, Supprimer', (
       tester,
     ) async {
-      await pumpWith(tester, (repo) => repo.addArticle(SeedIds.lardons));
+      await pumpWith(
+        tester,
+        (repo) => repo.addArticle(SeedIds.lardons, quantity: 200, unit: Unit.g),
+      );
 
       await longPress(tester, _row('Lardons'));
 
       expect(sheet, findsOneWidget);
       expect(inSheet(find.text('Lardons')), findsOneWidget);
-      expect(inSheet(find.byType(QuantityField)), findsOneWidget);
       expect(
-        find.descendant(
-          of: find.byType(QuantityField),
-          matching: find.text(StringsFr.uniteG),
-        ),
-        findsOneWidget,
-      );
-      // Sans quantité : champ vide.
-      expect(
-        tester
-            .widget<TextField>(inSheet(find.byType(TextField)))
-            .controller!
-            .text,
-        isEmpty,
-      );
-      expect(inSheet(find.byType(RayonPicker)), findsOneWidget);
-      final onSurface = Theme.of(tester.element(find.byType(RayonPicker)))
-          .colorScheme
-          .onSurface;
-      expect(pastilleBorder(tester, Rayon.viandePoisson), onSurface);
-      expect(pastilleBorder(tester, Rayon.platsPrepares), isNot(onSurface));
-      final supprimer = inSheet(find.text(StringsFr.supprimer));
-      expect(supprimer, findsOneWidget);
-      final error = Theme.of(tester.element(supprimer)).colorScheme.error;
-      expect(
-        tester
-            .widget<TextButton>(inSheet(find.byType(TextButton)))
-            .style
-            ?.foregroundColor
-            ?.resolve({}),
-        error,
+        tester.widget<PanelQuantityTag>(quantityTagInSheet).value,
+        '200 g',
       );
       expect(
-        tester.getSize(inSheet(find.byType(TextButton))).height,
-        greaterThanOrEqualTo(KadiSpacing.touchTarget),
+        tester.widget<RayonTag>(rayonTagInSheet).rayon,
+        Rayon.viandePoisson,
       );
+      expect(deleteTagInSheet, findsOneWidget);
+      expect(inSheet(find.byType(TextField)), findsNothing);
+      expect(inSheet(find.byType(FrequentChip)), findsNothing);
+      expect(saveEnabled(tester), isFalse);
+      expect(tester.getSize(saveButton).height, greaterThanOrEqualTo(40));
     });
 
-    testWidgets('saisir 300, choisir Plats préparés, fermer : Lardons 300 g '
-        'sous Plats préparés, plus sous Viande/Poisson', (tester) async {
+    testWidgets('300 g et Plats préparés, puis ✎ : Lardons 300 g sous Plats '
+        'préparés ; l’article garde son rayon', (tester) async {
       final db = await pumpWith(
         tester,
         (repo) => repo.addArticle(SeedIds.lardons),
       );
       await longPress(tester, _row('Lardons'));
 
-      await tester.enterText(inSheet(find.byType(TextField)), '300');
-      await tester.tap(inSheet(find.text('Plats préparés')));
-      await tester.pumpAndSettle();
-      // La feuille reste ouverte, la sélection suit.
+      await setQuantity(tester, '300', unit: StringsFr.uniteG);
+      await chooseRayon(tester, Rayon.platsPrepares);
       expect(sheet, findsOneWidget);
-      final onSurface = Theme.of(tester.element(find.byType(RayonPicker)))
-          .colorScheme
-          .onSurface;
-      expect(pastilleBorder(tester, Rayon.platsPrepares), onSurface);
-      expect(pastilleBorder(tester, Rayon.viandePoisson), isNot(onSurface));
+      expect(
+        tester.widget<PanelQuantityTag>(quantityTagInSheet).value,
+        '300 g',
+      );
+      expect(
+        tester.widget<RayonTag>(rayonTagInSheet).rayon,
+        Rayon.platsPrepares,
+      );
+      // Rien d'écrit avant ✎.
+      expect((await lineOf(db, SeedIds.lardons)).rayon, 'viande-poisson');
+      expect(saveEnabled(tester), isTrue);
 
-      await closeSheet(tester);
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
 
       expect(sheet, findsNothing);
       expect(_rowWith('Lardons', '300 g'), findsOneWidget);
       final header = find.widgetWithText(RayonHeader, 'Plats préparés');
       expect(header, findsOneWidget);
       expect(find.widgetWithText(RayonHeader, 'Viande/Poisson'), findsNothing);
-      expect(
-        tester.getTopLeft(_row('Lardons')).dy,
-        greaterThan(tester.getTopLeft(header).dy),
-      );
-
       final line = await lineOf(db, SeedIds.lardons);
       expect(line.rayon, 'plats-prepares');
       expect(line.unit, 'g');
@@ -707,7 +711,7 @@ void main() {
       expect(active.single.quantity, 300);
     });
 
-    testWidgets('ouvrir et fermer sans rien changer : rien n’est écrit', (
+    testWidgets('changer puis fermer sans ✎ : rien n’est écrit', (
       tester,
     ) async {
       final db = await pumpWith(
@@ -717,56 +721,17 @@ void main() {
       final before = await lineOf(db, SeedIds.tomates);
 
       await longPress(tester, _row('Tomates'));
-      expect(
-        tester
-            .widget<TextField>(inSheet(find.byType(TextField)))
-            .controller!
-            .text,
-        '500',
-      );
+      await setQuantity(tester, '800');
+      await chooseRayon(tester, Rayon.divers);
       await closeSheet(tester);
 
+      expect(sheet, findsNothing);
       expect(await lineOf(db, SeedIds.tomates), before);
       expect(_rowWith('Tomates', '500 g'), findsOneWidget);
     });
 
-    testWidgets('pièces fractionnaires (1 ½, préremplie 2) : fermer sans '
-        'saisir n’écrit rien ; saisir 2 écrit 2 pièces', (tester) async {
-      final db = await pumpWith(
-        tester,
-        (repo) =>
-            repo.addArticle(SeedIds.lait, quantity: 1500, unit: Unit.piece),
-      );
-      final before = await lineOf(db, SeedIds.lait);
-      final field = inSheet(find.byType(TextField));
-
-      await longPress(tester, _row('Lait'));
-      expect(tester.widget<TextField>(field).controller!.text, '2');
-      await closeSheet(tester);
-      expect(await lineOf(db, SeedIds.lait), before);
-
-      await longPress(tester, _row('Lait'));
-      await tester.enterText(field, '');
-      await tester.enterText(field, '2');
-      await closeSheet(tester);
-
-      final line = await lineOf(db, SeedIds.lait);
-      expect(line.manualAt, isNotNull);
-      expect(line.unit, 'piece');
-      final active =
-          await (db.select(db.listContributions)
-                ..where((c) => c.lineId.equals(line.id) & c.deletedAt.isNull()))
-              .getSingle();
-      expect(active.source, ContributionSource.edition);
-      expect(active.quantity, 2000);
-      expect(
-        _rowWith('Lait', formatQuantity(2000, Unit.piece)),
-        findsOneWidget,
-      );
-    });
-
     testWidgets('« Supprimer » dans la feuille : feuille fermée, ligne '
-        'retirée, snackbar Annuler ; la quantité saisie n’est pas écrite', (
+        'retirée, snackbar Annuler ; la quantité réglée n’est pas écrite', (
       tester,
     ) async {
       final db = await pumpWith(tester, (repo) async {
@@ -774,11 +739,9 @@ void main() {
         await repo.addArticle(SeedIds.tomates);
       });
       await longPress(tester, _row('Lardons'));
-      await tester.enterText(inSheet(find.byType(TextField)), '300');
+      await setQuantity(tester, '300', unit: StringsFr.uniteG);
 
-      await tester.ensureVisible(inSheet(find.text(StringsFr.supprimer)));
-      await tester.pumpAndSettle();
-      await tester.tap(inSheet(find.text(StringsFr.supprimer)));
+      await tester.tap(deleteTagInSheet);
       await tester.pumpAndSettle();
 
       expect(sheet, findsNothing);
@@ -794,10 +757,6 @@ void main() {
       await tester.tap(undoAction);
       await tester.pumpAndSettle();
       expect(_row('Lardons'), findsOneWidget);
-      expect(
-        find.widgetWithText(RayonHeader, 'Viande/Poisson'),
-        findsOneWidget,
-      );
     });
 
     testWidgets('TalkBack : « Supprimer » retire la ligne avec Annuler, '
@@ -848,14 +807,12 @@ void main() {
       await longPress(tester, _row('Tomates', inSection: true));
       expect(sheet, findsOneWidget);
       expect(
-        tester
-            .widget<TextField>(inSheet(find.byType(TextField)))
-            .controller!
-            .text,
-        '500',
+        tester.widget<PanelQuantityTag>(quantityTagInSheet).value,
+        '500 g',
       );
-      await tester.enterText(inSheet(find.byType(TextField)), '300');
-      await closeSheet(tester);
+      await setQuantity(tester, '300');
+      await tester.tap(saveButton);
+      await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.byType(CheckedSection),
@@ -874,8 +831,8 @@ void main() {
       expect(find.text(StringsFr.cochesTitre(1)), findsOneWidget);
     });
 
-    testWidgets('échec d’une modification : snackbar d’erreur, la sélection '
-        'revient au rayon d’avant', (tester) async {
+    testWidgets('échec d’une modification : snackbar d’erreur sur la Liste, '
+        'rien d’écrit', (tester) async {
       final db = await pumpWith(
         tester,
         (repo) => repo.addArticle(SeedIds.lardons),
@@ -885,306 +842,14 @@ void main() {
         "BEGIN SELECT RAISE(ABORT, 'échec simulé'); END",
       );
       await longPress(tester, _row('Lardons'));
-
-      await tester.tap(inSheet(find.text('Plats préparés')));
+      await chooseRayon(tester, Rayon.platsPrepares);
+      await tester.tap(saveButton);
       await tester.pumpAndSettle();
 
+      expect(sheet, findsNothing);
       expect(find.text(StringsFr.modificationImpossible), findsOneWidget);
-      final onSurface = Theme.of(tester.element(find.byType(RayonPicker)))
-          .colorScheme
-          .onSurface;
-      expect(pastilleBorder(tester, Rayon.viandePoisson), onSurface);
-      await closeSheet(tester);
       expect((await lineOf(db, SeedIds.lardons)).rayon, 'viande-poisson');
       await letSnackBarClose(tester);
-    });
-
-    /// La puce [unit] du Choix d'unité.
-    Finder chip(InputUnit unit) => inSheet(find.byKey(ValueKey(unit)));
-
-    /// L'unité choisie dans le Choix d'unité.
-    InputUnit selectedUnit(WidgetTester tester) => InputUnit.values.singleWhere(
-      (u) => tester.widget<ChoiceChip>(chip(u)).selected,
-    );
-
-    Future<void> tapChip(WidgetTester tester, InputUnit unit) async {
-      await tester.ensureVisible(chip(unit));
-      await tester.pumpAndSettle();
-      await tester.tap(chip(unit));
-      await tester.pumpAndSettle();
-    }
-
-    String fieldText(WidgetTester tester) => tester
-        .widget<TextField>(inSheet(find.byType(TextField)))
-        .controller!
-        .text;
-
-    testWidgets('feuille : titre en titleMedium, Choix d’unité pièce · g · '
-        'kg · ml · L, la puce de la ligne choisie en contour on-surface et '
-        'coche, jamais en argile', (tester) async {
-      await pumpWith(
-        tester,
-        (repo) =>
-            repo.addArticle(SeedIds.tomates, quantity: 1500, unit: Unit.g),
-      );
-      await longPress(tester, _row('Tomates'));
-
-      final theme = Theme.of(tester.element(sheet));
-      expect(
-        tester.widget<Text>(inSheet(find.text('Tomates'))).style?.fontSize,
-        theme.textTheme.titleMedium?.fontSize,
-      );
-      expect(inSheet(find.text(StringsFr.unite)), findsOneWidget);
-      expect(
-        [
-          for (final u in InputUnit.values)
-            ((tester.widget<ChoiceChip>(chip(u)).label) as Text).data,
-        ],
-        ['pièce', 'g', 'kg', 'ml', 'L'],
-      );
-      // Ligne en g au-delà de 1000 : ouverte en g.
-      expect(selectedUnit(tester), InputUnit.g);
-      expect(fieldText(tester), '1500');
-      final scheme = theme.colorScheme;
-      final selected = tester.widget<ChoiceChip>(chip(InputUnit.g));
-      expect(selected.side?.color, scheme.onSurface);
-      expect(selected.showCheckmark, isTrue);
-      expect(selected.checkmarkColor, scheme.onSurface);
-      expect(
-        selected.color?.resolve({WidgetState.selected}),
-        isNot(scheme.primary),
-      );
-      expect(
-        selected.color?.resolve({WidgetState.selected}),
-        isNot(scheme.primaryContainer),
-      );
-      expect(
-        tester.widget<ChoiceChip>(chip(InputUnit.kg)).side?.color,
-        scheme.outline,
-      );
-      for (final u in InputUnit.values) {
-        expect(
-          tester.getSize(chip(u)).height,
-          greaterThanOrEqualTo(KadiSpacing.touchTarget),
-        );
-      }
-    });
-
-    testWidgets('unité préchoisie : ligne sans quantité → unité de l’article '
-        '(ml) ; article sans unité → pièce', (tester) async {
-      final db = await pumpWith(tester, (repo) async {
-        await repo.addArticle(SeedIds.lait);
-        await repo.addArticle(SeedIds.riz);
-      });
-      await (db.update(db.articles)..where((a) => a.id.equals(SeedIds.lait)))
-          .write(const ArticlesCompanion(unit: Value('ml')));
-      await (db.update(db.articles)..where((a) => a.id.equals(SeedIds.riz)))
-          .write(const ArticlesCompanion(unit: Value(null)));
-      await tester.pumpAndSettle();
-
-      await longPress(tester, _row('Lait'));
-      expect(selectedUnit(tester), InputUnit.ml);
-      expect(
-        find.descendant(
-          of: inSheet(find.byType(QuantityField)),
-          matching: find.text(StringsFr.uniteMl),
-        ),
-        findsOneWidget,
-      );
-      await closeSheet(tester);
-
-      await longPress(tester, _row('Riz'));
-      expect(selectedUnit(tester), InputUnit.piece);
-      await closeSheet(tester);
-    });
-
-    testWidgets('changer d’unité avec jumeau : Tomates 300 g et 2 pièces, la '
-        'ligne pièces → g, 200 : une seule ligne « Tomates 500 g »', (
-      tester,
-    ) async {
-      final db = await pumpWith(tester, (repo) async {
-        await repo.addArticle(SeedIds.tomates, quantity: 300, unit: Unit.g);
-        await repo.addArticle(
-          SeedIds.tomates,
-          quantity: 2000,
-          unit: Unit.piece,
-        );
-      });
-      final pieces = find.ancestor(
-        of: find.text(formatQuantity(2000, Unit.piece)),
-        matching: find.byType(ItemRow),
-      );
-      await longPress(tester, pieces);
-      expect(selectedUnit(tester), InputUnit.piece);
-
-      await tapChip(tester, InputUnit.g);
-      // Le nombre tapé est gardé : la puce dit l'unité où il est lu.
-      expect(fieldText(tester), '2');
-      expect(
-        find.descendant(
-          of: inSheet(find.byType(QuantityField)),
-          matching: find.text(StringsFr.uniteG),
-        ),
-        findsOneWidget,
-      );
-      await tester.enterText(inSheet(find.byType(TextField)), '200');
-      await closeSheet(tester);
-
-      expect(find.widgetWithText(ItemRow, 'Tomates'), findsOneWidget);
-      expect(_rowWith('Tomates', formatQuantity(500, Unit.g)), findsOneWidget);
-      final lines = await (db.select(
-        db.listLines,
-      )..where((l) => l.deletedAt.isNull())).get();
-      expect(lines.single.unit, 'g');
-      expect(lines.single.manualAt, isNotNull);
-    });
-
-    testWidgets('saisie en kg : Riz sans quantité, kg, « 1,5 » → « 1,5 kg », '
-        'stocké 1500 g', (tester) async {
-      final db = await pumpWith(tester, (repo) => repo.addArticle(SeedIds.riz));
-      await longPress(tester, _row('Riz'));
-
-      await tapChip(tester, InputUnit.kg);
-      expect(
-        tester.widget<TextField>(inSheet(find.byType(TextField))).keyboardType,
-        const TextInputType.numberWithOptions(decimal: true),
-      );
-      await tester.enterText(inSheet(find.byType(TextField)), '1,5');
-      await tester.testTextInput.receiveAction(TextInputAction.done);
-      await tester.pumpAndSettle();
-      await closeSheet(tester);
-
-      expect(_rowWith('Riz', formatQuantity(1500, Unit.g)), findsOneWidget);
-      final line = await lineOf(db, SeedIds.riz);
-      expect(line.unit, 'g');
-      final active = await (db.select(
-        db.listContributions,
-      )..where((c) => c.lineId.equals(line.id) & c.deletedAt.isNull())).get();
-      expect(active.single.quantity, 1500);
-      expect(active.single.unit, 'g');
-
-      // Rouverte : en g, 1500.
-      await longPress(tester, _row('Riz'));
-      expect(selectedUnit(tester), InputUnit.g);
-      expect(fieldText(tester), '1500');
-      await closeSheet(tester);
-    });
-
-    testWidgets('saisie en L : Lait, L, « 2 » → « 2 l », stocké 2000 ml', (
-      tester,
-    ) async {
-      final db = await pumpWith(
-        tester,
-        (repo) => repo.addArticle(SeedIds.lait),
-      );
-      await longPress(tester, _row('Lait'));
-
-      await tapChip(tester, InputUnit.l);
-      await tester.enterText(inSheet(find.byType(TextField)), '2');
-      await closeSheet(tester);
-
-      expect(_rowWith('Lait', formatQuantity(2000, Unit.ml)), findsOneWidget);
-      expect((await lineOf(db, SeedIds.lait)).unit, 'ml');
-    });
-
-    testWidgets('kg puis g : les décimales que g n’admet pas tombent', (
-      tester,
-    ) async {
-      await pumpWith(tester, (repo) => repo.addArticle(SeedIds.riz));
-      await longPress(tester, _row('Riz'));
-      await tapChip(tester, InputUnit.kg);
-      await tester.enterText(inSheet(find.byType(TextField)), '1,5');
-
-      await tapChip(tester, InputUnit.g);
-
-      expect(fieldText(tester), '1');
-      await closeSheet(tester);
-      expect(_rowWith('Riz', formatQuantity(1, Unit.g)), findsOneWidget);
-    });
-
-    testWidgets('vider la quantité : ligne sans quantité, quelle que soit la '
-        'puce', (tester) async {
-      final db = await pumpWith(
-        tester,
-        (repo) => repo.addArticle(SeedIds.tomates, quantity: 300, unit: Unit.g),
-      );
-      await longPress(tester, _row('Tomates'));
-      await tester.enterText(inSheet(find.byType(TextField)), '');
-      await tapChip(tester, InputUnit.kg);
-      await closeSheet(tester);
-
-      expect(_rowWith('Tomates', formatQuantity(300, Unit.g)), findsNothing);
-      final line = await lineOf(db, SeedIds.tomates);
-      expect(line.unit, isNull);
-      expect(line.manualAt, isNotNull);
-    });
-
-    testWidgets('changer de puce puis revenir, sans saisir : rien n’est '
-        'écrit', (tester) async {
-      final db = await pumpWith(
-        tester,
-        (repo) => repo.addArticle(SeedIds.tomates, quantity: 300, unit: Unit.g),
-      );
-      final before = await lineOf(db, SeedIds.tomates);
-      await longPress(tester, _row('Tomates'));
-      await tapChip(tester, InputUnit.kg);
-      await tapChip(tester, InputUnit.g);
-      await closeSheet(tester);
-
-      expect(await lineOf(db, SeedIds.tomates), before);
-    });
-
-    testWidgets('TalkBack : titre, « Quantité », chaque puce avec son état '
-        'choisi, rayons, « Supprimer »', (tester) async {
-      final handle = tester.ensureSemantics();
-      await pumpWith(
-        tester,
-        (repo) =>
-            repo.addArticle(SeedIds.lait, quantity: 2000, unit: Unit.piece),
-      );
-      await longPress(tester, _row('Lait'));
-
-      expect(
-        tester.getSemantics(inSheet(find.text('Lait'))),
-        isSemantics(label: 'Lait', isHeader: true),
-      );
-      expect(
-        tester.getSemantics(inSheet(find.byType(EditableText))),
-        isSemantics(label: StringsFr.quantite, isTextField: true),
-      );
-      for (final (unit, label) in [
-        (InputUnit.piece, 'pièce'),
-        (InputUnit.g, 'g'),
-        (InputUnit.kg, 'kg'),
-        (InputUnit.ml, 'ml'),
-        (InputUnit.l, 'L'),
-      ]) {
-        expect(
-          tester.getSemantics(chip(unit)),
-          isSemantics(
-            label: label,
-            isButton: true,
-            hasSelectedState: true,
-            isSelected: unit == InputUnit.piece,
-            hasTapAction: true,
-          ),
-        );
-      }
-      expect(
-        tester.getSemantics(
-          find.descendant(
-            of: inSheet(find.byType(RayonPicker)),
-            matching: find.bySemanticsLabel('Crèmerie'),
-          ),
-        ),
-        isSemantics(label: 'Crèmerie', isButton: true, isSelected: true),
-      );
-      expect(
-        tester.getSemantics(inSheet(find.byType(TextButton))),
-        isSemantics(label: StringsFr.supprimer, isButton: true),
-      );
-      await closeSheet(tester);
-      handle.dispose();
     });
 
     testWidgets('échec de la suppression : snackbar d’erreur, la ligne '

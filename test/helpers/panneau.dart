@@ -16,11 +16,13 @@ Future<void> showFrequents(WidgetTester tester) async {
       find.byType(FrequentChip).evaluate().isNotEmpty) {
     return;
   }
-  await tester.tap(
-    find.descendant(
-      of: find.byType(AddSheet),
-      matching: find.text(StringsFr.frequents),
-    ),
+  final tag = find.descendant(
+    of: find.byType(AddSheet),
+    matching: find.text(StringsFr.frequents),
   );
+  // La rangée des tags défile : le tag est d'abord amené à l'écran.
+  await tester.ensureVisible(tag);
+  await tester.pumpAndSettle();
+  await tester.tap(tag);
   await tester.pumpAndSettle();
 }

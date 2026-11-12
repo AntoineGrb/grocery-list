@@ -3,7 +3,6 @@ import 'package:kadi/core/rayons/rayon.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/features/liste/ui/item_row.dart';
 import 'package:kadi/features/liste/ui/liste_screen.dart';
-import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recettes_screen.dart';
 import 'package:kadi/features/recettes/ui/recipe_row.dart';
 
@@ -19,14 +18,7 @@ const _exemples = [
 /// Supprime [name] par sa fiche (« Supprimer la recette »).
 Future<void> _supprimer(WidgetTester tester, String name) async {
   await editRecipe(tester, name);
-  await tapAndSettle(
-    tester,
-    find.descendant(
-      of: find.byType(FicheRecetteScreen),
-      matching: find.byTooltip(StringsFr.plusDOptions),
-    ),
-  );
-  await tapAndSettle(tester, find.text(StringsFr.supprimerLaRecette));
+  await deleteFromFiche(tester);
   expect(find.byType(RecettesScreen), findsOneWidget);
 }
 
@@ -38,7 +30,10 @@ void flux6PremierLancement() {
       phone(tester);
       await pumpE2e(tester, firstLaunch: true);
 
-      // 1. L'app s'ouvre sur Recettes : 4 recettes exemples, ligne d'accueil.
+      // 1. L'app s'ouvre sur la Liste ; Recettes : 4 recettes exemples,
+      // ligne d'accueil.
+      expect(find.byType(ListeScreen), findsOneWidget);
+      await openTab(tester, StringsFr.tabRecettes);
       expect(find.byType(RecettesScreen), findsOneWidget);
       expect(find.text(StringsFr.recettesAccueil), findsOneWidget);
       expect(find.byType(RecipeRow), findsNWidgets(4));
@@ -85,6 +80,7 @@ void flux6PremierLancement() {
         'message d’état vide et FAB +', (tester) async {
       phone(tester);
       await pumpE2e(tester, firstLaunch: true);
+      await openTab(tester, StringsFr.tabRecettes);
       for (final name in _exemples) {
         await _supprimer(tester, name);
       }

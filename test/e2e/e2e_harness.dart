@@ -7,7 +7,9 @@ import 'package:kadi/core/backup/backup_providers.dart';
 import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/screen/screen_awake.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../helpers/navigation.dart';
+
 import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/liste/ui/add_sheet_rows.dart';
 import 'package:kadi/features/liste/ui/checked_section.dart';
@@ -290,16 +292,10 @@ Finder get parametresScrollable => find
     )
     .first;
 
-/// Ouvre les Paramètres par ⚙.
+/// Ouvre les Paramètres par leur onglet.
 Future<void> openParametres(WidgetTester tester) async {
-  // ⚙ de la Liste, ou « Paramètres » du menu ⋮ de Recettes.
-  final gear = find.byType(SettingsAction);
-  if (gear.evaluate().isNotEmpty) {
-    await tester.tap(gear);
-    await tester.pumpAndSettle();
-  } else {
-    await recettesMenu(tester, StringsFr.parametres);
-  }
+  await tester.tap(parametresTab);
+  await tester.pumpAndSettle();
   expect(find.byType(ParametresScreen), findsOneWidget);
 }
 

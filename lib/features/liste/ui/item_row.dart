@@ -1,7 +1,7 @@
 import 'dart:ui' show FlutterView;
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/semantics.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
 import 'package:kadi/core/theme/kadi_colors.dart';
 import 'package:kadi/core/theme/kadi_tokens.dart';
@@ -14,11 +14,11 @@ import '../state/liste_providers.dart';
 
 /// Délai entre le tap sur la case et le départ de la ligne : l'animation de
 /// la case (≈ 200 ms) plus un temps de lecture.
-const _checkDelay = Duration(milliseconds: 250);
+const _checkDelay = Duration(milliseconds: 150);
 
 /// Départ de la ligne cochée ou décochée : fondu et repli, puis écriture ;
 /// elle réapparaît dans sa nouvelle section.
-const _leaveDuration = Duration(milliseconds: 300);
+const _leaveDuration = Duration(milliseconds: 200);
 
 /// Actions TalkBack équivalentes au glisser et à l'appui long (R24).
 const _supprimerAction = CustomSemanticsAction(label: StringsFr.supprimer);
@@ -231,10 +231,10 @@ class _ItemRowState extends ConsumerState<ItemRow> {
         // Animations coupées : la ligne part sans glissement ni repli.
         movementDuration: noAnimation
             ? Duration.zero
-            : const Duration(milliseconds: 200),
+            : const Duration(milliseconds: 150),
         resizeDuration: noAnimation
             ? Duration.zero
-            : const Duration(milliseconds: 300),
+            : const Duration(milliseconds: 200),
         confirmDismiss: _confirmDismiss,
         onDismissed: (_) => setState(() => _dismissed = true),
         background: ColoredBox(

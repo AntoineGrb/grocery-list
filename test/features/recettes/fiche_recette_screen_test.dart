@@ -264,14 +264,10 @@ void main() {
     expect(_sheetText(tester), isEmpty);
     expect(_noQuantityFocused(tester), isTrue);
 
-    // Trouvable ensuite par la recherche, déjà ingrédient.
+    // Hors catalogue (seuls les Paramètres y ajoutent) : pas dans la
+    // recherche.
     await _search(tester, 'piment');
-    expect(
-      tester
-          .widget<IngredientResultRow>(_result("Piment d'Espelette"))
-          .inRecipe,
-      isTrue,
-    );
+    expect(_result("Piment d'Espelette"), findsNothing);
     await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
     await tester.pumpAndSettle();
     expect(_sheetText(tester), isEmpty);
@@ -327,7 +323,8 @@ void main() {
     final piment = await _article(db, "Piment d'Espelette");
     expect(
       (piment.rayon, piment.unit, piment.inCatalogue),
-      ('divers', null, true),
+      // Créé dans une recette : hors catalogue.
+      ('divers', null, false),
     );
     expect(
       [
@@ -464,9 +461,10 @@ void main() {
     expect(await db.select(db.recipes).get(), recipes);
     expect(await db.select(db.recipeIngredients).get(), ingredients);
     expect(recipeCard('Chili'), findsNothing);
-    // « Piment », créé par la popup, reste au catalogue.
+    // « Piment », créé par la popup, reste (hors catalogue).
     final piment = await _article(db, 'Piment');
-    expect(piment.inCatalogue, isTrue);
+    expect(piment.deletedAt, isNull);
+    expect(piment.inCatalogue, isFalse);
 
     // Quantité changée sur une recette existante, Quitter : rien.
     await editRecipe(tester, 'Chili con carne');
@@ -673,8 +671,8 @@ void main() {
     expect(find.byType(FilledButton), findsNothing);
   });
 
-  testWidgets('nom porté par un article hors catalogue : le même article '
-      'entre au catalogue et devient ingrédient', (tester) async {
+  testWidgets('nom porté par un article hors catalogue : le même article, '
+      'toujours hors catalogue, devient ingrédient', (tester) async {
     final db = await _openRecettes(tester);
     final pilou = await db.transaction(
       () => CatalogueRepository(db, Clock()).resolveTypedArticle('Pilou'),
@@ -693,7 +691,7 @@ void main() {
       db.articles,
     )..where((a) => a.normalizedName.equals('pilou'))).get();
     expect(row, hasLength(1));
-    expect((row.single.id, row.single.inCatalogue), (pilou.id, true));
+    expect((row.single.id, row.single.inCatalogue), (pilou.id, false));
     final ingredients = await _ingredients(db, SeedRecipeIds.chili);
     expect(ingredients.last.articleId, pilou.id);
   });
@@ -774,7 +772,8 @@ void main() {
     final piment = await _article(db, "Piment d'Espelette");
     expect(
       (piment.rayon, piment.unit, piment.inCatalogue),
-      ('divers', null, true),
+      // Créé dans une recette : hors catalogue.
+      ('divers', null, false),
     );
 
     await closeIngredientSheet(tester);

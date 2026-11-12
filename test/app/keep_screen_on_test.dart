@@ -5,7 +5,9 @@ import 'package:kadi/core/db/app_database.dart';
 import 'package:kadi/core/router/app_router.dart';
 import 'package:kadi/core/settings/settings_repository.dart';
 import 'package:kadi/core/strings/strings_fr.dart';
-import 'package:kadi/core/ui/settings_action.dart';
+
+import '../helpers/navigation.dart';
+
 import 'package:kadi/features/liste/ui/add_sheet.dart';
 import 'package:kadi/features/reglages/ui/parametres_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -185,11 +187,11 @@ void main() {
       final screen = FakeScreenAwake();
       await _pumpApp(tester, screen);
 
-      await _tap(tester, find.byType(SettingsAction));
+      await _tap(tester, parametresTab);
       expect(find.byType(ParametresScreen), findsOneWidget);
       expect(screen.calls, [true, false]);
 
-      await _tap(tester, find.byType(BackButton));
+      await _tap(tester, listeTab);
       expect(find.byType(ParametresScreen), findsNothing);
       expect(screen.calls, [true, false, true]);
     });
@@ -242,8 +244,8 @@ void main() {
       await _tap(tester, find.text(StringsFr.tabListe));
       await _lifecycle(tester, AppLifecycleState.paused);
       await _lifecycle(tester, AppLifecycleState.resumed);
-      await _tap(tester, find.byType(SettingsAction));
-      await _tap(tester, find.byType(BackButton));
+      await _tap(tester, parametresTab);
+      await _tap(tester, listeTab);
 
       expect(screen.enables, 0);
     });
@@ -253,11 +255,11 @@ void main() {
       final screen = FakeScreenAwake();
       final db = await _pumpApp(tester, screen, keepScreenOn: false);
 
-      await _tap(tester, find.byType(SettingsAction));
+      await _tap(tester, parametresTab);
       await _tap(tester, find.text(StringsFr.garderEcranAllume));
       expect(screen.calls, isEmpty);
 
-      await _tap(tester, find.byType(BackButton));
+      await _tap(tester, listeTab);
       expect(screen.calls, [true]);
 
       await SettingsRepository(db, Clock()).setKeepScreenOn(false);
