@@ -208,9 +208,7 @@ void main() {
 
     testWidgets('poubelle de la fiche, 48 dp, lue « Supprimer la recette », '
         'dialogue de confirmation ; absente d’une fiche neuve tant qu’elle '
-        'n’est pas enregistrée', (
-      tester,
-    ) async {
+        'n’est pas enregistrée', (tester) async {
       tallPhone(tester);
       final handle = tester.ensureSemantics();
       await pumpKadi(tester);

@@ -112,3 +112,20 @@ final revueLoaderProvider = Provider<Future<Revue> Function()>(
     );
   },
 );
+
+/// Vue de l'écran Recettes : lignes ou grille de tuiles.
+enum RecettesView { liste, grille }
+
+/// Vue choisie dans Recettes, gardée le temps de la session (changer
+/// d'onglet ne la remet pas en liste).
+final recettesViewProvider =
+    NotifierProvider<RecettesViewNotifier, RecettesView>(
+      RecettesViewNotifier.new,
+    );
+
+class RecettesViewNotifier extends Notifier<RecettesView> {
+  @override
+  RecettesView build() => RecettesView.liste;
+
+  void show(RecettesView view) => state = view;
+}

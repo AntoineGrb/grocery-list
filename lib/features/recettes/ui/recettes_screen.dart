@@ -23,6 +23,7 @@ import '../data/recipe_photos.dart';
 import '../state/recettes_providers.dart';
 import 'fiche_recette_screen.dart';
 import 'recipe_row.dart';
+import 'recipe_tile.dart';
 
 /// Recettes (README redesign 2a) : recherche, filtres « Toutes » et « Cette
 /// semaine », une ligne par recette avec son monogramme. Le bouton de la
@@ -218,6 +219,11 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
       for (final card in _thisWeek ? thisWeek : cards)
         if (query.isEmpty || normalizeName(card.name).contains(query)) card,
     ];
+    final view = ref.watch(recettesViewProvider);
+    File? photoOf(RecipeCardItem card) =>
+        card.photo == null || photosDir == null
+        ? null
+        : RecipePhotos.fileIn(photosDir, card.photo!);
     final empty = shown.isNotEmpty
         ? null
         : query.isNotEmpty
@@ -237,18 +243,29 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
                   onChanged: () => setState(() {}),
                 ),
                 const SizedBox(height: KadiSpacing.s1),
-                Wrap(
-                  spacing: KadiSpacing.s2,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _FilterChip(
-                      label: StringsFr.toutesN(cards.length),
-                      selected: !_thisWeek,
-                      onTap: () => setState(() => _thisWeek = false),
+                    Expanded(
+                      child: Wrap(
+                        spacing: KadiSpacing.s2,
+                        children: [
+                          _FilterChip(
+                            label: StringsFr.toutesN(cards.length),
+                            selected: !_thisWeek,
+                            onTap: () => setState(() => _thisWeek = false),
+                          ),
+                          _FilterChip(
+                            label: StringsFr.cetteSemaineN(thisWeek.length),
+                            selected: _thisWeek,
+                            onTap: () => setState(() => _thisWeek = true),
+                          ),
+                        ],
+                      ),
                     ),
-                    _FilterChip(
-                      label: StringsFr.cetteSemaineN(thisWeek.length),
-                      selected: _thisWeek,
-                      onTap: () => setState(() => _thisWeek = true),
+                    _ViewToggle(
+                      view: view,
+                      onChanged: ref.read(recettesViewProvider.notifier).show,
                     ),
                   ],
                 ),
@@ -266,6 +283,34 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
             hasScrollBody: false,
             child: EmptyState(message: empty),
           )
+        else if (view == RecettesView.grille)
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(
+              KadiSpacing.margin,
+              KadiSpacing.s2,
+              KadiSpacing.margin,
+              KadiSpacing.s4,
+            ),
+            sliver: SliverGrid.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: KadiSpacing.s3,
+                crossAxisSpacing: KadiSpacing.s3,
+              ),
+              itemCount: shown.length,
+              itemBuilder: (_, index) {
+                final card = shown[index];
+                return RecipeTile(
+                  key: ValueKey(card.recipeId),
+                  card: card,
+                  photo: photoOf(card),
+                  onOpen: () =>
+                      _openFiche(context, AppRoutes.recette(card.recipeId)),
+                  onToggle: () => _toggle(context, ref, card),
+                );
+              },
+            ),
+          )
         else
           SliverPadding(
             padding: const EdgeInsets.only(bottom: KadiSpacing.s2),
@@ -276,9 +321,7 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
                 return RecipeRow(
                   key: ValueKey(card.recipeId),
                   card: card,
-                  photo: card.photo == null || photosDir == null
-                      ? null
-                      : RecipePhotos.fileIn(photosDir, card.photo!),
+                  photo: photoOf(card),
                   onOpen: () =>
                       _openFiche(context, AppRoutes.recette(card.recipeId)),
                   onToggle: () => _toggle(context, ref, card),
@@ -291,7 +334,45 @@ class _RecettesScreenState extends ConsumerState<RecettesScreen> {
   }
 }
 
-/// Actions du menu ⋮ de Recettes.
+/// Bascule de vue de Recettes, à droite des filtres : lignes ou grille.
+/// L'icône de la vue montrée est à l'encre, l'autre en `onSurfaceVariant`.
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.view, required this.onChanged});
+
+  final RecettesView view;
+  final ValueChanged<RecettesView> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    Widget button(RecettesView value, IconData icon, String tooltip) {
+      final selected = view == value;
+      return Semantics(
+        selected: selected,
+        child: IconButton(
+          onPressed: () => onChanged(value),
+          tooltip: tooltip,
+          // Cible de 48 dp.
+          padding: const EdgeInsets.all(KadiSpacing.s3),
+          color: selected ? scheme.onSurface : scheme.onSurfaceVariant,
+          icon: Icon(icon, size: 22),
+        ),
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button(
+          RecettesView.liste,
+          Icons.view_list_outlined,
+          StringsFr.vueListe,
+        ),
+        button(RecettesView.grille, Icons.grid_view, StringsFr.vueGrille),
+      ],
+    );
+  }
+}
 
 /// Champ « Chercher une recette » : pilule de 44 dp `surface-container`.
 /// Filtre par nom, casse et accents ignorés.

@@ -32,6 +32,14 @@ abstract final class KadiText {
     fontWeight: FontWeight.w600,
   );
 
+  /// Nom de recette sur une tuile de la vue grille de Recettes.
+  static const tileName = TextStyle(
+    fontFamily: displayFamily,
+    fontSize: 16,
+    height: 19 / 16,
+    fontWeight: FontWeight.w600,
+  );
+
   /// Initiales du monogramme de 56 dp.
   static const monogramSmall = TextStyle(
     fontFamily: displayFamily,

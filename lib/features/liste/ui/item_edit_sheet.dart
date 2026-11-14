@@ -239,8 +239,8 @@ class _ItemEditSheetState extends ConsumerState<ItemEditSheet> {
   }
 }
 
-/// Bouton ✎ de la Feuille d'édition : le bouton d'envoi du Panneau + avec un
-/// crayon ; grisé tant que rien n'a changé, argile sinon.
+/// Bouton ↑ de la Feuille d'édition : le même que le bouton d'envoi du
+/// Panneau + ; grisé tant que rien n'a changé, argile sinon.
 class _SaveButton extends StatelessWidget {
   const _SaveButton({required this.onPressed});
 
@@ -265,8 +265,8 @@ class _SaveButton extends StatelessWidget {
         ),
       ),
       icon: Icon(
-        Icons.edit_outlined,
-        size: 22,
+        Icons.arrow_upward,
+        size: 24,
         color: enabled ? scheme.onPrimary : scheme.outline,
       ),
     );

@@ -222,17 +222,17 @@ abstract final class StringsFr {
   // Paramètres : titre de l'écran, aussi lu par TalkBack sur l'icône ⚙.
   static const parametres = 'Paramètres';
   static const garderEcranAllume = 'Garder l’écran allumé';
-  static const garderEcranAllumeDetail = 'Pendant que la liste est affichée';
+  static const garderEcranAllumeDetail = 'Pendant l\'affichage de la liste';
   static const themeSombre = 'Thème sombre';
-  static const themeSombreDetail = 'Sinon, le thème clair';
+  static const themeSombreDetail = '';
   static const grouperParRayon = 'Grouper par rayon';
-  static const grouperParRayonDetail = 'Sinon, la liste suit l’ordre d’ajout';
+  static const grouperParRayonDetail = 'Ou laisser par ordre d\'ajout';
   static const reglageImpossible = 'Réglage impossible à enregistrer.';
 
   // Paramètres › Parcours : ligne de navigation, titre de l'écran, actions
   // TalkBack de la Ligne de parcours et snackbar d'échec.
   static const parcours = 'Parcours';
-  static const parcoursDetail = 'L’ordre des rayons dans ton magasin';
+  static const parcoursDetail = 'L’ordre des rayons sur la liste';
   static const parcoursImpossible = 'Parcours impossible à enregistrer.';
   static const monter = 'Monter';
   static const descendre = 'Descendre';
@@ -240,7 +240,7 @@ abstract final class StringsFr {
   // Paramètres › Articles : ligne de navigation, titre de l'écran, Champ de
   // recherche et Fiche article.
   static const articlesTitre = 'Articles';
-  static const articlesDetail = 'Ton catalogue d’articles et tes fréquents';
+  static const articlesDetail = 'Catalogue d’articles et fréquents';
   static String frequentDe(String name) => '$name, fréquent';
   static const chercherUnArticle = 'Chercher un article';
 
@@ -296,8 +296,9 @@ abstract final class StringsFr {
       'Recettes, liste et réglages dans un fichier';
   static const sauvegardePrete = 'Sauvegarde prête.';
   static const exportImpossible = 'Export impossible.';
-  static const importerUneSauvegarde = 'Importer une sauvegarde';
-  static const importerUneSauvegardeDetail = 'Fusionnée avec tes données';
+  static const importerUneSauvegarde = 'Importer mes données';
+  static const importerUneSauvegardeDetail =
+      'Fusionner une sauvegarde avec les données actuelles';
   static const sauvegardeImportee = 'Sauvegarde importée.';
   static const pasUneSauvegardeKadi =
       'Ce fichier n’est pas une sauvegarde Kadi.';
@@ -369,6 +370,8 @@ abstract final class StringsFr {
   static const chercherUneRecette = 'Chercher une recette';
   static String toutesN(int n) => 'Toutes · $n';
   static String cetteSemaineN(int n) => 'Cette semaine · $n';
+  static const vueListe = 'Vue liste';
+  static const vueGrille = 'Vue grille';
   static const ajouter = 'Ajouter';
   static const ajoutee = 'Ajoutée';
   static String nIngredients(int n) =>

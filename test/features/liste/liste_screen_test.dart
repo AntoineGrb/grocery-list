@@ -603,7 +603,12 @@ void main() {
     final deleteTagInSheet = inSheet(find.text(StringsFr.supprimer));
 
     bool saveEnabled(WidgetTester tester) =>
-        tester.widget<IconButton>(saveButton).onPressed != null;
+        tester
+            .widget<IconButton>(
+              find.ancestor(of: saveButton, matching: find.byType(IconButton)),
+            )
+            .onPressed !=
+        null;
 
     /// Règle la quantité de la feuille par le Module quantité : [unit] si
     /// donnée, puis [text] au clavier, puis OK.

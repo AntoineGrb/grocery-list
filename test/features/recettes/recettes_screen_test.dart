@@ -11,6 +11,7 @@ import 'package:kadi/features/liste/ui/rayon_header.dart';
 import 'package:kadi/features/recettes/state/revue.dart';
 import 'package:kadi/features/recettes/ui/fiche_recette_screen.dart';
 import 'package:kadi/features/recettes/ui/recipe_row.dart';
+import 'package:kadi/features/recettes/ui/recipe_tile.dart';
 import 'package:kadi/features/recettes/ui/revue_row.dart';
 import 'package:kadi/features/recettes/ui/revue_screen.dart';
 import 'package:material_ui/material_ui.dart';
@@ -233,6 +234,42 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text(StringsFr.aucuneRecetteTrouvee), findsOneWidget);
     await tester.tap(find.byTooltip(StringsFr.effacerLeTexte));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecipeRow), findsNWidgets(4));
+  });
+
+  testWidgets('vue grille : 4 tuiles, le rond sélectionne, la tuile ouvre '
+      'la fiche ; la vue tient au changement d’onglet', (tester) async {
+    tallPhone(tester);
+    final db = await pumpKadi(tester);
+    await _openRecettes(tester);
+
+    await tester.tap(find.byTooltip(StringsFr.vueGrille));
+    await tester.pumpAndSettle();
+    expect(find.byType(RecipeTile), findsNWidgets(4));
+    expect(find.byType(RecipeRow), findsNothing);
+
+    final quiche = find.widgetWithText(RecipeTile, 'Quiche lorraine');
+    await tester.tap(
+      find.descendant(
+        of: quiche,
+        matching: find.byKey(const Key('recipe-tile-select-button')),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(await db.select(db.weekSelections).get(), hasLength(1));
+    expect(find.text(StringsFr.validerN(1)), findsOneWidget);
+
+    await tester.tap(quiche);
+    await tester.pumpAndSettle();
+    expect(find.byType(FicheRecetteScreen), findsOneWidget);
+    await backFromFiche(tester);
+
+    await _openListe(tester);
+    await _openRecettes(tester);
+    expect(find.byType(RecipeTile), findsNWidgets(4));
+
+    await tester.tap(find.byTooltip(StringsFr.vueListe));
     await tester.pumpAndSettle();
     expect(find.byType(RecipeRow), findsNWidgets(4));
   });

@@ -919,10 +919,11 @@ void main() {
         find.byWidgetPredicate((w) => w is FrequentBolt && w.name == name);
 
     Future<bool> isFrequent(AppDatabase db, String articleId) async {
-      final rows = await (db.select(db.frequents)..where(
-            (f) => f.articleId.equals(articleId) & f.deletedAt.isNull(),
-          ))
-          .get();
+      final rows =
+          await (db.select(db.frequents)..where(
+                (f) => f.articleId.equals(articleId) & f.deletedAt.isNull(),
+              ))
+              .get();
       return rows.isNotEmpty;
     }
 
